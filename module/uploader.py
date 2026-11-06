@@ -67,7 +67,7 @@ class TelegramUploader:
             self,
             download_object
     ):
-        self.downloader = download_object  # 下载器实例,网页记录经它统一落库。
+        self.downloader = download_object  # Downloader instance; web records are written through it.
         self.app = download_object.app
         self.client: pyrogram.Client = self.app.client
         self.loop: asyncio.AbstractEventLoop = download_object.loop
@@ -76,7 +76,7 @@ class TelegramUploader:
         self.is_premium: bool = self.client.me.is_premium
         self.current_task_num: int = 0
         self.is_bot_running = download_object.is_bot_running
-        self.pause_event = download_object.pause_event  # 复用下载器的全局暂停事件,保证下载与上传状态一致。
+        self.pause_event = download_object.pause_event  # Reuse the downloader's global pause event to keep download and upload states in sync.
         self.upload_queue: asyncio.Queue = asyncio.Queue()
         self.valid_link_cache = {}
         UploadTask.NOTIFY = download_object.done_notice
@@ -88,11 +88,11 @@ class TelegramUploader:
         return self.app.max_upload_retries
 
     def notify_waiters(self) -> None:
-        """通知排队等待上传名额的任务重新检查并发上限。
+        """Notify tasks waiting for an upload slot to recheck the concurrency limit.
 
-        上传任务用event.wait()阻塞等待名额,该事件只在一次上传结束(成功或失败)时被set;
-        网页面板修改上传并发后调用本方法,让队列中已排队的任务立刻按新的上限重新判断,
-        而不必等到下次上传结束或新命令进来才开始。
+        Upload tasks block on event.wait() while waiting for a slot; this event is set only when an upload finishes, successfully or not.
+        The web panel calls this method after changing upload concurrency so queued tasks can immediately recheck against the new limit,
+        rather than waiting for the next upload to finish or for a new command to arrive.
         """
         self.event.set()
 
@@ -109,23 +109,23 @@ class TelegramUploader:
         file_size: int = upload_task.file_size
         file_total_parts: int = upload_task.file_total_parts
         if not missing_parts:
-            # 所有分片都已上传,准备发送消息。
+            # All parts have been uploaded; prepare to send the message.
             log.info('All parts have been uploaded; sending the message...')
         else:
             log.info(f'Parts to upload: {len(missing_parts)}/{file_total_parts}.')
-        # 上传缺失的分片。
+        # Upload missing parts.
         for part_index in missing_parts:
             try:
-                # 上传单个分片。
+                # Upload one part.
                 part_size = 512 * 1024
                 await self.client.save_file(
                     path=path,
                     file_id=file_id,
                     file_part=part_index
                 )
-                # 更新上传记录。
+                # Update the upload record.
                 upload_task.update_file_part(part_index)
-                # 调用进度回调。
+                # Call the progress callback.
                 if progress:
                     current_size = min((part_index + 1) * part_size, file_size)
                     func = partial(
@@ -146,9 +146,9 @@ class TelegramUploader:
                     f'{_t(KeyWord.STATUS)}:{_t(UploadStatus.FAILURE)},'
                     f'{_t(KeyWord.REASON)}:"{e}"'
                 )
-                raise  # 重新抛出异常,由重试机制处理。
+                raise  # Re-raise the exception for the retry mechanism to handle.
 
-        # 检查是否所有分片都上传完成。
+        # Check whether all parts have been uploaded.
         if len(upload_task.file_part) != file_total_parts:
             raise Exception(f'Part upload is incomplete: {len(upload_task.file_part)}/{file_total_parts}.')
 
@@ -238,7 +238,7 @@ class TelegramUploader:
                 attributes=attributes,
                 mime_type=mime_type
             )
-        # 登记本文件的上传结果,供后续同文件任务(等待中的)复用其媒体引用直接发往各自频道。
+        # Register this file's upload result so later waiting tasks for the same file can reuse its media reference and send directly to their respective channels.
         entry = UploadTask.UPLOADING_KEYS.get(upload_task.file_path)
         if entry is not None:
             entry['media'] = media
@@ -247,7 +247,7 @@ class TelegramUploader:
         self.upload_queue.put_nowait((media, upload_task))
 
     async def send_media_worker(self):
-        # 在函数内部使用本地缓存。
+        # Use a local cache within the function.
         media_group_cache = {}  # media_group_id -> {message_id: media, ...}
         media_group_poll_tasks = {}  # media_group_id -> polling_task
 
@@ -272,7 +272,7 @@ class TelegramUploader:
                         media_group_id = media_group[0].media_group_id
                         if not media_group_id:
                             log.info('[Upload Worker] Warning: media_group_id is empty.')
-                            # 如果不是媒体组，则作为单条消息发送。
+                            # If it is not a media group, send it as a single message.
                             await self.send_media(media, upload_task)
                             continue
 
@@ -280,10 +280,10 @@ class TelegramUploader:
                         message_id = upload_task.message_id
 
                         if media_group_id not in media_group_cache:
-                            # 使用字典来存储，键为message_id，值为InputSingleMedia。
+                            # Store items in a dictionary keyed by message_id with InputSingleMedia values.
                             media_group_cache[media_group_id] = {}
 
-                        # 以message_id为键存储。
+                        # Store by message_id.
                         caption = upload_task.caption or ''
                         caption_entities = upload_task.caption_entities
                         entities = caption_entities or None
@@ -302,9 +302,9 @@ class TelegramUploader:
                             f'{_t(KeyWord.UPLOAD_TASK)}{prompt}')
                         upload_task.prompt = prompt
 
-                        # 如果该媒体组还没有轮询任务，启动一个。
+                        # Start a polling task if this media group does not have one yet.
                         if media_group_id not in media_group_poll_tasks:
-                            # 获取media_group中所有需要上传的message_id。
+                            # Get the message IDs of all items in the media_group that need to be uploaded.
                             message_ids = {m.id for m in media_group}
                             poll_task = asyncio.create_task(
                                 self.send_media_group(
@@ -321,7 +321,7 @@ class TelegramUploader:
 
                     except Exception as e:
                         log.info(f'[Upload Worker] Error processing media group; falling back to single-message sending. {_t(KeyWord.REASON)}: "{e}"')
-                        # 出错时回退到单条发送。
+                        # Fall back to sending a single message on error.
                         await self.send_media(media, upload_task)
 
                 else:
@@ -342,19 +342,19 @@ class TelegramUploader:
             media_group_poll_tasks: dict
     ):
         try:
-            # 原始频道ID:下载占用键为(原始chat_id, message_id),用于精确判定本相册成员是否仍在下载中。
+            # Original channel ID: download reservation keys are (original_chat_id, message_id), allowing an exact check for whether this album member is still downloading.
             origin_chat_id = getattr(getattr(media_group[0], 'chat', None), 'id', None) if media_group else None
             while self.is_bot_running:
-                # 全局暂停时不判定媒体组是否就绪、也不发送:避免暂停期间部分成员尚未被调度下载/上传,
-                # 被 has_pending_media_group_tasks 误判为"无待处理任务"而提前发出不完整的相册。恢复后继续按原逻辑判断。
+                # While globally paused, do not check whether the media group is ready or send it: some members may not yet have been scheduled for download/upload,
+                # and has_pending_media_group_tasks could incorrectly treat them as having no pending work and send an incomplete album. Resume the normal checks afterward.
                 if self.app.is_paused:
                     await self.pause_event.wait()
                     continue
-                await asyncio.sleep(1)  # 每1秒检查一次。
+                await asyncio.sleep(1)  # Check once per second.
 
-                # 检查两个条件：
-                # 1. 所有需要上传的文件都已创建UploadTask（没有文件还在下载中）。
-                # 2. 没有待处理的媒体组任务。
+                # Check two conditions:
+                # 1. An UploadTask has been created for every file to upload (no files are still downloading).
+                # 2. There are no pending media-group tasks.
                 created_count = UploadTask.get_media_group_task_count(message_ids)
                 no_pending = not UploadTask.has_pending_media_group_tasks(
                     message_ids=message_ids, origin_chat_id=origin_chat_id)
@@ -363,13 +363,13 @@ class TelegramUploader:
                 log.debug(
                     f'[Upload Worker] Media group "{media_group_id}": {created_count} task(s) created, pending tasks: {not no_pending}, media collected: {collected_count}.')
                 if created_count == collected_count and no_pending:
-                    # 所有需要上传的文件都已创建且没有待处理任务，发送已收集的媒体。
+                    # All files to upload have been created and no tasks are pending; send the collected media.
                     if media_group_id in media_group_cache:
-                        # 按照原始message_id的顺序排序。
+                        # Sort by the original message_id order.
                         sorted_media_group = []
                         for message in media_group:
                             msg_id = message.id
-                            # 只发送在message_ids中的（用户选择的范围）。
+                            # Send only IDs included in message_ids (the range selected by the user).
                             if msg_id in message_ids and msg_id in media_group_cache[media_group_id]:
                                 sorted_media_group.append(media_group_cache[media_group_id][msg_id])
 
@@ -386,7 +386,7 @@ class TelegramUploader:
                                 )
                                 prompt = f'[Media group] "{media_group_id}" upload complete; {len(sorted_media_group)} item(s).'
                                 console.log(f'{_t(KeyWord.UPLOAD_TASK)}{prompt}')
-                                # 将已发送的媒体组任务状态更新为SENT。
+                                # Update the sent media-group task status to SENT.
                                 for task in UploadTask.TASKS:
                                     if task.message_id in message_ids and task.status == UploadStatus.SUCCESS:
                                         task.status = UploadStatus.SENT
@@ -397,14 +397,14 @@ class TelegramUploader:
                         else:
                             log.warning(f'[Upload Worker] Media group "{media_group_id}" has no media to send.')
 
-                    # 清理缓存和轮询任务。
+                    # Clean up the cache and polling task.
                     if media_group_id in media_group_cache:
                         del media_group_cache[media_group_id]
                     if media_group_id in media_group_poll_tasks:
                         del media_group_poll_tasks[media_group_id]
-                    break  # 轮询结束。
+                    break  # Polling is complete.
                 else:
-                    # 还有文件在下载中或还在上传，继续等待。
+                    # Files are still downloading or uploading; keep waiting.
                     if created_count < len(message_ids):
                         log.debug(
                             f'[Upload Worker] Created {created_count}/{len(message_ids)} task(s) for media group "{media_group_id}"; waiting for downloads to finish...')
@@ -427,7 +427,7 @@ class TelegramUploader:
             media: raw.types.InputMediaDocument,
             upload_task: UploadTask
     ):
-        """发送单条媒体消息。"""
+        """Send a single media message."""
         try:
             chat_id = upload_task.chat_id
             caption = upload_task.caption or ''
@@ -516,7 +516,7 @@ class TelegramUploader:
                     )
                     if not target_chat:
                         raise ValueError
-                    # 缓存目标频道标题,让上传记录也能显示"标题(ID)"而非裸ID。
+                    # Cache the destination channel title so upload records show "title (ID)" instead of a bare ID.
                     ChatInfo.add(chat=target_chat, chat_id=chat_id)
                     self.valid_link_cache[link] = chat_id
             else:
@@ -537,7 +537,7 @@ class TelegramUploader:
 
         retry = 0
         reset = 0
-        # 锁定本次上传的重试上限,运行中修改配置不应让正在重试的任务按新上限被判死。
+        # Lock the retry limit for this upload; configuration changes during execution must not fail an active retry under the new limit.
         max_retry = self.max_upload_retries
         while retry < max_retry:
             try:
@@ -556,7 +556,7 @@ class TelegramUploader:
                     fp.remove(missing_part)
                 continue
             except FilePartLengthInvalid as e:
-                # 复用了历史会话的分片缓存,但服务器端已不存在这些分片,最终上报分片长度无效,需要丢弃缓存并换用新的file_id重传全部分片。
+                # The historical session's cached parts were reused, but the server no longer has them and the final part length is invalid. Discard the cache and use a new file_id to upload all parts again.
                 if reset >= max_retry:
                     upload_task.error_msg = str(e)
                     upload_task.status = UploadStatus.FAILURE
@@ -581,7 +581,7 @@ class TelegramUploader:
                     f'{_t(KeyWord.RETRY_TIMES)}:{retry + 1}/{max_retry},'
                     f'{_t(KeyWord.REASON)}:"{e}"'
                 )
-                retry += 1  # 只有非FilePartMissing异常才递增重试计数。
+                retry += 1  # Increment the retry count only for exceptions other than FilePartMissing.
                 if retry == max_retry:
                     upload_task.error_msg = str(e)
                     upload_task.status = UploadStatus.FAILURE
@@ -591,8 +591,8 @@ class TelegramUploader:
             upload_task: UploadTask
     ):
         file_path = upload_task.file_path
-        # 同一本地文件已在上传中:
-        # 等待主导任务完成,复用其已上传的媒体引用直接发往本任务频道,避免重复上传与源文件删除竞争。
+        # The same local file is already being uploaded:
+        # wait for the leading task to finish, then reuse its uploaded media reference for this task's channel, avoiding duplicate uploads and races over source-file deletion.
         if file_path in UploadTask.UPLOADING_KEYS:
             entry = UploadTask.UPLOADING_KEYS[file_path]
             await entry['event'].wait()
@@ -600,20 +600,20 @@ class TelegramUploader:
                     and entry['media'] is not None
                     and not (upload_task.is_media_group and upload_task.send_as_media_group)):
                 return await self.reuse_upload(upload_task, entry['media'])
-            UploadTask.UPLOADING_KEYS.pop(file_path, None)  # 主导任务失败,或本任务为媒体组(避免错组):本任务转为新的主导任务重新上传。
-        # 成为该文件的主导上传任务,登记以便后续同文件任务复用。
+            UploadTask.UPLOADING_KEYS.pop(file_path, None)  # The leading task failed, or this is a media-group task (to avoid mixing groups); this task becomes the new leader and uploads again.
+        # Make this task the file's leading upload and register it for later tasks uploading the same file to reuse.
         UploadTask.UPLOADING_KEYS[file_path] = {
             'event': asyncio.Event(),
             'media': None,
             'success': False
         }
         file_size = upload_task.file_size
-        # 全局暂停时不占用上传名额,等待恢复后再继续;名额满时按原逻辑等待空位。
+        # Do not occupy an upload slot while globally paused; wait for resume. If all slots are full, wait for one to become available as usual.
         while True:
             if self.app.is_paused:
                 await self.pause_event.wait()
                 continue
-            if self.current_task_num >= self.app.max_upload_task:  # v1.0.7 增加上传任务数限制。
+            if self.current_task_num >= self.app.max_upload_task:  # v1.0.7: Added an upload-task limit.
                 await self.event.wait()
                 self.event.clear()
                 continue
@@ -626,11 +626,11 @@ class TelegramUploader:
             description='📤',
             channel=str(upload_task.chat_id) if upload_task.chat_id else '',
             filename=truncate_display_filename(upload_file_name),
-            fullname=upload_file_name,  # 完整文件名供网页面板展示,filename按终端宽度截断仅供终端显示。
+            fullname=upload_file_name,  # Keep the full filename for the web panel; filename is truncated to the terminal width for display only.
             info=f'0.00B/{format_file_size}',
             total=file_size
         )
-        upload_task.task_id = task_id  # 记录进度条任务ID,网页面板据此关联该上传任务的实时进度。
+        upload_task.task_id = task_id  # Record the progress-bar task ID so the web panel can associate this upload with its live progress.
         _task = self.loop.create_task(
             self.resume_upload(
                 upload_task=upload_task,
@@ -663,22 +663,22 @@ class TelegramUploader:
             upload_task: UploadTask,
             media
     ):
-        """复用主导任务已上传的媒体引用,直接发往本任务频道,避免重复上传与源文件删除竞争。"""
+        """Reuse the leading task's uploaded media reference and send it directly to this task's channel, avoiding duplicate uploads and races over source-file deletion."""
         upload_task.status = UploadStatus.UPLOADING
         try:
             await self.send_media(media, upload_task)
-        except Exception as e:  # send_media 自身吞异常,此处仅为兜底。
+        except Exception as e:  # send_media handles exceptions internally; this is only a fallback.
             log.error(f'[Reused upload] Failed to send, {_t(KeyWord.REASON)}: "{e}"', exc_info=True)
             upload_task.status = UploadStatus.FAILURE
             upload_task.error_msg = str(e)
             return None
-        # send_media 内部只记录日志不抛异常,故以其是否把状态置为 SENT 判定成败。
+        # send_media only logs exceptions instead of raising them, so determine success by whether it set the status to SENT.
         if upload_task.status != UploadStatus.SENT:
             upload_task.status = UploadStatus.FAILURE
             upload_task.error_msg = 'Failed to send the reused uploaded media; see the log for details.'
             log.error(f'[Reused upload] Failed to send "{upload_task.file_path}".')
             return None
-        # 不做 UploadTask.TASKS.discard:与正常上传一致地保留在任务集中,供网页面板与统计表展示。
+        # Do not call UploadTask.TASKS.discard: like normal uploads, keep this task in the set for the web panel and statistics table.
         return None
 
     def __storage_upload(
@@ -687,7 +687,7 @@ class TelegramUploader:
             status: str,
             error_msg: str = ''
     ) -> None:
-        """登记上传记录,经下载器统一落库,失败只记日志不影响主流程。"""
+        """Register an upload record through the downloader; failures are logged only and do not affect the main flow."""
 
         file_name: str = upload_task.file_name or split_path(upload_task.file_path).get('file_name') or ''
         self.downloader.add_web_storage(
@@ -718,14 +718,14 @@ class TelegramUploader:
             self.current_task_num -= 1
             self.pb.progress.remove_task(task_id=task_id)
             self.event.set()
-            # 主导任务失败:通知等待者并清理,使后续同文件任务可重新上传。
+            # The leading task failed: notify waiters and clean up so a later task for the same file can upload it again.
             entry = UploadTask.UPLOADING_KEYS.get(upload_task.file_path)
             if entry is not None:
                 entry['success'] = False
                 entry['event'].set()
             UploadTask.UPLOADING_KEYS.pop(upload_task.file_path, None)
             if not isinstance(e, asyncio.CancelledError):
-                # 被取消的任务(如退出软件)不是终态,不登记记录。
+                # A canceled task (for example, when the application exits) is not terminal; do not register a record.
                 self.__storage_upload(
                     upload_task=upload_task,
                     status=UploadStatus.FAILURE,
@@ -736,8 +736,8 @@ class TelegramUploader:
         file_path: str = upload_task.file_path
         self.current_task_num -= 1
         self.pb.progress.remove_task(task_id=task_id)
-        # 成功后保留 UPLOADING_KEYS 条目(含已上传媒体引用),供等待中的同文件任务复用;
-        # 源文件删除仅由主导任务执行,复用任务不重复删除。
+        # On success, keep the UPLOADING_KEYS entry (including the uploaded media reference) for waiting tasks using the same file;
+        # only the leading task deletes the source file, so tasks reusing it must not delete it again.
         if upload_task.file_size < 10 * 1024 * 1024:
             if not safe_delete(os.path.join(UploadTask.DIRECTORY_NAME, f'{upload_task.sha256}.json')):
                 log.warning(f'Could not delete the upload cache manager file for "{os.path.basename(file_path)}".')

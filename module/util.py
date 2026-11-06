@@ -682,13 +682,13 @@ def gen_random_credential() -> dict:
 
 
 def gen_random_token(length: int = 32) -> str:
-    """生成指定长度的随机令牌。"""
+    """Generate a random token of the specified length."""
     chars: str = string.ascii_letters + string.digits
     return ''.join(random.choices(chars, k=length))
 
 
 def reset_web_session() -> str:
-    """重新生成并持久化网页面板的令牌,使此前下发的Cookie全部失效。"""
+    """Regenerate and save the web-panel token, invalidating all previously issued cookies."""
     token: str = gen_random_token()
     try:
         with open(file=TRMD_WEB_SESSION, mode='w', encoding='UTF-8') as f:
@@ -699,7 +699,7 @@ def reset_web_session() -> str:
 
 
 def get_web_session() -> str:
-    """读取网页面板令牌,不存在时生成并持久化,以便浏览器在软件重启后依然免密。"""
+    """Read the web-panel token, generating and saving one if absent so the browser remains logged in after a restart."""
     try:
         with open(file=TRMD_WEB_SESSION, mode='r', encoding='UTF-8') as f:
             token: str = f.read().strip()
@@ -718,17 +718,17 @@ def get_web_session() -> str:
 
 
 def is_nuitka() -> bool:
-    """检查是否处于Nuitka编译环境。"""
+    """Check whether the process is running in a Nuitka build."""
     return '__compiled__' in globals()
 
 
 def is_pyinstaller() -> bool:
-    """检查是否处于Pyinstaller编译环境。"""
+    """Check whether the process is running in a PyInstaller build."""
     return bool(getattr(sys, 'frozen', False))
 
 
 def is_frozen() -> bool:
-    """检查是否处于打包(冻结)环境,兼容Nuitka与Pyinstaller。"""
+    """Check whether the process is in a packaged (frozen) environment, supporting Nuitka and PyInstaller."""
     return is_pyinstaller() or is_nuitka()
 
 

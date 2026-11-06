@@ -538,7 +538,7 @@ class Web:
         return True
 
     def stop(self) -> None:
-        """停止网页面板。"""
+        """Stop the web panel."""
         srv = self.server
         if srv is None:
             return
@@ -1042,14 +1042,16 @@ class Web:
         return {'status': True}
 
     def __adjust_client_semaphores(self, download: int, upload: int) -> None:
-        """按新的并发数调整客户端传输信号量的额度。
+        """Adjust client transfer semaphore capacities to the new concurrency settings.
 
-        只调整额度而不是新建信号量:新建会丢弃正在传输所占用的名额,导致"旧的活跃数 + 新的额度"
-        叠加超限。调整额度时正在进行的传输仍在同一个闸门内,降低并发后新的传输会排队等待。
+        Adjust capacity rather than creating new semaphores: a replacement would discard the slots
+        held by active transfers, causing the old active count to be added to the new capacity and
+        potentially exceed the limit. With an adjusted semaphore, active transfers remain under the
+        same gate, and new transfers wait in the queue when concurrency is reduced.
 
         Args:
-            download: 最大下载并发数。
-            upload: 最大上传并发数。
+            download: Maximum download concurrency.
+            upload: Maximum upload concurrency.
         """
         client = getattr(self.app, 'client', None)
         if client is None:
@@ -1069,62 +1071,66 @@ class Web:
             log.warning(f'Failed to update concurrency semaphores at runtime, {_t(KeyWord.REASON)}: "{e}"')
 
     def __wake_upload_waiters(self) -> None:
-        """唤醒排队等待上传名额的任务,让它们按新的并发上限重新检查。
+        """Wake tasks waiting for upload slots so they can recheck the new concurrency limit.
 
-        上传任务用uploader.event.wait()阻塞等待名额,该事件只在一次上传结束(成功或失败)时被set;
-        因此只修改max_upload_task并不会唤醒它们,队列里已排队的任务会一直睡着,直到下次有上传结束
-        或新命令进来才开始——表现为"改了并发但当前上传数不变"。
+        Upload tasks block on uploader.event.wait() while waiting for a slot. This event is set only
+        when an upload finishes, successfully or not. Changing max_upload_task alone will not wake
+        them, so queued tasks remain asleep until another upload finishes or a new command arrives,
+        making it appear that the concurrency changed but the current upload count did not.
         """
         uploader = getattr(self.downloader, 'uploader', None)
         if uploader is None:
             return
         loop = getattr(self.downloader, 'loop', None)
         if loop is None or not loop.is_running():
-            return  # 没有运行中的事件循环就不会有任务在等待,且跨线程操作asyncio对象并不安全。
+            return  # Without a running event loop, no tasks can be waiting; accessing asyncio objects across threads is unsafe.
         try:
             loop.call_soon_threadsafe(lambda: uploader.notify_waiters())
         except Exception as e:
             log.warning(f'Failed to wake queued upload tasks, {_t(KeyWord.REASON)}: "{e}"')
 
     def set_config(self, directory=None, max_tasks=None, max_retries=None, confirm_directory: bool = False) -> dict:
-        """按网页面板的请求一次性修改多项配置。
+        """Apply multiple configuration changes at once, as requested by the web panel.
 
         Args:
-            directory: 新的保存目录;None表示本次不修改。
-            max_tasks: 形如{'download': int, 'upload': int}的并发数;None表示本次不修改。
-            max_retries: 形如{'download': int, 'upload': int}的重试次数;None表示本次不修改。
-            confirm_directory: 目录不存在时是否已确认创建(False则先返回need_confirm由前端二次确认)。
+            directory: New save directory; None means no change this time.
+            max_tasks: Concurrency values in the form {'download': int, 'upload': int}; None means no change this time.
+            max_retries: Retry counts in the form {'download': int, 'upload': int}; None means no change this time.
+            confirm_directory: Whether creation of a missing directory has been confirmed (if False,
+                return need_confirm first so the frontend can ask for confirmation).
 
         Returns:
-            dict: status为是否成功,失败时e_code为失败原因(多项问题时以全角分号分隔);
-                目录待确认时额外返回need_confirm为True。
+            dict: status indicates success; e_code contains the failure reason (multiple errors are
+                separated by semicolons). If directory creation needs confirmation, also return
+                need_confirm as True.
         """
         if self.app is None:
             return {'status': False, 'e_code': 'Configuration is not loaded, so it cannot be changed'}  # The frontend adds the final period.
         error_parts: list = []
-        need_confirm: bool = False  # 目录不存在;待其它错误都排除后再请求前端二次确认。
+        need_confirm: bool = False  # The directory is missing; request frontend confirmation only after other errors are ruled out.
         tasks = self.__check_number_pair(max_tasks, 1, 10, 'Concurrent task count', 'must be an integer from 1 to 10', error_parts)
         retries = self.__check_number_pair(max_retries, 1, None, 'Retry count', 'must be greater than 0', error_parts)
         if directory is not None:
             checked: dict = self.__check_save_directory(directory, allow_create=confirm_directory)
             if checked.get('need_confirm'):
-                need_confirm = True  # 目录不存在不是错误,先不与其它错误一起返回。
+                need_confirm = True  # A missing directory is not an error; do not return it with other errors yet.
             elif not checked.get('status'):
                 error_parts.append(checked.get('e_code') or 'The save directory is invalid.')
         if error_parts:
-            # 存在不合法的项:先让用户改正,此时不提示创建目录(有一项不合法就一项都不改)。
+            # If any item is invalid, let the user fix it first; do not offer to create the directory or apply any changes.
             return {'status': False, 'e_code': '; '.join(error_parts)}
         if need_confirm:
-            # 其它项均合法,仅目录不存在:此时不落盘、不创建,交回前端二次确认后再提交。
+            # All other items are valid and only the directory is missing; do not save or create it yet.
+            # Return to the frontend for confirmation before applying the change.
             return {'status': False, 'need_confirm': True, 'e_code': f'The directory "{directory}" does not exist. Create it?'}
-        save_config: dict = copy.deepcopy(self.app.config)  # 先在副本上改动:落盘失败时原配置不受影响。
+        save_config: dict = copy.deepcopy(self.app.config)  # Edit a copy first so a failed save does not affect the original configuration.
         if directory is not None:
             save_config['save_directory'] = directory
         if tasks is not None:
             save_config['max_tasks'] = tasks
         if retries is not None:
             save_config['max_retries'] = retries
-        if not self.app.save_config(save_config):  # 多项改动合并后,整个请求只在这里写一次配置文件。
+        if not self.app.save_config(save_config):  # Combine all changes and write the configuration file only once for this request.
             return {'status': False, 'e_code': 'Failed to save the configuration file. Please try again later.'}  # The frontend adds the final period.
         self.app.config = save_config
         if directory is not None:
@@ -1133,7 +1139,7 @@ class Web:
             self.app.max_download_task = tasks['download']
             self.app.max_upload_task = tasks['upload']
             self.__adjust_client_semaphores(tasks['download'], tasks['upload'])
-            self.__wake_upload_waiters()  # 提高上传并发后,排队中的任务才会重新检查额度并开始上传。
+            self.__wake_upload_waiters()  # Wake queued tasks so they can recheck capacity and start after upload concurrency increases.
         if retries is not None:
             self.app.max_download_retries = retries['download']
             self.app.max_upload_retries = retries['upload']
@@ -1145,7 +1151,7 @@ class Web:
         return {'status': True}
 
     def get_upload_tasks(self, tasks: Union[list, None] = None) -> list:
-        """获取上传任务的概要信息,并按进度条任务ID补全上传进度。"""
+        """Get upload-task summaries and fill in progress using progress-bar task IDs."""
         result: list = []
         live: dict = {}
         for item in tasks if tasks is not None else self.get_tasks():
@@ -1158,7 +1164,7 @@ class Web:
                 size: str = MetaData.suitable_units_display(task.file_size)
                 info: str = progress.get('info', '')
                 if not info and done:
-                    info = f'{size}/{size}'  # 进度条任务已在完成时移除,用文件自身大小回填。
+                    info = f'{size}/{size}'  # The progress-bar task has been removed on completion; use the file's size as a fallback.
                 result.append({
                     'file': task.file_name,
                     'path': task.file_path,
@@ -1167,7 +1173,7 @@ class Web:
                     'size': size,
                     'size_byte': int(task.file_size),
                     'status': _t(str(status)),
-                    'state': str(status),  # 原始状态,供网页面板区分上传中、已完成、失败。
+                    'state': str(status),  # Raw status, used by the web panel to distinguish uploading, completed, and failed.
                     'task_id': getattr(task, 'task_id', None),
                     'completed': progress.get('completed', task.file_size if done else 0),
                     'percent': progress.get('percent', 100.0 if done else 0.0),
@@ -1183,18 +1189,19 @@ class Web:
 
     @staticmethod
     def get_summary(links: list, tasks: list) -> dict:
-        """汇总所有任务的总体进度。
+        """Summarize overall progress across all tasks.
 
-        总量取未失败成员的字节之和(包含排队、已完成、跳过),
-        而不是只统计正在下载的任务,避免总进度随着任务开始下载而不断变大;
-        彻底失败(重试耗尽)的成员不再计入总量,避免进度被永久拉低。
+        The total is the combined size of all non-failed members (queued, completed, and skipped),
+        rather than only currently downloading tasks, so the total does not keep increasing as
+        tasks start. Permanently failed members (retries exhausted) are excluded to prevent them
+        from permanently lowering progress.
 
         Args:
-            links: get_link_progress返回的链接进度。
-            tasks: 进度条中正在下载的任务。
+            links: Link progress returned by get_link_progress.
+            tasks: Tasks currently shown in the progress bar.
 
         Returns:
-            dict: 总体进度。
+            dict: Overall progress.
         """
         live: dict = {task.get('id'): task for task in tasks}
         completed: int = 0
@@ -1205,9 +1212,9 @@ class Web:
                 state: str = str(member.get('state') or '')
                 note: str = str(member.get('note') or '')
                 if state == DownloadStatus.FAILURE:
-                    continue  # 彻底失败的成员不再计入总量与速度,避免进度被拉低或无法归零。
+                    continue  # Exclude permanently failed members from totals and speed so they do not lower progress or prevent it from reaching zero.
                 if state == DownloadStatus.SKIP and note:
-                    continue  # 不支持或被忽略的类型(已取消)的跳过成员不再计入总量,因为它们本就不会被下载;文件已存在(已下载)的跳过不带note,仍计入总量。
+                    continue  # Exclude unsupported or ignored (cancelled) items because they will not be downloaded; skipped files that already exist have no note and remain in the total.
                 size: int = int(member.get('size_byte') or 0)
                 total += size
                 if state in (DownloadStatus.SUCCESS, DownloadStatus.SKIP):
@@ -1231,10 +1238,11 @@ class Web:
 
     @staticmethod
     def format_channel(channel: str, display: str = '') -> str:
-        """格式化频道的显示名称,有标题时显示为"标题(显示值)"。
+        """Format a channel's display name, showing "title (display value)" when a title is available.
 
-        channel为标题缓存键(下载流程以小写口径写入缓存),display为括号内的显示值,
-        默认同channel;传入时用于保留链接中的原始大小写,与网页面板存储记录一致。
+        channel is the title-cache key (the download flow stores it in lowercase); display is the
+        value in parentheses and defaults to channel. Pass it to preserve the original casing from
+        the link, matching web-panel history records.
         """
         if not channel or channel == Web.UNGROUPED:
             return Web.UNGROUPED
@@ -1243,7 +1251,7 @@ class Web:
         return f'{title}({_display})' if title else _display
 
     def get_tasks(self) -> list:
-        """读取进度条中正在进行的任务。"""
+        """Read tasks currently in progress in the progress bar."""
         tasks: list = []
         for task in self.progress.tasks:
             item: dict = {
@@ -1264,24 +1272,26 @@ class Web:
         return tasks
 
     def snapshot(self, section: str = '') -> dict:
-        """生成供网页面板展示的进度数据。
+        """Generate progress data for display in the web panel.
 
-        section为前端当前所在的板块:links(链接成员数组)仅下载板块需要,
-        notices仅通知板块需要,按板块下发,避免停在其他板块时每秒白传大数据;
-        计数、进度条、上传任务、监听、暂停状态等体积小且顶栏常驻,恒发。
-        不带section参数时(旧版页面)按全量返回,保持兼容。
+        section is the frontend's current section: only the Downloads section needs links (the
+        member arrays), and only the Notices section needs notices. Send these large payloads only
+        to their respective sections instead of transferring them every second while another
+        section is open. Small, persistent header data (counts, progress bars, uploads, listeners,
+        and pause state) is always sent. When section is omitted, return everything for compatibility
+        with older pages.
         """
-        need_links: bool = section in ('', 'download')  # 成员数组是快照里最大的数据,只有下载页用得到。
-        need_notices: bool = section in ('', 'notice')  # 通知同样是大块数据,只有通知页用得到。
+        need_links: bool = section in ('', 'download')  # Member arrays are the largest part of the snapshot and are only needed on the Downloads page.
+        need_notices: bool = section in ('', 'notice')  # Notices are also a large payload and are only needed on the Notices page.
         try:
             all_tasks: list = self.get_tasks()
             uploads: list = self.get_upload_tasks(tasks=all_tasks)
             upload_ids: set = {item.get('task_id') for item in uploads if item.get('task_id') is not None}
-            tasks: list = [item for item in all_tasks if item.get('id') not in upload_ids]  # 上传进度条任务不纳入下载统计。
+            tasks: list = [item for item in all_tasks if item.get('id') not in upload_ids]  # Exclude upload progress-bar tasks from download statistics.
             result: dict = {
                 'count': self.get_count(),
-                'is_paused': bool(self.app.is_paused) if self.app else False,  # 全局暂停状态,供前端展示与切换。
-                'outer_links': self.get_outer_links(),  # 顶栏菜单使用的外部链接。
+                'is_paused': bool(self.app.is_paused) if self.app else False,  # Global pause state, displayed and toggled by the frontend.
+                'outer_links': self.get_outer_links(),  # External links used by the header menu.
                 'save_directory': self.app.save_directory if self.app else '',
                 'max_tasks': {
                     'download': self.app.max_download_task if self.app else 3,
@@ -1299,7 +1309,7 @@ class Web:
             if need_links:
                 links: list = self.get_link_progress()
                 result['summary'] = self.get_summary(links=links, tasks=tasks)
-                result['queue'] = sum(link.get('remaining', 0) for link in links)  # 所有链接待下载的消息总数。
+                result['queue'] = sum(link.get('remaining', 0) for link in links)  # Total number of messages remaining to download across all links.
                 result['links'] = links
             if need_notices:
                 result['notices'] = self.get_notices()
@@ -1308,7 +1318,7 @@ class Web:
             log.debug(f'Failed to generate progress data, {_t(KeyWord.REASON)}:"{e}"')
             result: dict = {
                 'count': {'success': 0, 'failure': 0, 'skip': 0},
-                'is_paused': bool(self.app.is_paused) if self.app else False,  # 全局暂停状态,供前端展示与切换。
+                'is_paused': bool(self.app.is_paused) if self.app else False,  # Global pause state, displayed and toggled by the frontend.
                 'outer_links': self.get_outer_links(),
                 'save_directory': self.app.save_directory if self.app else '',
                 'max_tasks': {

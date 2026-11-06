@@ -318,7 +318,7 @@ function linkBlock(link, live) {
     for (var i = 0; i < members.length; i++) {
         var member = members[i];
         var task = member.state === 'downloading' ? live[member.task_id] : null;
-        html += task ? taskRow(task) : memberRow(member);  // 下载中的成员直接复用进度条任务行。
+        html += task ? taskRow(task) : memberRow(member);  // Downloading members reuse the task row with its progress bar.
     }
     if (members.length === 0) {
         html += '<div class="more">No messages for this link.</div>';
@@ -723,10 +723,10 @@ function renderListeners(listeners) {
     return forward.length + download.length;
 }
 
-/* 通知页:展示通知中心登记的下载、上传、转发通知。
-   每条通知按类型归入对应选项卡,内容列展示具体信息,创建者列展示任务创建者,时间列为登记时刻。 */
+/* Notification page: show download, upload, and forwarding notices registered by the notification center.
+   Notices are placed in tabs by type; the content column shows details, the creator column shows who created the task, and the time column shows when it was registered. */
 function noticeRow(notice) {
-    // 通知内容可能含换行(如转发失败的原因说明),转为<br>保留原文排版。
+    // Notice content may contain line breaks (such as a forwarding failure reason); convert them to <br> to preserve the original layout.
     return '<div class="task-row notice-row">' +
         '<span class="cell-name notice-text">' + esc(notice.text).replace(/\n/g, '<br>') + '</span>' +
         '<span class="cell-name"><span class="fname" title="' + escAttr(notice.owner_name) + '">' +
@@ -735,8 +735,8 @@ function noticeRow(notice) {
         '</div>';
 }
 
-/* 通知结构指纹:序号 + 登记时刻 + 内容。纳入序号:同秒且内容相同的通知也能区分,
-   新通知插入或旧通知被裁掉时序号整体位移,指纹必然变化,不会漏渲染。 */
+/* Notice structure fingerprint: index + registration time + content. Including the index distinguishes notices with identical content and timestamps,
+   and ensures the fingerprint changes when a new notice is inserted or an old one is trimmed, preventing missed renders. */
 function noticeStructKey(notices) {
     var parts = [];
     for (var i = 0; i < notices.length; i++) {
@@ -745,14 +745,14 @@ function noticeStructKey(notices) {
     return parts.join(';');
 }
 
-var lastNoticeKey = null;  // 上次渲染的通知指纹,内容不变则跳过重建。(初始为 null 而非 '',否则无通知时指纹也是空串,会被误判为"未变化"导致空态永远不渲染)
+var lastNoticeKey = null;  // Fingerprint of the last rendered notices; skip rebuilding when unchanged. (Initially null rather than '', otherwise an empty notice list would have an empty fingerprint and be mistaken as "unchanged," so the empty state would never render.)
 
 function renderNotices(notices) {
     var data = notices || {};
     var items = data[currentNotice] || [];
     var key = currentNotice + '#' + noticeStructKey(items);
     if (key === lastNoticeKey) {
-        return;  // 当前选项卡的通知没有变化,保持已有DOM。
+        return;  // No notices changed in the current tab; keep the existing DOM.
     }
     lastNoticeKey = key;
     var html = '';
@@ -770,9 +770,9 @@ function applyNoticeTab() {
         var active = tabs[i].getAttribute('data-notice') === currentNotice;
         tabs[i].className = active ? 'tab active' : 'tab';
     }
-    lastNoticeKey = null;  // 切换选项卡后强制重绘,避免被指纹判定为"未变化"而跳过。
-    // 缓存的快照若没有notices字段,说明它是为其他板块拉取的(刚切到通知页、强制刷新尚未返回),
-    // 此时跳过渲染保留旧内容,避免刷新到达前闪一下空态;刷新返回后由render正常绘制。
+    lastNoticeKey = null;  // Force a redraw after switching tabs so the fingerprint does not mark it as "unchanged" and skip it.
+    // If the cached snapshot has no notices field, it was fetched for another section (we just switched to notifications and the forced refresh has not returned yet).
+    // Skip rendering for now and keep the old content to avoid a brief empty state before the refresh arrives; render will update it when the response is received.
     if (lastSnapshot && lastSnapshot.notices) {
         renderNotices(lastSnapshot.notices);
     }
@@ -796,12 +796,12 @@ function bindNoticeTabs() {
     }
 }
 
-/* 记录页:展示数据库中的下载与上传历史。
-   文件是否还存在由后端在读取时实时校验,不存在的条目已被丢弃,故前端只负责展示。
-   扁平表格:频道与链接作为列,按频道、链接归类排序,同一归类内保持接口返回的新旧顺序。 */
-var STORAGE_TABS = ['download', 'upload'];  // 记录页的选项卡:下载、上传。
-var STORAGE_KEY = 'trmd_storage';  // 记录页选项卡的本地存储键。
-var STORAGE_POLL_INTERVAL_MS = 3000;  // 记录页的轮询间隔,比进度页稀疏,避免频繁查询数据库。
+/* History page: show download and upload history from the database.
+   The backend checks in real time when reading whether files still exist and discards missing entries, so the frontend only displays the results.
+   Flat table: channel and link are columns, sorted by channel and link; entries in each group retain the API's returned order from newest to oldest. */
+var STORAGE_TABS = ['download', 'upload'];  // History page tabs: downloads and uploads.
+var STORAGE_KEY = 'trmd_storage';  // Local storage key for the history page tab.
+var STORAGE_POLL_INTERVAL_MS = 3000;  // History page polling interval; less frequent than the progress page to avoid querying the database too often.
 
 var STORAGE_EMPTY_TEXT = {
     download: 'No download records yet.',
@@ -832,8 +832,8 @@ var STORAGE_COLS = {
     upload:   '150px minmax(200px, 1fr) 100px 90px 90px 150px'
 };
 
-/* 筛选列定义:与STORAGE_HEADERS按序一一对应,kind决定筛选器类型(text文本/number数值/date日期)。
-   列key对应storageFilterValue的取值逻辑,值列表与单元格展示同源,用户看到什么就筛什么。 */
+/* Filter column definitions: correspond to STORAGE_HEADERS in order; kind determines the filter type (text/number/date).
+   Each column key maps to storageFilterValue's lookup logic, and the value list comes from the same source as the cell display, so filtering matches what the user sees. */
 var STORAGE_FILTER_COLS = {
     download: [
         {key: 'chat', kind: 'text'},
@@ -854,7 +854,7 @@ var STORAGE_FILTER_COLS = {
         {key: 'time', kind: 'date'}
     ]
 };
-var STORAGE_FILTER_OPS = {  // 自定义条件的运算符,按列类型分组。
+var STORAGE_FILTER_OPS = {  // Custom-condition operators, grouped by column type.
     text: [
         {op: 'contains', label: 'Contains'},
         {op: 'equals', label: 'Equals'},
@@ -875,37 +875,37 @@ var STORAGE_FILTER_OPS = {  // 自定义条件的运算符,按列类型分组。
         {op: 'between', label: 'Between'}
     ]
 };
-var STORAGE_FILTER_CUSTOM_LABEL = {  // 面板里切换自定义条件的入口文案。
+var STORAGE_FILTER_CUSTOM_LABEL = {  // Entry text for switching to custom conditions in the panel.
     text: 'Filter text',
     number: 'Filter numbers',
     date: 'Filter dates'
 };
-var STORAGE_FILTER_ARG_LABEL = {  // 自定义条件输入框的占位符。
+var STORAGE_FILTER_ARG_LABEL = {  // Placeholders for custom-condition inputs.
     text: 'Enter a keyword',
     number: 'Enter a value',
     date: 'Enter a date (YYYY-MM-DD)'
 };
-var STORAGE_FILTER_EMPTY = {  // 筛选后无结果时的空态文案。
+var STORAGE_FILTER_EMPTY = {  // Empty-state messages when filtering yields no results.
     download: 'No download records match the current filters.',
     upload: 'No upload records match the current filters.'
 };
-var STORAGE_FILTER_KEY = 'trmd_storage_filters';  // 筛选条件的本地存储键,刷新后仍生效。
-var FILTER_MB = 1024 * 1024;  // 大小列自定义条件按MB输入,保存时换算为字节与size_byte比较。
-/* 表头筛选按钮图标:未筛选为下拉箭头,筛选中为漏斗,由CSS切换显隐。 */
+var STORAGE_FILTER_KEY = 'trmd_storage_filters';  // Local storage key for filters, which remain active after refresh.
+var FILTER_MB = 1024 * 1024;  // Custom size filters are entered in MB and converted to bytes when saved for comparison with size_byte.
+/* Header filter-button icons: dropdown arrow when inactive, funnel when filtering; CSS toggles their visibility. */
 var STORAGE_FILTER_ICONS =
     '<svg class="hfilter-arrow" width="10" height="6" viewBox="0 0 10 6" aria-hidden="true">' +
     '<path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
     '<svg class="hfilter-funnel" width="11" height="10" viewBox="0 0 12 12" aria-hidden="true">' +
     '<path d="M1.5 2h9L7.6 6.6V10L4.4 8.4V6.6L1.5 2z" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linejoin="round"/></svg>';
-var storageFilters = {download: {}, upload: {}};  // 各选项卡独立保存筛选条件:列key -> {mode:'values',values} 或 {mode:'custom',op,value,value2}。
-var storageFilterPop = null;  // 当前打开的筛选面板,同时只存在一个。
-var storageFilterPanel = null;  // 面板打开期间的临时勾选状态,确定时才写回storageFilters,取消即丢弃。
-var storageFilterCol = '';  // 面板正在筛选的列key。
-var storageFilterInnerDown = false;  // 按下起点是否在面板内:排除输入框拖选文字时鼠标移出面板被误判为外点。
-var storageFilterEntries = null;  // 打开面板时算一次的当前列值集缓存,供matched计算与fillStorageFilterValues共用,避免重复遍历。
+var storageFilters = {download: {}, upload: {}};  // Each tab stores its own filters: column key -> {mode:'values',values} or {mode:'custom',op,value,value2}.
+var storageFilterPop = null;  // Currently open filter panel; only one can be open at a time.
+var storageFilterPanel = null;  // Temporary selections while the panel is open; write back to storageFilters on Apply and discard on Cancel.
+var storageFilterCol = '';  // Column key currently being filtered in the panel.
+var storageFilterInnerDown = false;  // Whether the pointer started inside the panel, preventing text selection dragged outside an input from being mistaken for an outside click.
+var storageFilterEntries = null;  // Cache the current column values when opening the panel; shared by matched and fillStorageFilterValues to avoid repeated traversal.
 
-/* 按当前存储选项卡(下载/上传)重建表头、列宽与拖拽把手。
-   下载保持原始 8 列(含链接、消息ID,按消息分组);上传为 6 列(无链接/消息ID,按频道分组)。 */
+/* Rebuild the header, column widths, and drag handles for the current storage tab (download/upload).
+   Downloads retain the original 8 columns (including link and message ID, grouped by message); uploads have 6 columns (no link/message ID, grouped by channel). */
 function applyStorageLayout() {
     var list = document.querySelector('.list-storage');
     if (!list) {
@@ -926,7 +926,7 @@ function applyStorageLayout() {
     }
     head.innerHTML = html;
     list.style.setProperty('--cols', STORAGE_COLS[currentStorage] || STORAGE_COLS.download);
-    initCols();  // 按新列数与列宽重建拖拽把手;旧把手随 head.innerHTML 一并销毁,不会重复。
+    initCols();  // Rebuild drag handles for the new column count and widths; old handles are removed with head.innerHTML and will not be duplicated.
 }
 
 function applyStorageTab() {
@@ -935,18 +935,18 @@ function applyStorageTab() {
         var active = tabs[i].getAttribute('data-storage') === currentStorage;
         tabs[i].className = active ? 'tab active' : 'tab';
     }
-    applyStorageLayout();  // 同步表头、列宽与拖拽把手到当前选项卡布局。
+    applyStorageLayout();  // Sync the header, column widths, and drag handles with the current tab layout.
 }
 
 function switchStorage(name) {
     if (STORAGE_TABS.indexOf(name) === -1) {
         name = 'download';
     }
-    closeStorageFilterPop();  // 表头即将重建,先关面板避免与新表头错位。
+    closeStorageFilterPop();  // Close the filter panel before rebuilding the header so it does not become misaligned with the new header.
     currentStorage = name;
     applyStorageTab();
     saveState(STORAGE_KEY, currentStorage);
-    storagePage.index = 0;  // 切换类型回到首页,避免停留在其他类型不存在的页号。
+    storagePage.index = 0;  // Return to the first page when switching types so the page index is valid for the new type.
     refreshStorage();
 }
 
@@ -959,13 +959,13 @@ function bindStorageTabs() {
     }
     var btn = document.getElementById('toggleStorage');
     if (btn) {
-        btn.onclick = refreshStorage;  // 手动刷新按钮。
+        btn.onclick = refreshStorage;  // Manual refresh button.
     }
 }
 
-/* 归类排序:先按频道、再按链接。
-   同一链接(同一消息或同一条评论)内,下载按消息ID升序:评论记录的message_id即评论ID,
-   故链接列呈现为从小到大;上传按记录ID降序。现代浏览器的Array.prototype.sort为稳定排序。 */
+/* Grouped sorting: first by channel, then by link.
+   Within the same link (message or comment), downloads sort by message ID ascending; for comments, message_id is the comment ID,
+   so the link column appears in ascending order. Uploads sort by record ID descending. Array.prototype.sort is stable in modern browsers. */
 function sortStorage(storages) {
     return storages.slice().sort(function (a, b) {
         var chatA = a.chat || '';
@@ -979,16 +979,16 @@ function sortStorage(storages) {
             if (linkA !== linkB) {
                 return linkA < linkB ? -1 : 1;
             }
-            return (Number(a.message_id) || 0) - (Number(b.message_id) || 0);  // 消息ID或评论ID升序。
+            return (Number(a.message_id) || 0) - (Number(b.message_id) || 0);  // Message or comment ID, ascending.
         }
         var idA = Number(a.storage_id) || 0;
         var idB = Number(b.storage_id) || 0;
-        return idB - idA;  // 上传:同频道内按记录ID降序,最新在前。
+        return idB - idA;  // Uploads: sort by record ID descending within the channel, newest first.
     });
 }
 
-/* 记录表是单层网格:第1列为纵向合并的频道单元格,第2~6列为每条存储的单元格。
-   同一频道的所有记录归并为一个分组,频道名只显示一次并跨其所有行(Excel合并单元格的效果)。 */
+/* The history table is a single-layer grid: column 1 is a vertically merged channel cell, and columns 2–6 hold each record's cells.
+   All records from the same channel form one group; the channel name appears once and spans all its rows (like merged cells in Excel). */
 function storageCell(column, row, cls, inner, title) {
     return '<div class="storage-cell' + cls + '" data-row="' + row + '"' +
         (title ? ' title="' + escAttr(title) + '"' : '') +
@@ -1001,7 +1001,7 @@ function storageGroupCell(group, startRow, len) {
     var badge = len > 1 ? '<span class="storage-msg-count">' + len + ' files</span>' : '';
     var linkHtml = '';
     if (currentStorage !== 'upload') {
-        var link = first.link || STORAGE_UPLOAD_LINK;  // 下载才有真实消息链接;上传无链接,显示"本地上传"。
+        var link = first.link || STORAGE_UPLOAD_LINK;  // Only downloads have real message links; uploads have none and display "Local upload".
         linkHtml = '<span class="storage-msg" title="' + escAttr(link) + '">' + esc(link) + '</span>';
     }
     return '<div class="storage-cell storage-channel-cell" style="grid-column:1;grid-row:' + startRow + ' / span ' + len + '">' +
@@ -1011,30 +1011,30 @@ function storageGroupCell(group, startRow, len) {
         '</div>';
 }
 
-/* 链接列展示成员自身链接:相册(媒体组)所有成员的记录共用整组任务链接(指向代表消息),
-   把链接中的消息ID替换为本行的消息ID即可还原成员自己的链接。
-   评论区链接带comment参数,该参数值即评论ID,同样替换为本行消息ID(评论区内媒体组同理)。
-   无法识别的链接形态或无消息ID时保持原样,不做臆测改写。 */
+/* The link column shows each member's own link: all records in an album (media group) share the task link for the entire group (pointing to its representative message),
+   so replacing the message ID in that link with this row's message ID restores the member's own link.
+   Comment links have a comment parameter whose value is the comment ID; replace it with this row's message ID as well (the same applies to media groups in comments).
+   Preserve unrecognized link formats or links without a message ID rather than guessing how to rewrite them. */
 function memberLink(rec) {
     var link = rec.link;
     if (!link) {
-        return STORAGE_UPLOAD_LINK;  // 上传存储无链接,显示"本地上传"。
+        return STORAGE_UPLOAD_LINK;  // Upload records have no link; display "Local upload".
     }
     var mid = rec.message_id;
     if (mid === undefined || mid === null || mid === '') {
         return link;
     }
-    // 普通消息链接:末尾一段为消息ID,替换为本行消息ID。
+    // Regular message link: the final segment is the message ID; replace it with this row's message ID.
     var m = String(link).match(/^(.*\/)(\d+)$/);
     if (m) {
         return m[2] === String(mid) ? link : m[1] + mid;
     }
-    // 评论区链接:comment参数值为评论ID,替换为本行消息ID。
+    // Comment link: the comment parameter value is the comment ID; replace it with this row's message ID.
     m = String(link).match(/^(.*[?&]comment=)(\d+)$/);
     if (m) {
         return m[2] === String(mid) ? link : m[1] + mid;
     }
-    return link;  // 无法识别的形态保持原样。
+    return link;  // Preserve unrecognized formats as-is.
 }
 
 function storageRowCells(item, row, position, groupStart) {
@@ -1043,7 +1043,7 @@ function storageRowCells(item, row, position, groupStart) {
     var cls = STORAGE_CLASS[state] || 'status-done';
     var extra = (groupStart ? ' group-start' : '') + (position % 2 ? ' alt' : '');
     var cells = '';
-    // 第2列:下载显示文件名,上传显示完整文件路径(本地上传更关注路径)。
+    // Column 2: show the filename for downloads and the full file path for uploads (the path is more useful for local uploads).
     var nameHtml = '<span class="ficon">' + (STORAGE_ICON[item.storage_type] || '📄') + '</span>';
     if (currentStorage !== 'upload') {
         nameHtml += '<span class="fname" title="' + escAttr(item.path || item.file) + '">' + esc(item.file) + '</span>';
@@ -1069,8 +1069,8 @@ function storageRowCells(item, row, position, groupStart) {
     return cells;
 }
 
-/* 记录结构指纹:记录ID + 状态,不含大小等展示字段。
-   文件被删导致记录消失、或新记录写入时指纹变化,才重建列表。 */
+/* History structure fingerprint: record ID + status, excluding display fields such as size.
+   Rebuild the list only when the fingerprint changes, such as when a record disappears because its file was deleted or a new record is written. */
 function storageStructKey(storages) {
     var parts = [];
     for (var i = 0; i < storages.length; i++) {
@@ -1079,13 +1079,13 @@ function storageStructKey(storages) {
     return parts.join(';');
 }
 
-var lastStorageKey = null;  // 上次渲染的记录指纹,内容不变则跳过重建。(初始为 null 而非 '',否则无记录时指纹也是空串,会被误判为"未变化"导致空态永远不渲染)
+var lastStorageKey = null;  // Fingerprint of the last rendered records; skip rebuilding when unchanged. (Initially null rather than '', otherwise an empty record list would have an empty fingerprint and be mistaken as "unchanged," so the empty state would never render.)
 
 function buildStorageRows(storages) {
-    var groups = groupStorage(storages);  // 已按频道分组并排序。
+    var groups = groupStorage(storages);  // Already grouped and sorted by channel.
     var html = '';
-    var row = 1;  // 网格行号从1开始。
-    var position = 0;  // 记录在整表中的序号,用于斑马纹。
+    var row = 1;  // Grid row numbers start at 1.
+    var position = 0;  // Record index in the full table, used for zebra striping.
     var g;
     var j;
     var items;
@@ -1101,10 +1101,10 @@ function buildStorageRows(storages) {
     return html;
 }
 
-var storageAll = [];  // 当前类型的全量记录(已按服务器返回排序)。
-var storagePage = {size: 100, index: 0};  // 分页状态:每页条数(0=不限)、当前页。
+var storageAll = [];  // All records for the current type (in the order returned by the server).
+var storagePage = {size: 100, index: 0};  // Pagination state: items per page (0 = unlimited) and current page.
 
-/* 记录分组键:按频道归类,同一频道的多条存储聚为一组(频道名跨行合并显示)。 */
+/* History group key: group by channel, combining multiple records from the same channel (the channel name spans rows). */
 function storageGroupKey(rec) {
     if (currentStorage !== 'upload') {
         if (rec.link) {
@@ -1115,7 +1115,7 @@ function storageGroupKey(rec) {
     return 'C:' + (rec.chat || UNGROUPED_NAME);
 }
 
-/* 组内最大 storage_id,用于组间排序(最新消息在前)。 */
+/* Maximum storage_id in a group, used to sort groups (newest messages first). */
 function maxStorageId(arr) {
     var m = 0;
     for (var i = 0; i < arr.length; i++) {
@@ -1127,10 +1127,10 @@ function maxStorageId(arr) {
     return m;
 }
 
-/* 把记录按归类分组:下载按消息(链接)分组,上传按频道分组。
-   组间一律按组内最大storage_id降序(最新在前),组内顺序由sortStorage决定。 */
+/* Group records by category: downloads by message (link), uploads by channel.
+   Sort all groups by their maximum storage_id in descending order (newest first); sort within each group using sortStorage. */
 function groupStorage(storages) {
-    var sorted = sortStorage(storages);  // 先按频道归类排序,保证同一归类的记录相邻。
+    var sorted = sortStorage(storages);  // Sort by channel/category first so records in the same category are adjacent.
     var groups = [];
     var index = {};
     for (var i = 0; i < sorted.length; i++) {
@@ -1149,16 +1149,16 @@ function groupStorage(storages) {
     return groups;
 }
 
-/* 按消息把记录切成连续块,供分页使用。 */
+/* Split records into contiguous message blocks for pagination. */
 function messageBlocksOf(storages) {
     return groupStorage(storages);
 }
 
-/* 把消息块切分为页:尽量装到 page_size,但单个消息(相册)绝不跨页拆分;
-   若某消息本身超过 page_size,则强制拉长当前页以完整显示它(下一页从该消息之后的消息开始)。 */
+/* Split message blocks into pages: fill up to page_size where possible, but never split a single message (album) across pages;
+   if a message itself exceeds page_size, extend the current page to show it in full (the next page starts with the following message). */
 function paginateGroupBlocks(blocks, pageSize) {
     var pages = [];
-    if (pageSize <= 0) {  // 不限:所有频道整块放入一页。
+    if (pageSize <= 0) {  // Unlimited: put all channel blocks on one page.
         var all = [];
         for (var k = 0; k < blocks.length; k++) {
             all = all.concat(blocks[k]);
@@ -1173,11 +1173,11 @@ function paginateGroupBlocks(blocks, pageSize) {
     for (var i = 0; i < blocks.length; i++) {
         var block = blocks[i];
         if (count > 0 && count + block.length > pageSize) {
-            pages.push(page);  // 放下一块会越界,先收尾本页,下一块从下一页开始。
+            pages.push(page);  // Adding the next block would exceed the limit; finish this page and start the next block on a new page.
             page = [];
             count = 0;
         }
-        page = page.concat(block);  // 整块放入(若页为空且本块超长,则强制拉长本页)。
+        page = page.concat(block);  // Add the whole block (if the page is empty and this block is oversized, extend the page to fit it).
         count += block.length;
     }
     if (page.length) {
@@ -1207,26 +1207,26 @@ function pageEnd(pages, index) {
 
 function renderStorage(storages) {
     storageAll = storages;
-    // 不在此重置页号:轮询刷新时保持用户所在页;切换类型/改每页条数时由对应动作重置。
+    // Do not reset the page index here: keep the current page during polling; the corresponding actions reset it when switching types or changing page size.
     renderStoragePage();
 }
 
-/* 页面内容指纹:记录结构 + 页号 + 每页条数 + 当前tab。
-   空态与非空态共用同一口径,确保切换tab后内容变化一定能触发重建。 */
+/* Page content fingerprint: record structure + page index + page size + current tab.
+   Use the same basis for empty and non-empty states so content changes always trigger a rebuild after switching tabs. */
 function storagePageKey(pageStorages) {
     return storageStructKey(pageStorages) + '#' + storagePage.index + '#' + storagePage.size + '#' + currentStorage + '#' + storageFilterKey();
 }
 
 function renderStoragePage() {
-    var filtered = filterStorage(storageAll);  // 筛选层:先按各列条件过滤,再走原有的分组与分页。
+    var filtered = filterStorage(storageAll);  // Filtering layer: apply each column's conditions first, then use the existing grouping and pagination.
     var blocks = messageBlocksOf(filtered);
     var pages = paginateGroupBlocks(blocks, storagePage.size);
     var count = pages.length;
     var body = document.getElementById('storage');
     if (count === 0) {
-        /* 空态也走指纹判定并回写lastStorageKey:否则切到空tab(如无记录的上传)再切回时,
-           lastStorageKey仍停留在前一个tab的指纹,内容看似"未变化"而跳过重建,
-           下载存储表会停留在空态,必须手动刷新才恢复。 */
+        /* Apply fingerprint checking to the empty state and update lastStorageKey as well: otherwise, after switching to an empty tab (such as uploads with no records) and back,
+           lastStorageKey would still hold the previous tab's fingerprint, making the content appear "unchanged" and skipping the rebuild;
+           the download history table would remain empty until manually refreshed. */
         var emptyKey = storagePageKey([]);
         if (emptyKey !== lastStorageKey) {
             lastStorageKey = emptyKey;
@@ -1240,7 +1240,7 @@ function renderStoragePage() {
         return;
     }
     if (storagePage.index >= count) {
-        storagePage.index = count - 1;  // 数据变少时回退到末页。
+        storagePage.index = count - 1;  // Fall back to the last page if the data shrinks.
     }
     if (storagePage.index < 0) {
         storagePage.index = 0;
@@ -1289,7 +1289,7 @@ function goStoragePage(delta) {
     renderStoragePage();
 }
 
-/* 同步每页条数下拉的显示值与高亮项,不触发渲染(供初始化使用)。 */
+/* Sync the page-size dropdown's displayed value and highlighted option without triggering a render (used during initialization). */
 function applyPageSizeLabel(size) {
     var valEl = document.getElementById('storagePageSizeVal');
     if (valEl) {
@@ -1307,7 +1307,7 @@ function applyPageSizeLabel(size) {
 
 function setStoragePageSize(size) {
     storagePage.size = size;
-    storagePage.index = 0;  // 改变每页条数回到首页。
+    storagePage.index = 0;  // Return to the first page when the page size changes.
     saveState('storagePageSize', size);
     applyPageSizeLabel(size);
     renderStoragePage();
@@ -1328,9 +1328,9 @@ function bindStoragePager() {
     if (wrap && btn && pop) {
         var saved = parseInt(localStorage.getItem('storagePageSize'), 10);
         if (!isNaN(saved) && (saved === 0 || (saved >= 20 && saved <= 500))) {
-            storagePage.size = saved;  // 仅在合法范围内恢复,避免脏值。
+            storagePage.size = saved;  // Restore only valid values to avoid invalid data.
         }
-        applyPageSizeLabel(storagePage.size);  // 仅同步显示,不触发渲染。
+        applyPageSizeLabel(storagePage.size);  // Sync the display only; do not trigger a render.
         btn.onclick = function (event) {
             event.stopPropagation();
             pop.hidden = !pop.hidden;
@@ -1355,14 +1355,14 @@ function bindStoragePager() {
     }
 }
 
-/* Excel式列筛选:在分组与分页之前插入过滤层,无筛选条件时恒等返回,现有链路一行不动。
-   每列条件独立保存,多列之间为AND;值列表与计数只反映其他列筛选后的可见记录。 */
+/* Excel-style column filtering: insert a filtering layer before grouping and pagination; when there are no filters, return the input unchanged and leave the existing flow untouched.
+   Store each column's conditions independently, with AND between columns; value lists and counts reflect records visible after filtering by the other columns. */
 function hasStorageFilter() {
     return Object.keys(storageFilters[currentStorage]).length > 0;
 }
 
-/* 字节数转可读大小:与后端MetaData.suitable_units_display的十进制口径一致(如1.50MB),
-   供大小列筛选值列表显示,保证用户看到的就是筛出来的。 */
+/* Convert bytes to a readable size using the same decimal units as backend MetaData.suitable_units_display (for example, 1.50MB),
+   for the size-column filter list so the displayed values match what is filtered. */
 function suitableSizeText(byte) {
     var units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
     var values = [Number(byte) || 0];
@@ -1377,8 +1377,8 @@ function suitableSizeText(byte) {
     return values[values.length - 1].toFixed(2) + units[values.length - 1];
 }
 
-/* 筛选取值(原始值):与单元格展示同源,合并单元格的频道列取频道名,链接列取memberLink处理后的链接,
-   大小列取字节数、消息ID取数字,供自定义条件做数值比较。 */
+/* Filter values (raw): use the same source as the cell display; the merged channel column uses the channel name, and the link column uses the link processed by memberLink;
+   the size column uses bytes and the message ID uses a number for numeric comparisons in custom conditions. */
 function storageFilterValue(rec, key) {
     if (key === 'chat') {
         return rec.chat || UNGROUPED_NAME;
@@ -1410,7 +1410,7 @@ function storageFilterValue(rec, key) {
     return '';
 }
 
-/* 筛选展示文本:与单元格最终显示一致,空值按破折号呈现,大小列按十进制单位格式化。 */
+/* Filter display text: match the final cell display, render empty values as a dash, and format the size column in decimal units. */
 function storageFilterText(rec, key) {
     if (key === 'size') {
         return suitableSizeText(rec.size_byte);
@@ -1442,7 +1442,7 @@ function defaultFilterOp(kind) {
     return ops[0].op;
 }
 
-/* 过滤层:各列条件求交集,任一列不满足即淘汰;无条件时原样返回。 */
+/* Filtering layer: intersect conditions across columns and exclude records that fail any column; return the input unchanged when there are no conditions. */
 function filterStorage(storages) {
     var filters = storageFilters[currentStorage];
     var keys = Object.keys(filters);
@@ -1467,7 +1467,7 @@ function matchStorageFilter(rec, key, cond) {
     return values.indexOf(storageFilterText(rec, key)) !== -1;
 }
 
-/* 自定义条件匹配:文本忽略大小写,数值按字节数比较,日期按时间字符串字典序比较。 */
+/* Custom-condition matching: case-insensitive text, numeric comparison by byte count, and date comparison by lexicographic order of time strings. */
 function matchCustomFilter(value, kind, cond) {
     var op = cond.op;
     if (kind === 'number') {
@@ -1491,7 +1491,7 @@ function matchCustomFilter(value, kind, cond) {
         var from = String(cond.value || '');
         var to = String(cond.value2 || '');
         if (op === 'equals') {
-            return text.indexOf(from) === 0;  // 日期前缀匹配:'2026-10-15'即可匹配当天全部记录。
+            return text.indexOf(from) === 0;  // Match a date prefix: '2026-10-15' matches all records from that day.
         }
         if (op === 'after') {
             return text > from;
@@ -1528,8 +1528,8 @@ function matchCustomFilter(value, kind, cond) {
     return true;
 }
 
-/* 某列的值统计:只统计其他列筛选后的可见记录,与Excel的上下文计数行为一致。
-   数值列同时保留原始值作排序键,避免按显示文本排序时出现'10.00MB'排在'2.00MB'前的问题。 */
+/* Value counts for a column: count only records visible after filtering by the other columns, matching Excel's contextual-count behavior.
+   Keep raw values as sort keys for numeric columns to prevent display-text sorting from placing '10.00MB' before '2.00MB'. */
 function storageValueCounts(key) {
     var filters = storageFilters[currentStorage];
     var keys = Object.keys(filters);
@@ -1555,7 +1555,7 @@ function storageValueCounts(key) {
     return entries;
 }
 
-/* 筛选条件的序列化指纹:条件变化必须触发重建,否则内容看似未变而跳过渲染。 */
+/* Serialized fingerprint of the filters: changes to conditions must trigger a rebuild, or rendering may be skipped because the content appears unchanged. */
 function storageFilterKey() {
     var filters = storageFilters[currentStorage];
     var keys = Object.keys(filters).sort();
@@ -1575,7 +1575,7 @@ function saveStorageFilters() {
     saveState(STORAGE_FILTER_KEY, JSON.stringify(storageFilters));
 }
 
-/* 恢复上次的筛选条件:逐项校验结构与列key,脏数据整项丢弃,避免损坏的本地存储拖垮记录页。 */
+/* Restore the previous filters: validate each item's structure and column key, discarding malformed entries entirely so corrupted local storage cannot break the history page. */
 function loadStorageFilters() {
     var saved = {};
     try {
@@ -1618,7 +1618,7 @@ function loadStorageFilters() {
     }
 }
 
-/* 同步表头筛选按钮的激活态:有条件的列显示漏斗并高亮,不改动表头结构。 */
+/* Sync header filter-button active states: columns with conditions show a highlighted funnel; do not change the header structure. */
 function refreshStorageFilterButtons() {
     var buttons = document.querySelectorAll('.list-storage .list-head .hfilter');
     for (var i = 0; i < buttons.length; i++) {
@@ -1627,27 +1627,27 @@ function refreshStorageFilterButtons() {
     }
 }
 
-/* 把面板临时状态写回筛选条件并重渲染;无有效条件时视为清除该列筛选。 */
+/* Commit the panel's temporary state to the filters and rerender; treat an empty condition as clearing that column's filter. */
 function commitStorageFilterPanel() {
     var panel = storageFilterPanel;
     var pop = storageFilterPop;
     var customView = pop ? pop.querySelector('.hfilter-custom') : null;
     var cond = null;
     if (panel.isCustom && customView && customView.hidden) {
-        // 以自定义条件打开且未进入自定义编辑视图:值列表勾选仅作展示,确定即保持原条件,不降级为values。
+        // Opened with a custom condition but still outside the custom editor: the checked values are display-only, so Apply keeps the original condition instead of downgrading it to values.
         cond = storageFilters[currentStorage][storageFilterCol];
     } else if (customView && !customView.hidden && panel.custom.value !== '') {
         var col = storageFilterColDef(storageFilterCol);
         var value = panel.custom.value;
         var value2 = panel.custom.value2;
-        if (col && col.unit === 'MB') {  // 大小列按MB输入,换算为字节后与size_byte比较。
+        if (col && col.unit === 'MB') {  // Size-column input is in MB; convert to bytes for comparison with size_byte.
             value = String((Number(value) || 0) * FILTER_MB);
             value2 = String((Number(value2) || 0) * FILTER_MB);
         }
         cond = {mode: 'custom', op: panel.custom.op, value: value, value2: value2};
     } else if (panel.values && panel.values.length &&
         !sameStorageFilterValues(panel.values, panel.all || [])) {
-        // 勾选值与全量可见值一致时等同于本列无筛选,不写回条件,图标恢复箭头。
+        // If all visible values are checked, treat the column as unfiltered; do not save a condition and restore the arrow icon.
         cond = {mode: 'values', values: panel.values.slice()};
     }
     if (cond) {
@@ -1658,7 +1658,7 @@ function commitStorageFilterPanel() {
     saveStorageFilters();
     closeStorageFilterPop();
     refreshStorageFilterButtons();
-    storagePage.index = 0;  // 条件变化回到首页,避免停留在已不存在的页号。
+    storagePage.index = 0;  // Return to the first page when conditions change so the page index remains valid.
     renderStoragePage();
 }
 
@@ -1669,18 +1669,18 @@ function closeStorageFilterPop() {
     storageFilterPop = null;
     storageFilterPanel = null;
     storageFilterCol = '';
-    storageFilterEntries = null;  // 释放面板期间的值集缓存。
+    storageFilterEntries = null;  // Release the cached value set used while the panel was open.
 }
 
-/* 打开某列的筛选面板:复制当前条件为临时状态,确定才写回,取消或面板外点击即丢弃。 */
+/* Open a column's filter panel: copy the current condition into temporary state and commit it only on Apply; discard it on Cancel or an outside click. */
 function openStorageFilterPop(button) {
     closeStorageFilterPop();
     var key = button.getAttribute('data-filter');
     storageFilterCol = key;
-    storageFilterEntries = storageValueCounts(key);  // 算一次,供下方matched与fillStorageFilterValues共用,避免重复遍历。
+    storageFilterEntries = storageValueCounts(key);  // Calculate once for both matched below and fillStorageFilterValues, avoiding repeated traversal.
     var cond = storageFilters[currentStorage][key];
     if (cond && cond.mode === 'custom') {
-        // custom 列打开时直接算好匹配值集,避免fillStorageFilterValues里再延迟判断(matchCustom冗余)。
+        // For a custom-filtered column, calculate the matching values now instead of deferring the redundant matchCustom check to fillStorageFilterValues.
         var mKind = storageFilterKind(key);
         var mVals = Object.keys(storageFilterEntries);
         var mC = {op: cond.op, value: cond.value, value2: cond.value2 || ''};
@@ -1697,7 +1697,7 @@ function openStorageFilterPop(button) {
         };
     } else {
         storageFilterPanel = {
-            values: cond && cond.values ? cond.values.slice() : null,  // null表示全选(无筛选)。
+            values: cond && cond.values ? cond.values.slice() : null,  // null means all values are selected (no filter).
             custom: {op: defaultFilterOp(storageFilterKind(key)), value: '', value2: ''}
         };
     }
@@ -1725,7 +1725,7 @@ function buildStorageFilterPop() {
     html += '<div class="hfilter-none" hidden>No matching values</div>';
     html += '</div>';
     html += '<div class="hfilter-custom" hidden>';
-    // 运算符下拉复用每页条数的自定义下拉结构(.pager-select),不用浏览器原生select。
+    // Reuse the custom page-size dropdown structure (.pager-select) for operators instead of the browser's native select.
     html += '<div class="pager-select hfilter-op">' +
         '<button type="button" class="pager-select-btn hfilter-op-btn">' +
         '<span class="pager-select-val hfilter-op-val"></span>' +
@@ -1750,7 +1750,7 @@ function buildStorageFilterPop() {
     return pop;
 }
 
-/* 同步运算符自定义下拉的显示值与选中态:显示文本取对应选项的标签。 */
+/* Sync the custom operator dropdown's displayed value and selected state; use the matching option's label as the display text. */
 function syncFilterOpDisplay(pop, op) {
     var val = pop.querySelector('.hfilter-op-val');
     var opts = pop.querySelectorAll('.hfilter-op-pop .pager-select-opt');
@@ -1767,10 +1767,10 @@ function syncFilterOpDisplay(pop, op) {
     }
 }
 
-/* 填充值列表:数值列按原始值排序,其余按展示文本排序;values为null(无筛选)时默认全选。 */
+/* Populate the value list: sort numeric columns by raw value and others by display text; select all by default when values is null (no filter). */
 function fillStorageFilterValues(pop) {
     var valuesBox = pop.querySelector('.hfilter-values');
-    var entries = storageFilterEntries || storageValueCounts(storageFilterCol);  // 优先复用打开时算好的缓存,避免重复遍历。
+    var entries = storageFilterEntries || storageValueCounts(storageFilterCol);  // Reuse the cache calculated when opening the panel to avoid repeated traversal.
     var kind = storageFilterKind(storageFilterCol);
     var values = Object.keys(entries);
     values.sort(function (a, b) {
@@ -1780,11 +1780,11 @@ function fillStorageFilterValues(pop) {
         return a < b ? -1 : (a > b ? 1 : 0);
     });
     var panel = storageFilterPanel;
-    panel.all = values.slice();  // 打开时的全量可见值集,复原(全部勾上)时据此判定为无筛选。
+    panel.all = values.slice();  // All values visible when the panel opened; use this to identify no filter when all are selected again.
     if (panel.values === null) {
-        panel.values = values.slice();  // 无筛选:打开即全选(custom列已在openStorageFilterPop算好matched,不会进此分支)。
+        panel.values = values.slice();  // No filter: select all on open (custom columns already have matched values from openStorageFilterPop and do not enter this branch).
     }
-    // custom 列:勾选项(当前条件匹配)排在前,未勾选的非匹配项排在后,便于一眼看清生效范围。
+    // Custom-filtered columns: put checked (currently matching) values first and unchecked, non-matching values afterward to make the active scope clear.
     if (panel.isCustom) {
         values = values.slice().sort(function (a, b) {
             var ia = panel.values.indexOf(a) !== -1 ? 0 : 1;
@@ -1806,7 +1806,7 @@ function fillStorageFilterValues(pop) {
     syncStorageFilterAllBox(pop);
 }
 
-/* (全选)复选框的三态:全勾选中、部分选中显示半选,与Excel一致。 */
+/* Three states for the (Select all) checkbox: checked when all are selected and indeterminate when partially selected, matching Excel. */
 function syncStorageFilterAllBox(pop) {
     var allBox = pop.querySelector('.hfilter-all-box');
     var items = pop.querySelectorAll('.hfilter-values .hfilter-item');
@@ -1825,7 +1825,7 @@ function syncStorageFilterAllBox(pop) {
     allBox.indeterminate = checked > 0 && checked < shown;
 }
 
-/* 增删面板临时状态中的一个值。 */
+/* Add or remove a value from the panel's temporary state. */
 function setStorageFilterValue(value, checked) {
     var values = storageFilterPanel.values;
     var at = values.indexOf(value);
@@ -1836,7 +1836,7 @@ function setStorageFilterValue(value, checked) {
     }
 }
 
-/* 勾选值与全量可见值完全一致:顺序无关,逐项比对。 */
+/* Check whether selected values exactly match all visible values, regardless of order. */
 function sameStorageFilterValues(selected, all) {
     if (selected.length !== all.length) {
         return false;
@@ -1851,7 +1851,7 @@ function sameStorageFilterValues(selected, all) {
     return true;
 }
 
-/* 切换搜索后可见项的勾选态:(全选)只作用于当前可见项,隐藏项保持原状。 */
+/* Update checked states of visible items after a search: (Select all) applies only to currently visible items; hidden items remain unchanged. */
 function toggleStorageFilterVisible(pop, checked) {
     var items = pop.querySelectorAll('.hfilter-values .hfilter-item');
     for (var i = 0; i < items.length; i++) {
@@ -1864,7 +1864,7 @@ function toggleStorageFilterVisible(pop, checked) {
     syncStorageFilterAllBox(pop);
 }
 
-/* 面板定位:fixed避开表头滚动裁剪,右溢出时改为右对齐,小屏限制最大宽度。 */
+/* Panel positioning: use fixed positioning to avoid clipping while the header scrolls, right-align on right overflow, and limit maximum width on small screens. */
 function placeStorageFilterPop(pop, button) {
     var rect = button.getBoundingClientRect();
     var width = pop.offsetWidth;
@@ -1892,9 +1892,9 @@ function bindStorageFilterPop(pop) {
     var argInput = pop.querySelector('.hfilter-arg');
     var arg2Input = pop.querySelector('.hfilter-arg2');
     var customBtn = pop.querySelector('.hfilter-custom-btn');
-    var col = storageFilterColDef(storageFilterCol);  // 当前列的筛选定义,用于判断大小列(MB)回填时换算。
-    var searchSnapshot = null;  // 搜索开始前的勾选快照,清空搜索时还原,避免误伤原筛选。
-    // 自定义视图下校验"确定"可用性:between必须两端都填,其余只需首值非空;值列表模式不限制。
+    var col = storageFilterColDef(storageFilterCol);  // Filter definition for the current column, used to convert MB values when restoring the size field.
+    var searchSnapshot = null;  // Snapshot of selections before searching; restore it when the search is cleared to avoid altering the original filter.
+    // Validate whether Apply is enabled in custom view: between requires both values; other operators require only the first value; there are no restrictions in value-list mode.
     function syncConfirmState() {
         var ok = pop.querySelector('.hfilter-ok');
         if (!ok) {
@@ -1910,7 +1910,7 @@ function bindStorageFilterPop(pop) {
         }
         ok.disabled = !valid;
     }
-    // custom 列:值列表仅作条件匹配展示,禁用勾选交互,避免"能勾却改不了"的困惑。
+    // Custom-filtered columns: the value list only shows which values match the condition; disable checkboxes to avoid the confusion of being able to check values without changing the filter.
     if (panel.isCustom) {
         var initItems = valuesBox.querySelectorAll('.hfilter-item');
         for (var mi = 0; mi < initItems.length; mi++) {
@@ -1935,10 +1935,10 @@ function bindStorageFilterPop(pop) {
             }
         }
         none.hidden = shown > 0;
-        // 输入即筛选:有关键字时勾选与可见项完全一致(符合条件即选中,不符合的取消),
-        // 搜索后直接确定即为该条件。
+        // Filter as the user types: when a keyword is present, selection matches the visible items exactly (matching values are checked and non-matching ones are unchecked);
+        // applying immediately after the search uses that condition.
         if (query !== '' && !panel.isCustom) {
-            // 首次从空进入搜索时记录快照,供清空时还原到搜索前的勾选。
+            // On the first search from an empty query, save a snapshot to restore the pre-search selections when cleared.
             if (searchSnapshot === null) {
                 searchSnapshot = panel.values.slice();
             }
@@ -1951,7 +1951,7 @@ function bindStorageFilterPop(pop) {
                 }
             }
         } else if (searchSnapshot !== null) {
-            // 清空搜索:还原到搜索前的勾选,而非停在搜索子集,避免全选等原筛选被悄悄缩小。
+            // Clearing the search restores the pre-search selections instead of keeping the search subset, preventing filters such as Select all from being silently narrowed.
             for (var i = 0; i < items.length; i++) {
                 var v = items[i].getAttribute('data-value');
                 var should = searchSnapshot.indexOf(v) !== -1;
@@ -1975,7 +1975,7 @@ function bindStorageFilterPop(pop) {
             syncStorageFilterAllBox(pop);
         }
     });
-    syncFilterOpDisplay(pop, panel.custom.op);  // 初始显示当前运算符。
+    syncFilterOpDisplay(pop, panel.custom.op);  // Initially display the current operator.
     opBtn.addEventListener('click', function (event) {
         event.stopPropagation();
         opPop.hidden = !opPop.hidden;
@@ -2001,10 +2001,10 @@ function bindStorageFilterPop(pop) {
         panel.custom.value2 = this.value.trim();
         syncConfirmState();
     });
-    // 筛选输入时每输入一个字符也推进背景涂鸦渐变,与登录框、修改配置弹窗一致(复用官方推进逻辑)。
+    // Advance the background doodle gradient on every filter-input keystroke, as in the login and settings dialogs (reusing the official advancement logic).
     var filterAdvance = function () {
         if (!bgCtx) {
-            return;  // 渐变背景未初始化成功时跳过。
+            return;  // Skip if the gradient background did not initialize successfully.
         }
         bgAdvancePosition();
     };
@@ -2013,23 +2013,23 @@ function bindStorageFilterPop(pop) {
     arg2Input.addEventListener('input', filterAdvance);
     customBtn.addEventListener('click', function () {
         if (customView.hidden) {
-            // 值列表视图:进入自定义视图(保留设置自定义条件的入口)。
+            // Value-list view: switch to custom view (keep the entry point for configuring a custom condition).
             customView.hidden = false;
             customBtn.textContent = 'Reset';
             syncFilterOpDisplay(pop, panel.custom.op);
-            // 大小列按MB输入,回填时把存储的字节换算回MB显示,与输入框占位符单位一致。
+            // Size-column input is in MB; convert stored bytes back to MB when restoring the fields so they match the input placeholders.
             argInput.value = (col && col.unit === 'MB' && panel.custom.value !== '')
                 ? String((Number(panel.custom.value) || 0) / FILTER_MB) : panel.custom.value;
             arg2Input.value = (col && col.unit === 'MB' && panel.custom.value2)
                 ? String((Number(panel.custom.value2) || 0) / FILTER_MB) : (panel.custom.value2 || '');
             arg2Input.hidden = panel.custom.op !== 'between';
-            // 回填同步:commit按MB乘FILTER_MB存字节,若panel.custom仍为字节会被二次乘导致指数膨胀。
+            // Synchronize restored values: commit multiplies MB by FILTER_MB to store bytes; leaving panel.custom in bytes would multiply them a second time and inflate the value exponentially.
             panel.custom.value = argInput.value;
             panel.custom.value2 = arg2Input.value;
-            syncConfirmState();  // 进入自定义视图立即校验,避免首次打开确定按钮可误点。
+            syncConfirmState();  // Validate immediately on entering custom view so Apply cannot be clicked before validation.
             argInput.focus();
         } else {
-            // 自定义视图:重置=清除该列筛选,等同在此条目勾选(全选)。
+            // Custom view: Reset clears this column's filter, equivalent to selecting (Select all) in the value list.
             delete storageFilters[currentStorage][storageFilterCol];
             saveStorageFilters();
             closeStorageFilterPop();
@@ -2045,32 +2045,32 @@ function bindStorageFilterPop(pop) {
         closeStorageFilterPop();
     });
     pop.addEventListener('click', function (event) {
-        event.stopPropagation();  // 面板内点击不触发外部的关闭逻辑。
-        if (opWrap && !opWrap.contains(event.target)) {  // 点击面板其他区域时收起运算符下拉。
+        event.stopPropagation();  // Clicks inside the panel do not trigger the outside-click closing logic.
+        if (opWrap && !opWrap.contains(event.target)) {  // Close the operator dropdown when clicking elsewhere in the panel.
             opPop.hidden = true;
             opWrap.classList.remove('open');
         }
     });
-    // 已是自定义条件的列:打开面板直接进入自定义视图并回填,与值列表视图可随时互切。
+    // For a column that already has a custom condition, open directly in custom view and restore its values; switch to value-list view at any time.
     var cond = storageFilters[currentStorage][storageFilterCol];
     if (cond && cond.mode === 'custom') {
         customView.hidden = false;
         customBtn.textContent = 'Reset';
         syncFilterOpDisplay(pop, panel.custom.op);
-        // 大小列按MB输入,回填时把存储的字节换算回MB显示,与输入框占位符单位一致。
+        // Size-column input is in MB; convert stored bytes back to MB when restoring the fields so they match the input placeholders.
         argInput.value = (col && col.unit === 'MB' && panel.custom.value !== '')
             ? String((Number(panel.custom.value) || 0) / FILTER_MB) : panel.custom.value;
         arg2Input.value = (col && col.unit === 'MB' && panel.custom.value2)
             ? String((Number(panel.custom.value2) || 0) / FILTER_MB) : (panel.custom.value2 || '');
         arg2Input.hidden = panel.custom.op !== 'between';
-        // 回填同步:commit按MB乘FILTER_MB存储,若panel.custom仍为字节会被二次乘导致指数膨胀。
+        // Synchronize restored values: commit multiplies MB by FILTER_MB to store bytes; leaving panel.custom in bytes would multiply them a second time and inflate the value exponentially.
         panel.custom.value = argInput.value;
         panel.custom.value2 = arg2Input.value;
         syncConfirmState();
     }
 }
 
-/* 表头筛选入口:按钮由applyStorageLayout动态生成,用委托统一绑定,表头重建后依然有效。 */
+/* Header filter entry point: buttons are generated dynamically by applyStorageLayout, so use delegation to bind them and keep the handler working after header rebuilds. */
 function bindStorageFilters() {
     var list = document.querySelector('.list-storage');
     if (!list) {
@@ -2081,19 +2081,19 @@ function bindStorageFilters() {
         if (!button) {
             return;
         }
-        event.stopPropagation();  // 阻止冒泡到document,否则刚打开的面板会被"面板外点击"立刻关掉。
+        event.stopPropagation();  // Stop propagation to document; otherwise the newly opened panel would immediately close as an "outside click".
         openStorageFilterPop(button);
     });
     document.addEventListener('mousedown', function (event) {
-        // 记录按下起点是否在面板内:输入框拖选文字时按住不放移出面板,松手时click的
-        // target是共同祖先( document 级),不记录起点会把面板误关。
+        // Record whether the press began inside the panel: when dragging to select input text and releasing outside, the click
+        // target is a shared ancestor (at document level); without recording the origin, the panel would close by mistake.
         storageFilterInnerDown = !!(storageFilterPop && storageFilterPop.contains(event.target));
     });
     document.addEventListener('click', function () {
         if (storageFilterInnerDown) {
-            return;  // 从面板内开始的拖拽(如选字),松手即使在外面也不关闭。
+            return;  // Do not close when a drag started inside the panel (such as text selection), even if released outside.
         }
-        closeStorageFilterPop();  // 面板外点击等同取消,临时勾选状态丢弃。
+        closeStorageFilterPop();  // An outside click is equivalent to Cancel; discard temporary selections.
     });
     document.addEventListener('keydown', function (event) {
         if (event.key === 'Escape') {
@@ -2103,12 +2103,12 @@ function bindStorageFilters() {
     var scroll = list.querySelector('.list-scroll');
     if (scroll) {
         scroll.addEventListener('scroll', function () {
-            closeStorageFilterPop();  // 表头滚出视野时关闭面板,避免面板与按钮错位。
+            closeStorageFilterPop();  // Close the panel when the header scrolls out of view to prevent it becoming misaligned with the button.
         });
     }
 }
 
-/* 整行悬停:记录行没有行容器,按所在网格行号给同一行的单元格加高亮。 */
+/* Full-row hover: history rows have no row container, so highlight cells sharing the same grid-row number. */
 function bindStorageHover() {
     var box = document.getElementById('storage');
     if (!box) {
@@ -2133,31 +2133,31 @@ function bindStorageHover() {
 }
 
 async function refreshStorage() {
-    refreshStorageDisk();  // 磁盘卡片与列表解耦,单独拉取,失败不影响列表。
+    refreshStorageDisk();  // Fetch the disk card separately from the list; a failure does not affect the list.
     try {
         var res = await fetch('/api/storage?type=' + encodeURIComponent(currentStorage), {cache: 'no-store', headers: authHeaders()});
         if (res.status === 401) {
-            openLogin();  // 未认证:弹出登录卡片,与进度页一致。
+            openLogin();  // Unauthenticated: show the login card, as on the progress page.
             return;
         }
         var json = await res.json();
         renderStorage(json.storage || []);
     } catch (e) {
-        // 拉取失败时保留原列表,交由进度页的断线提示统一反馈。
+        // Keep the existing list on fetch failure; the progress page's connection warning provides feedback.
     }
 }
 
-/* 拉取并渲染存储页的磁盘空间卡片:展示下载保存目录所在磁盘的已用与总量。 */
+/* Fetch and render the history page's disk-space card: show used and total space on the disk containing the download directory. */
 async function refreshStorageDisk() {
     try {
         var res = await fetch('/api/storage/disk', {cache: 'no-store', headers: authHeaders()});
         if (res.status === 401) {
-            openLogin();  // 未认证:弹出登录卡片,与进度页一致。
+            openLogin();  // Unauthenticated: show the login card, as on the progress page.
             return;
         }
         renderStorageDisk(await res.json());
     } catch (e) {
-        // 拉取失败时保留上次显示,交由进度页的断线提示统一反馈。
+        // Keep the previous display on fetch failure; the progress page's connection warning provides feedback.
     }
 }
 
@@ -2169,12 +2169,12 @@ function renderStorageDisk(data) {
     var cacheValue = document.getElementById('storageCacheValue');
     data = data || {};
     path.textContent = data.directory || '—';
-    path.title = path.textContent;  // 长路径靠悬停提示查看全文。
+    path.title = path.textContent;  // Use a hover tooltip to view the full long path.
     if (data.total) {
         fill.style.width = data.percent + '%';
         value.textContent = data.used_text + ' / ' + data.total_text;
     } else {
-        fill.style.width = '0%';  // 磁盘读取失败退回空态,不影响缓存行显示。
+        fill.style.width = '0%';  // Fall back to an empty state if disk reading fails; this does not affect the cache row.
         value.textContent = '—';
     }
     cachePath.textContent = data.cache_directory || '—';
@@ -2182,7 +2182,7 @@ function renderStorageDisk(data) {
     cacheValue.textContent = data.cache_text || '—';
 }
 
-var storageTimer = 0;  // 记录页的轮询定时器,只在记录页可见时查询,避免无谓的数据库访问。
+var storageTimer = 0;  // History-page polling timer; query only while the page is visible to avoid unnecessary database access.
 
 function startStoragePolling() {
     if (!storageTimer) {
@@ -2194,7 +2194,7 @@ function startStoragePolling() {
     }
 }
 
-/* 与页面同风格的确认弹窗(替代原生 confirm),返回 Promise<boolean>。 */
+/* Confirmation dialog matching the page style (replaces native confirm); returns Promise<boolean>. */
 var confirmResolve = null;
 
 function askConfirm(text, title) {
@@ -2210,39 +2210,39 @@ function closeConfirm(result) {
     document.getElementById('confirmModal').hidden = true;
     if (confirmResolve) {
         var resolve = confirmResolve;
-        confirmResolve = null;  // 先清空再回调,避免回调内再次触发时串台。
+        confirmResolve = null;  // Clear it before invoking the callback to prevent re-entrant calls from interfering.
         resolve(result);
     }
 }
 
-/* 复用确认弹窗展示提示信息:只保留"确定"按钮(替代原生 alert)。 */
+/* Reuse the confirmation modal to show an alert: keep only the "OK" button (replacing the native alert). */
 function askAlert(text, title) {
     var card = document.querySelector('#confirmModal .modal-card');
     var ok = document.getElementById('confirmOk');
     var cancel = document.getElementById('confirmCancel');
-    card.classList.add('alert-card');  // 收窄到与登录卡片一致的比例。
-    ok.classList.remove('danger');  // 提示框不是危险操作,确定按钮不用红色悬停。
-    cancel.hidden = true;  // 提示框无需取消按钮。
+    card.classList.add('alert-card');  // Narrow it to match the proportions of the login card.
+    ok.classList.remove('danger');  // An alert is not a destructive action, so the OK button does not need a red hover state.
+    cancel.hidden = true;  // Alerts do not need a cancel button.
     return askConfirm(text, title).then(function (result) {
         card.classList.remove('alert-card');
-        ok.classList.add('danger');  // 恢复,不影响后续"移除监听"的确认框。
+        ok.classList.add('danger');  // Restore it so this does not affect the later "Remove listener" confirmation.
         cancel.hidden = false;
         return result;
     });
 }
 
-// ESC 关闭确认/提示弹窗,等同取消。
+// ESC closes the confirmation/alert modal, just like cancel.
 function confirmEscape(event) {
     if (event.key !== 'Escape') {
         return;
     }
     if (document.getElementById('confirmModal').hidden) {
-        return;  // 未打开时不处理,避免影响其它弹窗。
+        return;  // Do nothing when it is closed, to avoid affecting other modals.
     }
     closeConfirm(false);
-    /* 阻止同一节点(document)上后续监听(如 settingsEscape)继续处理这次 ESC:
-       本函数关掉提示弹窗后,后续监听再查 confirmModal.hidden 已是 true,
-       会误判为"没有提示弹窗"而连带关闭下层的修改配置弹窗。 */
+    /* Stop later listeners on the same node (document), such as settingsEscape, from handling this ESC:
+       after this function closes the alert modal, later listeners see confirmModal.hidden === true
+       and may mistake it for "no alert modal," also closing the settings modal underneath. */
     event.stopImmediatePropagation();
 }
 
@@ -2258,18 +2258,18 @@ function bindConfirm() {
     };
     document.getElementById('confirmModal').onclick = function (event) {
         if (event.target === this) {
-            closeConfirm(false);  // 点击遮罩空白处等同取消。
+            closeConfirm(false);  // Clicking the empty area of the overlay is equivalent to cancel.
         }
     };
     document.addEventListener('keydown', confirmEscape);
 }
 
-/* 登录卡片:替代浏览器原生的 Basic 认证弹窗,沿用页面毛玻璃风格。 */
+/* Login card: replaces the browser's native Basic authentication dialog and uses the page's frosted-glass style. */
 
-/* 未勾选"30天内免登录"时,令牌只存放在 sessionStorage:
-   关闭标签页即被清空,下次必须重新登录。
-   Cookie 无法做到"关闭标签页即失效"(会话Cookie要整个浏览器退出才清),
-   所以未勾选时服务端不下发Cookie,改由前端持令牌随请求带来。 */
+/* When "Stay logged in for 30 days" is unchecked, store the token only in sessionStorage:
+   closing the tab clears it, so the user must log in again next time.
+   A cookie cannot expire when the tab closes (a session cookie is cleared only after the entire browser exits),
+   so the server does not issue a cookie when unchecked; the frontend sends the token with each request instead. */
 function setSessionToken(token) {
     try {
         if (token) {
@@ -2278,7 +2278,7 @@ function setSessionToken(token) {
             sessionStorage.removeItem('trmd_token');
         }
     } catch (e) {
-        // 隐私模式等 sessionStorage 不可用的场景直接忽略。
+        // Ignore cases where sessionStorage is unavailable, such as private browsing.
     }
 }
 
@@ -2292,11 +2292,11 @@ function authHeaders() {
     return token ? {Authorization: 'Bearer ' + token} : {};
 }
 
-/* 退出登录:通知服务端轮换令牌并清除Cookie,然后回到登录卡片。 */
+/* Log out: notify the server to rotate the token and clear the cookie, then return to the login card. */
 async function logout() {
     var dropdown = document.getElementById('menuDropdown');
     if (dropdown) {
-        dropdown.hidden = true;  // 先收起菜单,避免与询问框叠加。
+        dropdown.hidden = true;  // Close the menu first to avoid overlapping the confirmation dialog.
     }
     var ok = await askConfirm('You will need to enter your username and password again.', 'Log Out');
     if (!ok) {
@@ -2308,15 +2308,15 @@ async function logout() {
             headers: Object.assign({'Content-Type': 'application/json'}, authHeaders())
         });
     } catch (e) {
-        // 请求失败也要在本地清理,避免界面停留在已登录状态。
+        // Clear local state even if the request fails to avoid leaving the interface in a logged-in state.
     }
-    setSessionToken('');  // 清掉未勾选免登录时的临时令牌。
-    openLogin();  // 重新弹出登录卡片并隐藏页面内容。
+    setSessionToken('');  // Clear the temporary token used when "Stay logged in" was unchecked.
+    openLogin();  // Show the login card again and hide the page content.
 }
 
 function initLogout() {
     if (document.body.getAttribute('data-auth') !== '1') {
-        return;  // 未设置密码时无需退出登录入口。
+        return;  // No logout entry is needed when no password is configured.
     }
     var btn = document.getElementById('btnLogout');
     if (!btn) {
@@ -2330,12 +2330,12 @@ var loginShown = false;
 
 function openLogin() {
     if (loginShown) {
-        return;  // 每秒轮询都会触发,已展示时不再重复打开。
+        return;  // Polling triggers this every second; do not reopen it if it is already visible.
     }
     loginShown = true;
     document.getElementById('loginPass').value = '';
     document.getElementById('loginModal').hidden = false;
-    document.body.classList.add('logged-out');  // 未登录时隐藏页面卡片,只留渐变背景。
+    document.body.classList.add('logged-out');  // Hide page cards while logged out, leaving only the gradient background.
     var user = document.getElementById('loginUser');
     if (user.value) {
         document.getElementById('loginPass').focus();
@@ -2347,7 +2347,7 @@ function openLogin() {
 function closeLogin() {
     loginShown = false;
     document.getElementById('loginModal').hidden = true;
-    document.body.classList.remove('logged-out');  // 恢复页面内容。
+    document.body.classList.remove('logged-out');  // Restore the page content.
 }
 
 async function submitLogin() {
@@ -2367,15 +2367,15 @@ async function submitLogin() {
             await askAlert('Incorrect username or password. Please try again.', 'Login Failed');
             return;
         }
-        // 勾选"30天内免登录"时服务端已下发Cookie;未勾选则把令牌留在本标签页。
+        // When "Stay logged in for 30 days" is checked, the server has issued a cookie; otherwise keep the token in this tab.
         setSessionToken(remember ? '' : (data.token || ''));
-        // 清空指纹,确保登录后必定重绘一次并重建列表(否则数据未变会被跳过)。
+        // Clear fingerprints to ensure a redraw and list rebuild after login (otherwise unchanged data would be skipped).
         lastRenderKey = '';
         lastStructKey = null;
         lastUploadStructKey = null;
         closeLogin();
         if (data.first_login) {
-            openSupport();  // 保持原先"首次登录展示支持作者卡片"的行为。
+            openSupport();  // Preserve the existing behavior of showing the support-author card on first login.
         }
         refresh();
     } catch (e) {
@@ -2397,10 +2397,10 @@ function bindLogin() {
             submitLogin();
         }
     };
-    // 每输入一个字符就推进一格渐变,复用官方"发送消息时推进"的同一套逻辑。
+    // Advance the gradient by one step for each character typed, reusing the official logic for advancing when sending a message.
     var advance = function () {
         if (!bgCtx) {
-            return;  // 渐变背景未初始化成功时跳过。
+            return;  // Skip if the gradient background did not initialize successfully.
         }
         bgAdvancePosition();
     };
@@ -2408,11 +2408,11 @@ function bindLogin() {
     pass.addEventListener('input', advance);
 }
 
-var removingListener = {};  // 正在等待确认或移除中的监听,避免重复点击被处理多次。
+var removingListener = {};  // Listeners awaiting confirmation or removal, preventing duplicate clicks from being processed.
 
 async function removeListener(kind, link) {
     if (!link || removingListener[link]) {
-        return;  // 同一监听已在确认或处理中,忽略重复点击。
+        return;  // This listener is already awaiting confirmation or being processed; ignore duplicate clicks.
     }
     removingListener[link] = true;
     var ok = await askConfirm('Remove this listener?\n' + link, 'Remove Listener');
@@ -2434,7 +2434,7 @@ async function removeListener(kind, link) {
         window.alert('Failed to remove listener: Unable to connect to TRMD.');
     }
     delete removingListener[link];
-    refresh();  // 移除后立即刷新,无需等待下一次轮询。
+    refresh();  // Refresh immediately after removal instead of waiting for the next poll.
 }
 
 async function setPause(paused) {
@@ -2451,21 +2451,22 @@ async function setPause(paused) {
     } catch (e) {
         window.alert('Action failed: Unable to connect to TRMD.');
     }
-    // 乐观更新:服务端通过事件循环异步切换标志,立即刷新拿到的快照可能仍是旧值,
-    // 会导致按钮文字与 lastPaused 滞后约一个轮询周期、期间无法反向切换。
-    // 因此以本次请求的目标状态为准直接更新,无需等待轮询回流。
+    // Optimistic update: the server switches the flag asynchronously through its event loop, so an immediate
+    // refresh may still return the old snapshot. This would leave the button text and lastPaused one poll behind,
+    // preventing the state from being toggled back during that interval. Use this request's target state directly
+    // instead of waiting for the next poll response.
     lastPaused = paused;
     renderPauseState(paused);
-    refresh();  // 切换后刷新快照,与后端状态对齐。
+    refresh();  // Refresh the snapshot after switching to synchronize with the backend state.
 }
 
 function renderPauseState(isPaused) {
     var btn = document.getElementById('btnPause');
     if (!btn) {
-        return;  // 页面未包含暂停按钮时跳过。
+        return;  // Skip if the page does not include a pause button.
     }
-    // 图标用 U+FE0F 以 emoji 彩色字形呈现(⏸️ / ▶️),两种 emoji 字形高度一致,
-    // 不会造成顶栏高度抖动、下方卡片下移。
+    // U+FE0F renders the icons as colored emoji (⏸️ / ▶️); both glyphs have the same height,
+    // This avoids top-bar height shifts and moving the cards below it.
     btn.textContent = isPaused ? '▶\uFE0F Resume' : '⏸\uFE0F Pause';
     btn.classList.toggle('paused', !!isPaused);
 }
@@ -2474,8 +2475,9 @@ function uploadDone(file) {
     return file.state === 'success' || file.state === 'sent';
 }
 
-// 无筛选时用于把活跃任务置顶的排序权重:进行中(downloading/uploading) > 队列中(pending) > 已完成/已跳过(success/sent/skip) > 失败(failure)。
-// 排序在数组副本上进行,不改动后端快照数据,且为稳定排序,同权重的任务保持原有顺序。
+// Sort priority for pinning active tasks to the top when no filter is applied:
+// in progress (downloading/uploading) > queued (pending) > completed/skipped (success/sent/skip) > failed (failure).
+// Sort a copy of the array without modifying the backend snapshot; this is a stable sort, so tasks with equal rank keep their order.
 function stateRank(state) {
     if (state === 'downloading' || state === 'uploading') {
         return 0;
@@ -2486,11 +2488,11 @@ function stateRank(state) {
     if (state === 'success' || state === 'sent' || state === 'skip') {
         return 2;
     }
-    return 3;  // failure 等失败状态置底。
+    return 3;  // Put failure and other failed states at the bottom.
 }
 
 function getUploadGroups(tasks) {
-    var groups = [];  // 按频道分组上传任务,保持频道首次出现的顺序。
+    var groups = [];  // Group uploads by channel, preserving the order in which channels first appear.
     var index = {};
     var i;
     for (i = 0; i < tasks.length; i++) {
@@ -2512,7 +2514,7 @@ function getUploadGroups(tasks) {
             var file = group.files[j];
             if (file.state === 'failure') {
                 group.failed += 1;
-                continue;  // 失败文件不计入分组进度基数,避免拖低进度。
+                continue;  // Exclude failed files from the group progress denominator so they do not lower progress.
             }
             var size = Number(file.size_byte) || 0;
             group.total_byte += size;
@@ -2520,7 +2522,7 @@ function getUploadGroups(tasks) {
                 group.complete += 1;
                 group.done_byte += size;
             } else {
-                group.done_byte += Math.min(Number(file.completed) || 0, size);  // 上传中的文件按已传字节计入。
+                group.done_byte += Math.min(Number(file.completed) || 0, size);  // Count bytes already sent for files that are uploading.
             }
         }
         group.percent = group.total_byte ?
@@ -2531,20 +2533,20 @@ function getUploadGroups(tasks) {
 }
 
 function uploadSummary(tasks) {
-    var total = 0;  // 总量只统计未失败的上传文件,失败文件退出进度基数。
+    var total = 0;  // Count only non-failed uploads in the total; failed files are excluded from the progress denominator.
     var done = 0;
     var speed = 0;
     for (var i = 0; i < tasks.length; i++) {
         var file = tasks[i];
         if (file.state === 'failure') {
-            continue;  // 失败文件不再计入总量与速度,避免进度被拉低。
+            continue;  // Exclude failed files from totals and speed so they do not lower progress.
         }
         var size = Number(file.size_byte) || 0;
         total += size;
         if (uploadDone(file)) {
             done += size;
         } else if (file.state === 'uploading') {
-            done += Math.min(Number(file.completed) || 0, size);  // 上传中的文件按已传字节计入。
+            done += Math.min(Number(file.completed) || 0, size);  // Count bytes already sent for files that are uploading.
         }
         speed += Number(file.speed_value) || 0;
     }
@@ -2590,7 +2592,7 @@ function uploadRow(file) {
         progress = '<span class="cell-progress"><span class="pct' +
             (state === 'pending' ? ' pending' : '') + '">' + text + '</span></span>';
     }
-    // data-upload-id 供"上传列表结构未变时就地更新进度",避免每秒整表重建。
+    // data-upload-id enables in-place progress updates when the upload list structure is unchanged, avoiding a full rebuild every second.
     return '<div class="task-row member-row" data-upload-id="' +
         escAttr(file.task_id || file.path || file.file) + '">' +
         '<span class="cell-name"><span class="ficon">' + (UPLOAD_ICON[state] || '⏳') + '</span>' +
@@ -2622,15 +2624,15 @@ function uploadBlock(group) {
             return matchUploadState(file, statFilter.upload);
         });
         if (files.length === 0) {
-            return '';  // 筛选后无匹配文件,不再显示该分组。
+            return '';  // Hide this group when no files match the filter.
         }
     } else {
-        // 无筛选卡片时按状态置顶:进行中 > 队列中 > 已完成/已跳过 > 失败,使活跃任务集中显示在最上方。
+        // With no card filter, sort by status: in progress > queued > completed/skipped > failed, keeping active tasks at the top.
         files = files.slice().sort(function (a, b) {
             return stateRank(a.state) - stateRank(b.state);
         });
     }
-    // 筛选时强制展开,否则结果会被折叠状态藏起来。
+    // Force groups open while filtering; otherwise collapsed state would hide the results.
     var isCollapsed = filtering ? false : (collapsed[key] === undefined ? lastUploadCollapsed : collapsed[key]);
     var html = '<div class="group' + (isCollapsed ? '' : ' open') + '" data-channel="' + escAttr(key) + '" data-level="1">' +
         '<div class="group-head" data-channel="' + escAttr(key) + '">' +
@@ -2655,7 +2657,7 @@ function uploadList(tasks) {
         return '<div class="empty">No upload tasks yet.</div>';
     }
     var html = '';
-    var groups = getUploadGroups(tasks);  // 频道 > 文件完整路径,一级可折叠。
+    var groups = getUploadGroups(tasks);  // Channel > full file path; the first level is collapsible.
     for (var i = 0; i < groups.length; i++) {
         html += uploadBlock(groups[i]);
     }
@@ -2675,7 +2677,7 @@ function syncUploadHeads() {
     var nodes = list.querySelectorAll('.group.open');
     for (var i = 0; i < nodes.length; i++) {
         if (groupVisible(nodes[i])) {
-            level = 2;  // 有任意频道展开时,最内层即为文件行。
+            level = 2;  // If any channel is expanded, the innermost level is the file row.
             break;
         }
     }
@@ -2686,14 +2688,14 @@ function syncUploadHeads() {
 function renderUpload(uploads) {
     var count = uploadCount(uploads);
     document.getElementById('badgeUpload').textContent = count.active;
-    /* 只有结构变化(文件增减/状态改变)才重建 DOM,否则仅就地更新进度,避免每秒整表重建。 */
+    /* Rebuild the DOM only when the structure changes (files added/removed or status changes); otherwise update progress in place to avoid rebuilding the entire table every second. */
     var uploadKey = uploadStructKey(uploads);
     if (uploadKey !== lastUploadStructKey) {
         lastUploadStructKey = uploadKey;
-        /* 空态以"是否存在上传文件(含已完成的)"判断,而非"是否有活跃任务"。
-           否则全部上传结束后 count.active 为 0,已完成的文件会被空态整块隐藏,
-           需新建任务才重新出现。 */
-        // 处于筛选状态时,无匹配项应提示具体的筛选条件,而非笼统的"暂无上传任务。"。
+        /* Determine the empty state by whether any upload files exist (including completed ones), not by whether there are active tasks.
+           Otherwise, after all uploads finish count.active becomes 0 and the empty state hides all completed files
+           until a new task is created. */
+        // When filtering, show the specific filter criteria if nothing matches instead of the generic "No upload tasks yet.".
         var uploadEmpty = 'No upload tasks yet.';
         if (statFilter.upload) {
             uploadEmpty = UPLOAD_EMPTY_TEXT[statFilter.upload] || uploadEmpty;
@@ -2701,7 +2703,7 @@ function renderUpload(uploads) {
         document.getElementById('upload').innerHTML = uploads.length > 0 ? uploadList(uploads) : '<div class="empty">' + uploadEmpty + '</div>';
         syncToggleUpload();
         syncUploadHeads();
-        bindGroups();  // 上传列表渲染完成后统一绑定折叠事件。
+        bindGroups();  // Bind collapse events after the upload list has been rendered.
     } else {
         updateUploadRows(uploads);
     }
@@ -2716,16 +2718,16 @@ function renderUpload(uploads) {
     return count.active;
 }
 
-var lastRenderKey = '';  // 上次渲染的数据指纹,用于跳过无变化的重绘。
-var lastStructKey = null;  // 列表结构指纹,结构不变则不重建列表 DOM。(初始为 null 而非 '',否则空链接时 structKeyOf 返回 '' 会被误判为"未变化",导致首次渲染跳过 renderList、列表区只剩表头)
-var lastUploadStructKey = null;  // 上传列表结构指纹,同上。
+var lastRenderKey = '';  // Fingerprint of the previous render, used to skip redraws when nothing has changed.
+var lastStructKey = null;  // List structure fingerprint; the list DOM is not rebuilt if the structure is unchanged. (Start with null, not '', or an empty link makes structKeyOf return '' and is mistaken for "unchanged," skipping the initial renderList and leaving only the list header.)
+var lastUploadStructKey = null;  // Upload list structure fingerprint; same reasoning as above.
 
-/* 轮询间隔(毫秒)。默认 1 秒。
-   若设备压力明显,调大到 2000~3000 可直接砍掉一半以上的拉取与渲染开销,
-   代价只是数字更新变慢。 */
+/* Polling interval in milliseconds; default is 1 second.
+   If the device is under noticeable load, increase this to 2000–3000 to cut fetching and rendering overhead by more than half,
+   at the cost of slower numeric updates. */
 var POLL_INTERVAL_MS = 1000;
 
-/* 上传列表结构指纹:文件路径 + 状态,不含进度/速度等每秒变化的数值。 */
+/* Upload list structure fingerprint: file path + status; excludes values that change each second, such as progress and speed. */
 function uploadStructKey(uploads) {
     var parts = [];
     for (var i = 0; i < (uploads || []).length; i++) {
@@ -2734,7 +2736,7 @@ function uploadStructKey(uploads) {
     return parts.join(';');
 }
 
-/* 上传列表结构未变时,只就地更新各行的进度与速度文字,不重建 DOM。 */
+/* When the upload list structure is unchanged, update each row's progress and speed text in place without rebuilding the DOM. */
 function updateUploadRows(uploads) {
     var live = {};
     var i;
@@ -2751,8 +2753,8 @@ function updateUploadRows(uploads) {
         var percent = uploadDone(file) ? 100 : (Number(file.percent) || 0);
         var fill = row.querySelector('.fill');
         if (fill) {
-            fill.style.width = percent + '%';  // 桌面端横向条。
-            var cell = fill.closest('.cell-progress');  // 手机端圆环依赖 --p,需同步更新。
+            fill.style.width = percent + '%';  // Horizontal bar on desktop.
+            var cell = fill.closest('.cell-progress');  // The mobile ring depends on --p, so update it too.
             if (cell) {
                 cell.style.setProperty('--p', percent + '%');
             }
@@ -2772,8 +2774,8 @@ function updateUploadRows(uploads) {
     }
 }
 
-/* 列表结构指纹:频道、链接、成员名称与状态。
-   刻意不包含进度/速度等每秒变化的数值,否则每次轮询都会触发重建。 */
+/* List structure fingerprint: channel, link, member name, and status.
+   Intentionally excludes values that change each second, such as progress and speed, or every poll would trigger a rebuild. */
 function structKeyOf(data) {
     var parts = [];
     var links = data.links || [];
@@ -2788,8 +2790,8 @@ function structKeyOf(data) {
     return parts.join(';');
 }
 
-/* 结构未变化时,只就地更新"正在下载"的行:
-   改宽度与文字,避免整表 DOM 重建(仅这几行重排)。 */
+/* When the structure is unchanged, update only the "downloading" rows in place:
+   change widths and text to avoid rebuilding the entire table DOM (only these rows are rearranged). */
 function updateTaskRows(data) {
     var tasks = data.tasks || [];
     var live = {};
@@ -2802,13 +2804,13 @@ function updateTaskRows(data) {
         var row = rows[i];
         var task = live[row.getAttribute('data-task-id')];
         if (!task) {
-            continue;  // 该任务已结束,等结构变化时整行替换。
+            continue;  // This task has finished; replace the whole row when the structure changes.
         }
         var fill = row.querySelector('.fill');
         if (fill) {
             var pct = task.percent + '%';
-            fill.style.width = pct;  // 桌面端横向条。
-            var cell = fill.closest('.cell-progress');  // 手机端圆环依赖 --p,需同步更新。
+            fill.style.width = pct;  // Horizontal bar on desktop.
+            var cell = fill.closest('.cell-progress');  // The mobile ring depends on --p, so update it too.
             if (cell) {
                 cell.style.setProperty('--p', pct);
             }
@@ -2833,9 +2835,9 @@ function updateTaskRows(data) {
 }
 
 function render(data, force) {
-    /* 数据未变化时直接跳过整页重绘。
-       原本每秒都会重建整个列表 DOM,导致所有毛玻璃图层失效并重新采样背景,
-       这是 GPU 占用的主要来源。空闲(无任务变化)时可完全省掉这部分开销。 */
+    /* Skip redrawing the whole page when the data has not changed.
+       Previously, the entire list DOM was rebuilt every second, invalidating all frosted-glass layers and resampling the background;
+       this was the main source of GPU usage. When idle (with no task changes), this overhead can be eliminated entirely. */
     var key = JSON.stringify(data);
     if (!force && key === lastRenderKey) {
         return;
@@ -2845,8 +2847,8 @@ function render(data, force) {
     var downloads = (data.tasks || []).length;
     lastDownloadActive = downloads;
     document.getElementById('badgeDownload').textContent = downloads;
-    // 总进度卡片与统计卡属于下载页,summary按板块下发;非下载板块跳过渲染,
-    // 既避免把隐藏面板涂成0%,也免去每秒对隐藏元素的无谓写入。
+    // Overall progress and stats cards belong to the download page, and summary is sent per section. Skip rendering outside the download section
+    // to avoid setting hidden panels to 0% and to prevent unnecessary writes to hidden elements every second.
     if (currentSection === 'download') {
         renderOverall(data.summary, downloads, SUMMARY_IDS.download);
         renderStat('stat', [
@@ -2860,15 +2862,15 @@ function render(data, force) {
     lastUploadActive = renderUpload(data.uploads || []);
     lastListenCount = renderListeners(data.listeners);
     if (currentSection === 'notice') {
-        renderNotices(data.notices);  // 通知仅通知板块下发,新通知到来时指纹变化即重绘。
+        renderNotices(data.notices);  // Notices are sent only for the notices section; a new notice changes the fingerprint and triggers a redraw.
     }
     lastPaused = !!data.is_paused;
     renderPauseState(lastPaused);
     renderOuterLinks(data.outer_links);
     renderStatus();
-    // 只有列表结构变化(成员增减/状态改变)才重建 DOM;
-    // 否则仅就地更新正在下载的行,避免每秒整表重建带来的重排与重绘。
-    // links仅下载板块下发,其他板块跳过,避免把隐藏的下载列表渲染成空态。
+    // Rebuild the DOM only when the list structure changes (members added/removed or status changes);
+    // otherwise, update only the downloading rows in place to avoid reflow and repaint from rebuilding the full table every second.
+    // links are sent only for the download section; skip other sections so hidden download lists are not rendered as empty.
     if (currentSection === 'download') {
         var structKey = structKeyOf(data);
         if (structKey !== lastStructKey) {
@@ -2881,9 +2883,9 @@ function render(data, force) {
     syncBackgroundProgress(data.count.success + data.count.failure + data.count.skip + lastUploadFinished);
 }
 
-function syncBackgroundProgress(finished) {  // 下载或上传每完成一个任务,背景渐变就推进一格,与官方发送消息时推进一致。
+function syncBackgroundProgress(finished) {  // Advance the background gradient once per completed download or upload, matching the official behavior when a message is sent.
     if (bgLastProgress < 0) {
-        bgLastProgress = finished;  // 首次只记录基数,不触发移动。
+        bgLastProgress = finished;  // On the first call, record the baseline without advancing.
         return;
     }
     if (finished > bgLastProgress) {
@@ -2891,23 +2893,23 @@ function syncBackgroundProgress(finished) {  // 下载或上传每完成一个�
         bgAdvancePosition();
     }
     if (finished < bgLastProgress) {
-        bgLastProgress = finished;  // 任务被清空或重置时同步基数,避免数字回退后误触发。
+        bgLastProgress = finished;  // Sync the baseline when tasks are cleared or reset to avoid a false trigger if the count decreases.
     }
 }
 
 async function refresh(force) {
     try {
-        // section告知服务端当前板块:links(成员数组)与notices按板块下发,停在其他板块时不再每秒白传。
+        // section tells the server which section is active: links (the member array) and notices are sent per section, avoiding needless transfers every second on other sections.
         var res = await fetch('/api/progress?section=' + currentSection, {cache: 'no-store', headers: authHeaders()});
         if (res.status === 401) {
-            openLogin();  // 未认证:前端展示登录卡片,不再触发浏览器原生弹窗。
+            openLogin();  // Unauthenticated: show the login card instead of triggering a native browser dialog.
             return;
         }
-        document.body.classList.remove('logged-out');  // 认证通过,显示页面内容。
+        document.body.classList.remove('logged-out');  // Authentication succeeded; show the page content.
         var json = await res.json();
-        lastSnapshot = json;  // 缓存最新快照,供设置弹窗回填保存目录。
+        lastSnapshot = json;  // Cache the latest snapshot to prefill the save directory in the settings modal.
         render(json, force);
-        refreshNameTip();  // 列表重绘后按当前鼠标位置重新定位提示。
+        refreshNameTip();  // After the list is redrawn, reposition the tooltip based on the current mouse location.
         document.getElementById('offline').style.display = 'none';
     } catch (e) {
         document.getElementById('offline').style.display = 'block';
@@ -2926,10 +2928,10 @@ function bindSections() {
 function bindPause() {
     var btn = document.getElementById('btnPause');
     if (!btn) {
-        return;  // 页面未包含暂停按钮时跳过绑定。
+        return;  // Skip binding if the page does not include a pause button.
     }
     btn.onclick = function () {
-        setPause(!lastPaused);  // 以当前展示状态为准,再次点击即切换暂停/恢复。
+        setPause(!lastPaused);  // Use the currently displayed state; clicking again toggles pause/resume.
     };
 }
 
@@ -2943,7 +2945,7 @@ function bindListenTabs() {
 }
 
 function bindListenRemove() {
-    var box = document.getElementById('page-listener');  // 用事件委托,避免每次轮询重新绑定。
+    var box = document.getElementById('page-listener');  // Use event delegation to avoid rebinding on every poll.
     box.onclick = function (event) {
         var target = event.target;
         if (!target || !target.classList || !target.classList.contains('btn-del')) {
@@ -2984,11 +2986,11 @@ function initSettings() {
     if (apply) {
         apply.onclick = applyConfig;
     }
-    document.addEventListener('keydown', settingsEscape);  // ESC 关闭弹窗(不再响应遮罩点击关闭)。
-    // 修改配置时每输入一个字符也推进背景涂鸦渐变,与登录框一致(复用官方推进逻辑)。
+    document.addEventListener('keydown', settingsEscape);  // ESC closes the modal (clicking the overlay no longer closes it).
+    // Advance the background doodle gradient with each keystroke while editing settings, as in the login form (reusing the official progression logic).
     var cfgAdvance = function () {
         if (!bgCtx) {
-            return;  // 渐变背景未初始化成功时跳过。
+            return;  // Skip if the gradient background was not initialized successfully.
         }
         bgAdvancePosition();
     };
@@ -3000,10 +3002,10 @@ function initSettings() {
     });
 }
 
-var settingsOriginal = null;  // 打开配置弹窗时的原值快照:用于"只提交改动项",避免全量保存。
+var settingsOriginal = null;  // Snapshot of original values when the settings modal opens, used to "submit changed items only" instead of saving everything.
 
 function openSettings() {
-    setMenuOpen(false);  // 先收起顶部菜单,避免与设置弹窗叠加。
+    setMenuOpen(false);  // Close the top menu first to avoid overlapping it with the settings modal.
     var modal = document.getElementById('settingsModal');
     if (lastSnapshot) {
         if (lastSnapshot.save_directory) {
@@ -3014,7 +3016,7 @@ function openSettings() {
         setNum('maxRetryDownload', lastSnapshot.max_retries && lastSnapshot.max_retries.download);
         setNum('maxRetryUpload', lastSnapshot.max_retries && lastSnapshot.max_retries.upload);
     }
-    /* 未配置机器人(HAS_BOT)时,上传并发/重试的修改不会生效,隐藏这两项避免用户改了无效果。 */
+    /* When no bot is configured (HAS_BOT), changes to upload concurrency/retries have no effect; hide these options to avoid misleading the user. */
     var uploadAvailable = HAS_BOT;
     ['maxUpload', 'maxRetryUpload'].forEach(function (id) {
         var el = document.getElementById(id);
@@ -3022,7 +3024,7 @@ function openSettings() {
             el.parentElement.style.display = uploadAvailable ? '' : 'none';
         }
     });
-    /* 记录"打开弹窗时输入框里的值"作为改动比对基准(只读 lastSnapshot 会被轮询刷新而失准)。 */
+    /* Record the values in the inputs when the modal opens as the comparison baseline (lastSnapshot alone becomes stale as polling updates it). */
     settingsOriginal = {
         save_directory: (document.getElementById('saveDirInput').value || '').trim(),
         max_tasks: {download: numVal('maxDownload'), upload: numVal('maxUpload')},
@@ -3039,8 +3041,8 @@ function settingsEscape(event) {
     if (event.key !== 'Escape') {
         return;
     }
-    // 有上层提示/确认弹窗时,ESC 已由 confirmEscape 处理(它 stopImmediatePropagation,正常情况下到不了这);
-    // 此处若仍检测到它开着,则仅退出,绝不连带关闭修改配置弹窗。
+    // If an alert/confirmation modal is open, confirmEscape has already handled ESC (stopImmediatePropagation normally prevents it reaching here);
+    // if it is still detected here, exit without also closing the settings modal.
     if (!document.getElementById('confirmModal').hidden) {
         return;
     }
@@ -3049,11 +3051,11 @@ function settingsEscape(event) {
     }
 }
 
-/* 冲突检测:lastSnapshot由后台每秒轮询刷新,settingsOriginal是打开弹窗时的基准。
-   本次要提交的项若在别处被改过,提交会覆盖对方的改动,因此返回冲突项列表供调用处确认;
-   本次不提交的项即使被改过也不会被覆盖,所以只检查真正要改的那些项。
-   抽成独立函数是为了在第一次提交前与二次确认后的第二次提交前各调用一次,避免确认框
-   停留期间后台被别处改动,却直接用旧值覆盖对方的改动。 */
+/* Conflict detection: lastSnapshot is refreshed by background polling every second, while settingsOriginal is the baseline from when the modal opened.
+   If an item being submitted was changed elsewhere, submitting would overwrite that change, so return the conflicting items for confirmation;
+   items not being submitted will not be overwritten even if they changed, so check only the items actually being changed.
+   This is a separate function so it can be called before the initial submission and again before the post-confirmation submission,
+   preventing changes made elsewhere while the confirmation is open from being overwritten with stale values. */
 function checkConfigConflict(dirChanged, tasksChanged, retriesChanged, lastSnapshot, settingsOriginal) {
     var conflictParts = [];
     if (dirChanged && lastSnapshot && settingsOriginal
@@ -3073,8 +3075,8 @@ function checkConfigConflict(dirChanged, tasksChanged, retriesChanged, lastSnaps
     return conflictParts;
 }
 
-/* 冲突取消后把后台实时配置回填到弹窗,并刷新比对基准:否则弹窗仍显示旧值,用户不知别处已改,
-   再次点应用又会撞到同一处冲突;回填后弹窗与后台一致,再点应用即为"未做任何修改"。 */
+/* After a conflict is canceled, refill the modal with the latest backend settings and refresh the comparison baseline. Otherwise, the modal still shows stale values,
+   and the user may hit the same conflict by clicking Apply again without knowing the settings changed elsewhere; after refilling, the modal matches the backend and Apply reports "no changes." */
 function syncSettingsFromSnapshot() {
     if (!lastSnapshot) {
         return;
@@ -3113,7 +3115,7 @@ async function applyConfig() {
     }
     var maxTasks = {download: numVal('maxDownload'), upload: numVal('maxUpload')};
     var maxRetries = {download: numVal('maxRetryDownload'), upload: numVal('maxRetryUpload')};
-    /* 字段级校验:用户改了哪个就只提示哪个;多个都有问题时再一起提示。 */
+    /* Validate at the field level: report only the fields the user changed, and report them together if several are invalid. */
     var _errParts = [];
     if (maxTasks.download === null || maxTasks.download < 1 || maxTasks.download > 10) {
         _errParts.push('The maximum number of concurrent downloads must be an integer from 1 to 10');
@@ -3131,8 +3133,8 @@ async function applyConfig() {
         await askAlert(_errParts.join('. ') + '.', 'Edit Settings');
         return;
     }
-    /* 只提交真正改动的项:未改动的接口不再请求(后端就不会重复写配置),
-       改一项也只落一次盘,杜绝"改一处却保存三次"的日志。 */
+    /* Submit only items that actually changed: do not call endpoints for unchanged fields (so the backend will not rewrite the settings),
+       and persist only once even when changing one item, avoiding logs that say "one change saved three times." */
     var dirChanged = !settingsOriginal || settingsOriginal.save_directory !== path;
     var tasksChanged = !settingsOriginal
         || settingsOriginal.max_tasks.download !== maxTasks.download
@@ -3145,8 +3147,8 @@ async function applyConfig() {
         return;
     }
     try {
-        /* 提交前比对后台实时配置与打开弹窗时的基准:本次要提交的项若在别处被改过,
-           提交会覆盖对方的改动,因此先让用户确认;二次确认后的第二次提交前还会再比对一次。 */
+        /* Before submitting, compare the latest backend settings with the baseline from when the modal opened: if an item being submitted changed elsewhere,
+           submitting would overwrite that change, so ask the user first; compare again before the second submission after confirmation. */
         var conflictParts = checkConfigConflict(dirChanged, tasksChanged, retriesChanged, lastSnapshot, settingsOriginal);
         if (conflictParts.length) {
             var goon = await askConfirm(
@@ -3156,9 +3158,9 @@ async function applyConfig() {
                 return;
             }
         }
-        /* 多项改动合并成一次请求:分开请求会让后端写多次配置文件,且其中一项失败时已经写入的
-           项无法回退(部分生效)。合并后由后端统一校验、只落盘一次,要么全部生效要么一个都不改。
-           三个配置路径在后端已等价,这里沿用save_directory路径作为统一入口。 */
+        /* Combine multiple changes into one request: separate requests would make the backend write the settings file repeatedly, and if one fails, already-written
+           items cannot be rolled back (partial application). The combined request is validated by the backend and persisted once: either all changes apply or none do.
+           The three settings paths are equivalent on the backend, so use save_directory as the single entry point here. */
         var payload = {};
         if (dirChanged) {
             payload.save_directory = path;
@@ -3175,14 +3177,14 @@ async function applyConfig() {
             body: JSON.stringify(payload)
         });
         var data = await res.json();
-        /* 保存目录不存在时后端不创建、不落盘,先回来请求二次确认:
-           取消则什么都不改;确定则带confirm_directory重新提交,由后端创建目录再保存。 */
+        /* If the save directory does not exist, the backend does not create it or persist settings; return for a second confirmation first:
+           cancel leaves everything unchanged, while confirm resubmits with confirm_directory so the backend creates the directory and saves. */
         if (data.need_confirm) {
             var ok = await askConfirm(data.e_code || 'The directory does not exist. Create it?', 'Edit Settings');
             if (!ok) {
                 return;
             }
-            /* 二次确认框停留期间后台可能被别处改动:重新比对一次,避免直接用旧值覆盖对方改动。 */
+            /* Settings may change elsewhere while the second confirmation is open; compare again to avoid overwriting them with stale values. */
             conflictParts = checkConfigConflict(dirChanged, tasksChanged, retriesChanged, lastSnapshot, settingsOriginal);
             if (conflictParts.length) {
                 var goon2 = await askConfirm(
@@ -3213,8 +3215,8 @@ async function applyConfig() {
         if (retriesChanged && lastSnapshot) {
             lastSnapshot.max_retries = {download: maxRetries.download, upload: maxRetries.upload};
         }
-        /* 保存成功后刷新改动比对基准:否则窗口不关闭时再次点应用,仍会拿旧值比对出"有改动",
-           导致重复提交、重复写盘(后台反复提示配置文件已保存)。 */
+        /* Refresh the change-comparison baseline after saving; otherwise, clicking Apply again without closing the modal compares against stale values,
+           causing duplicate submissions and writes (and repeated backend messages that the settings file was saved). */
         settingsOriginal = {
             save_directory: path,
             max_tasks: {download: maxTasks.download, upload: maxTasks.upload},
@@ -3249,7 +3251,7 @@ function renderOuterLinks(links) {
         var node = document.getElementById(OUTER_LINK_IDS[key]);
         var url = (links || {})[key];
         node.href = url || '#';
-        node.hidden = !url;  // 后端未提供该链接时隐藏对应菜单项。
+        node.hidden = !url;  // Hide the menu item when the backend does not provide this link.
     });
 }
 
@@ -3258,7 +3260,7 @@ function setMenuOpen(open) {
 }
 
 function menuBtnClick(event) {
-    event.stopPropagation();  // 阻止冒泡,避免立刻被外部点击处理关闭。
+    event.stopPropagation();  // Stop propagation to prevent the outside-click handler from closing it immediately.
     setMenuOpen(document.getElementById('menuDropdown').hidden);
 }
 
@@ -3281,7 +3283,7 @@ function bindMenu() {
 }
 
 function isFirstLogin() {
-    return document.body.getAttribute('data-first-login') === '1';  // 服务端在首次登录时写入该标记。
+    return document.body.getAttribute('data-first-login') === '1';  // The server sets this flag on the first login.
 }
 
 function bindSupport() {
@@ -3293,16 +3295,16 @@ function bindSupport() {
     }
 }
 
-var COLS_KEY = 'trmd_cols';  // 各表列宽的本地存储键。
-var COLS_MIN = 48;  // 单列最小宽度,避免被拖到不可读。
-var colsCache = {};  // 表名 -> 非弹性列的像素宽度数组。
-var dragState = null;  // 拖拽过程中的临时状态。
+var COLS_KEY = 'trmd_cols';  // Local storage key for column widths in each table.
+var COLS_MIN = 48;  // Minimum width for each column to prevent dragging it too narrow to read.
+var colsCache = {};  // Table name -> array of pixel widths for non-flexible columns.
+var dragState = null;  // Temporary state during dragging.
 
 function readDefaultCols(list) {
-    var text = window.getComputedStyle(list).getPropertyValue('--cols');  // 自定义属性在隐藏元素上也可读取。
-    /* 先去掉首列的 minmax(...):否则会把它里面的最小值(如 minmax(200px, 1fr) 的 200px)
-       也当成固定列宽提取出来,导致列数凭空多一列、网格轨道与表头单元格数不匹配。
-       缩放时反复重算还会让列数不断累加,最终表头错乱。 */
+    var text = window.getComputedStyle(list).getPropertyValue('--cols');  // Custom properties can also be read from hidden elements.
+    /* Remove minmax(...) from the first column first; otherwise its minimum (such as 200px in minmax(200px, 1fr))
+       is also extracted as a fixed column width, adding a phantom column and making the grid tracks mismatch the header cells.
+       Recalculating repeatedly while zooming would keep increasing the column count and eventually break the header. */
     text = text.replace(/minmax\([^)]*\)/g, '');
     var matches = text.match(/(\d+(?:\.\d+)?)px/g) || [];
     var widths = [];
@@ -3312,8 +3314,8 @@ function readDefaultCols(list) {
     return widths.length ? widths : [COLS_MIN];
 }
 
-/* 弹性列在--cols中的位置:常规表在首位,记录表的频道列固定宽、弹性列在第2位。
-   轨道按minmax(...)整体切分,避免其内部空格被当成分隔符。 */
+/* Position of the flexible column in --cols: it is first in regular tables; in the history table, the channel column is fixed-width and the flexible column is second.
+   Split tracks as complete minmax(...) expressions so spaces inside them are not treated as separators. */
 function flexIndexOf(list) {
     var text = window.getComputedStyle(list).getPropertyValue('--cols') || '';
     var tracks = text.match(/minmax\([^)]*\)|\S+/g) || [];
@@ -3322,15 +3324,15 @@ function flexIndexOf(list) {
             return i;
         }
     }
-    return 0;  // 未声明弹性列时按首位处理,与原有行为一致。
+    return 0;  // Treat an undeclared flexible column as the first column, matching the original behavior.
 }
 
-/* 固定列下标 -> 所在的网格列位置:弹性列之前原序,之后整体后移一位。 */
+/* Fixed-column index -> grid column position: indices before the flexible column stay the same; those after it shift right by one. */
 function fixedGridPos(index, flexIndex) {
     return index < flexIndex ? index : index + 1;
 }
 
-var measureEl = null;  // 复用同一个隐藏元素测量文字宽度,避免频繁创建节点。
+var measureEl = null;  // Reuse one hidden element to measure text width instead of frequently creating nodes.
 
 function measureTextWidth(text, cs) {
     if (!measureEl) {
@@ -3347,29 +3349,29 @@ function measureTextWidth(text, cs) {
     return measureEl.offsetWidth;
 }
 
-// 测量每列标题完整显示所需的宽度,作为该列不可被压缩的下限。
-// 返回数组与表头列格一一对应,取用时按弹性列所在位置(flexIndexOf)取弹性列的下限。
+// Measure the width each column needs to display its full header; use it as the column's minimum width.
+// The returned array corresponds to the header cells; use flexIndexOf to look up the minimum for the flexible column.
 function measureColMins(list) {
     var cells = list.querySelector('.list-head').children;
     var mins = [];
     for (var i = 0; i < cells.length; i++) {
         var cs = window.getComputedStyle(cells[i]);
-        var need = (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0) + 4;  // 内边距 + 余量,避免标题贴边。
+        var need = (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0) + 4;  // Padding plus a small margin so the header does not touch the edges.
         var text = cells[i].querySelector('.htext');
         if (text && text.textContent) {
             need += measureTextWidth(text.textContent, cs);
         }
-        // 单元格可通过 --col-min 声明额外下限(如进度列需保证百分比可见)。
+        // A cell can declare an additional minimum with --col-min (for example, to keep the percentage visible in a progress column).
         var colMin = parseFloat(cs.getPropertyValue('--col-min')) || 0;
         mins.push(Math.max(COLS_MIN, Math.ceil(need), colMin));
     }
     return mins;
 }
 
-// 移动端弹性列(名称列)的最小宽度保底:
-// 窄屏下固定列合计已超过视口,弹性列会退回到"标题文字宽度"(约百来像素),
-// 再被嵌套缩进吃掉一部分后文件名几乎完全看不见。故移动端强制留出可读宽度,
-// 超出的部分由横向滚动承载。
+// Minimum-width safeguard for the flexible column (the name column) on mobile:
+// on narrow screens, fixed columns already exceed the viewport, so the flexible column falls back to the header text width (roughly 100 pixels).
+// Nested indentation then consumes part of it, making filenames almost invisible. Force a readable width on mobile,
+// and let horizontal scrolling handle any overflow.
 var FLEX_MIN_MOBILE = 200;
 
 function flexColMin(measured) {
@@ -3382,9 +3384,9 @@ function flexColMin(measured) {
 
 function applyCols(list, widths, flexMin, flexIndex) {
     if (flexIndex === undefined) {
-        flexIndex = 0;  // 缺省按弹性列在首位,保持既有表格的行为。
+        flexIndex = 0;  // Default to the flexible column being first, preserving existing table behavior.
     }
-    var flex = 'minmax(' + (flexMin || COLS_MIN) + 'px, 1fr)';  // 弹性列不低于标题宽度,避免被其它列挤到看不见。
+    var flex = 'minmax(' + (flexMin || COLS_MIN) + 'px, 1fr)';  // Keep the flexible column at least as wide as its header so other columns cannot squeeze it out of view.
     var parts = [];
     for (var i = 0; i < widths.length; i++) {
         if (i === flexIndex) {
@@ -3393,16 +3395,16 @@ function applyCols(list, widths, flexMin, flexIndex) {
         parts.push(widths[i] + 'px');
     }
     if (flexIndex >= widths.length) {
-        parts.push(flex);  // 弹性列位于末列时补在末尾。
+        parts.push(flex);  // Append the flexible column when it is the last column.
     }
     list.style.setProperty('--cols', parts.join(' '));
 }
 
-/* 分隔条的调整目标:返回{col:固定列下标, sign:拖动方向}。
-   常规分隔条调整其右侧的固定列:向右拖动变窄,空间让给弹性列(sign=-1)。
-   右侧是弹性列时弹性列没有宽度可调,改为调整左侧的固定列:向右拖动加宽,弹性列吸收差值(sign=1)。 */
+/* Divider adjustment target: return {col: fixed-column index, sign: drag direction}.
+   A regular divider adjusts the fixed column to its right: dragging right narrows it, giving space to the flexible column (sign=-1).
+   If the flexible column is to the right, it has no adjustable width, so adjust the fixed column to the left instead: dragging right widens it and the flexible column absorbs the difference (sign=1). */
 function gripTarget(index, flexIndex) {
-    var right = index + 1;  // 分隔条右侧的网格列。
+    var right = index + 1;  // Grid column to the right of the divider.
     if (right === flexIndex) {
         return {col: index < flexIndex ? index : index - 1, sign: 1};
     }
@@ -3414,9 +3416,9 @@ function buildGrips(list) {
     var cells = head.children;
     var table = list.getAttribute('data-table');
     var flexIndex = flexIndexOf(list);
-    for (var i = 0; i < cells.length - 1; i++) {  // 末列格右侧为容器边界,不生成分隔条。
+    for (var i = 0; i < cells.length - 1; i++) {  // The last cell borders the container, so do not add a divider after it.
         if (cells[i].querySelector('.grip')) {
-            continue;  // 已存在分隔条时不重复创建。
+            continue;  // Do not create a divider if one already exists.
         }
         var target = gripTarget(i, flexIndex);
         var grip = document.createElement('span');
@@ -3436,18 +3438,18 @@ function clampColsWidth(widths, index, value, maxFixed, mins, flexIndex) {
             others += widths[i];
         }
     }
-    // 下限取标题完整显示所需宽度,保证表头标题永不被压缩。
+    // Use the width needed to show the full header as the minimum, so header titles are never compressed.
     var floor = Math.max(COLS_MIN, (mins && mins[fixedGridPos(index, flexIndex)]) || COLS_MIN);
-    // 预留弹性列的最小宽度,避免固定列被拉到超出可用空间后挤压弹性列文字。
+    // Reserve the flexible column's minimum width so fixed columns cannot be dragged beyond the available space and squeeze its text.
     var flexMin = flexColMin(mins && mins[flexIndex]);
     var max;
     if (window.innerWidth <= 760) {
-        // 移动端允许横向滚动,不把列宽限制在视口内,用户可自由拖宽,超出部分滚动查看。
+        // Allow horizontal scrolling on mobile instead of constraining columns to the viewport; users can drag them wider and scroll to see overflow.
         max = Math.max(value, 900);
     } else {
         max = Math.max(COLS_MIN, maxFixed - others - flexMin);
     }
-    // 标题优先:空间不足时保留标题所需宽度,宁可让行溢出也不压缩表头文字。
+    // Prioritize headers: preserve the width needed for titles when space is limited, allowing rows to overflow rather than compressing header text.
     return Math.max(floor, Math.min(value, max));
 }
 
@@ -3465,14 +3467,14 @@ function resizeStart(event) {
         list: list,
         table: table,
         index: index,
-        col: index,  // 每个分隔条都是其右侧固定列的左边界,统一调整该列,保证每列都有且仅有一个分隔条。
-        sign: Number(grip.getAttribute('data-sign')) || -1,  // 向右拖动的方向,弹性列在右侧时由分隔条指定为反向。
-        flexIndex: flexIndexOf(list),  // 弹性列所在位置,决定列宽与列下限的映射。
+        col: index,  // Each divider is the left edge of the fixed column to its right; always adjust that column so each column has exactly one divider.
+        sign: Number(grip.getAttribute('data-sign')) || -1,  // Drag direction when moving right; the divider sets this to reverse when the flexible column is on the right.
+        flexIndex: flexIndexOf(list),  // Position of the flexible column, used to map widths and minimums.
         origin: widths.slice(),
         widths: widths.slice(),
         startX: event.clientX,
         maxFixed: Math.max(head.clientWidth - padding - gap * widths.length, 0),
-        mins: measureColMins(list)  // 各列标题所需的最小宽度,拖拽期间保持不变。
+        mins: measureColMins(list)  // Minimum widths required by each column header; keep them constant while dragging.
     };
     event.preventDefault();
     event.stopPropagation();
@@ -3498,9 +3500,9 @@ function resizeEnd() {
     }
     colsCache[dragState.table] = dragState.widths;
     try {
-        localStorage.setItem(COLS_KEY, JSON.stringify(colsCache));  // 记住本次列宽,刷新后恢复。
+        localStorage.setItem(COLS_KEY, JSON.stringify(colsCache));  // Remember these column widths and restore them after refresh.
     } catch (e) {
-        // 隐私模式下写入失败可忽略。
+        // Ignore write failures in private browsing mode.
     }
     document.body.classList.remove('resizing');
     document.removeEventListener('pointermove', resizeMove);
@@ -3519,15 +3521,15 @@ function initCols() {
         var list = lists[i];
         var table = list.getAttribute('data-table');
         var head = list.querySelector('.list-head');
-        var flexIndex = flexIndexOf(list);  // 弹性列位置:常规表在首列,记录表在第2列。
+        var flexIndex = flexIndexOf(list);  // Flexible-column position: first in regular tables, second in the history table.
         var widths = colsCache[table];
         if (!widths || widths.length !== head.children.length - 1) {
-            widths = readDefaultCols(list);  // 列数变化或首次加载时回退到默认列宽。
+            widths = readDefaultCols(list);  // Fall back to default column widths when the column count changes or on first load.
         }
         var mins = measureColMins(list);
         var j;
         for (j = 0; j < widths.length; j++) {
-            widths[j] = Math.max(widths[j], mins[fixedGridPos(j, flexIndex)]);  // 已保存的列宽也不得小于标题所需宽度。
+            widths[j] = Math.max(widths[j], mins[fixedGridPos(j, flexIndex)]);  // Saved column widths must also be at least as wide as their headers require.
         }
         colsCache[table] = widths;
         applyCols(list, widths, flexColMin(mins[flexIndex]), flexIndex);
@@ -3535,10 +3537,10 @@ function initCols() {
     }
 }
 
-// 跨断点(旋转屏幕、缩放窗口)时重新应用列宽,
-// 让移动端弹性列的保底最小宽度在进入/离开窄屏时正确生效或取消。
-/* 缩放、窗口尺寸变化都会改变 innerWidth(CSS 像素),
-   统一防抖重算列宽,避免高缩放比例下残留旧宽度导致表头错乱。 */
+// Reapply column widths across breakpoints (screen rotation or window resizing),
+// so the mobile minimum width for the flexible column is correctly applied or removed when entering or leaving a narrow layout.
+/* Zooming and window resizing both change innerWidth (CSS pixels).
+   Debounce and recalculate widths in one place to prevent stale widths at high zoom levels from breaking the header. */
 var resizeTimer = null;
 window.addEventListener('resize', function () {
     clearTimeout(resizeTimer);
@@ -3554,11 +3556,11 @@ try {
     savedListen = localStorage.getItem(LISTEN_KEY) || '';
     savedNotice = localStorage.getItem(NOTICE_KEY) || '';
     savedStorage = localStorage.getItem(STORAGE_KEY) || '';
-    collapsed = JSON.parse(localStorage.getItem(COLLAPSE_KEY) || '{}') || {};  // 读回各分组折叠状态。
+    collapsed = JSON.parse(localStorage.getItem(COLLAPSE_KEY) || '{}') || {};  // Restore each group's collapsed state.
     allCollapsed = localStorage.getItem(ALL_KEY) === '1';
     uploadAllCollapsed = localStorage.getItem(UPLOAD_ALL_KEY) === '1';
-    lastLinkCollapsed = localStorage.getItem(LINK_LAST_KEY) !== '0';  // 无记录时保持链接层默认折叠。
-    lastUploadCollapsed = localStorage.getItem(UPLOAD_LAST_KEY) === '1';  // 无记录时保持上传频道层默认展开。
+    lastLinkCollapsed = localStorage.getItem(LINK_LAST_KEY) !== '0';  // Keep the link level collapsed by default when no value is stored.
+    lastUploadCollapsed = localStorage.getItem(UPLOAD_LAST_KEY) === '1';  // Keep the upload channel level expanded by default when no value is stored.
 } catch (e) {
     savedSection = '';
     savedListen = '';
@@ -3575,12 +3577,12 @@ function initVersion() {
     var trmd = document.getElementById('tipTrmd');
     var pyrogram = document.getElementById('tipPyrogram');
     if (trmd.textContent.indexOf('__') === 0 || pyrogram.textContent.indexOf('__') === 0) {
-        tip.hidden = true;  // 占位符未被服务端替换时隐藏,避免显示原始占位文本。
+        tip.hidden = true;  // Hide the tip if the server has not replaced the placeholder, so raw placeholder text is not shown.
     }
 }
 
-/* 统一接管原生 title 提示:任何带 title 的元素都改用自定义玻璃提示,
-   避免浏览器默认提示与自定义风格混杂(未截断的名称原本会冒出原生提示)。 */
+/* Handle native title tooltips consistently: use the custom glass tooltip for every element with a title,
+   avoiding a mix of browser-default and custom styles (untruncated names would otherwise show a native tooltip). */
 var nameTipEl = null;
 var nameTipFor = null;
 var tipMouseX = 0;
@@ -3593,7 +3595,7 @@ function nameTipNode() {
     return nameTipEl;
 }
 
-// 取最近的、带提示文案的元素(data-tip 或 title)。
+// Get the nearest element with tooltip text (data-tip or title).
 function nameTipTarget(node) {
     if (!node || !node.closest) {
         return null;
@@ -3601,7 +3603,7 @@ function nameTipTarget(node) {
     return node.closest('[data-tip], [title]');
 }
 
-// 原生 title 会与自定义提示同时弹出,首次遇到时迁移为 data-tip 并移除 title。
+// Native title and custom tooltips would appear together, so on first encounter move the text to data-tip and remove title.
 function takeTipText(el) {
     if (el.hasAttribute('title')) {
         el.setAttribute('data-tip', el.getAttribute('title'));
@@ -3617,7 +3619,7 @@ function showNameTip(el) {
         return;
     }
     tip.textContent = text;
-    tip.classList.add('show');  // 先显示以取得实际尺寸,再据此定位。
+    tip.classList.add('show');  // Show it first to measure its actual size, then position it.
     var rect = el.getBoundingClientRect();
     var left = rect.left;
     var top = rect.bottom + 8;
@@ -3627,7 +3629,7 @@ function showNameTip(el) {
         left = Math.max(8, window.innerWidth - width - 8);
     }
     if (top + height > window.innerHeight - 8) {
-        top = Math.max(8, rect.top - height - 8);  // 下方放不下时翻到上方。
+        top = Math.max(8, rect.top - height - 8);  // Move it above the element if there is not enough room below.
     }
     tip.style.left = left + 'px';
     tip.style.top = top + 'px';
@@ -3641,7 +3643,7 @@ function hideNameTip() {
     nameTipFor = null;
 }
 
-// 列表每秒重绘会销毁悬停元素,重绘后按当前鼠标位置重新定位提示。
+// The list redraws every second and destroys the hovered element; reposition the tooltip after redraw based on the current mouse location.
 function refreshNameTip() {
     if (!nameTipFor || nameTipFor.isConnected) {
         return;
@@ -3661,7 +3663,7 @@ function initNameTip() {
     });
     document.addEventListener('mouseover', function (event) {
         if (document.body.classList.contains('resizing')) {
-            return;  // 拖拽列宽时不弹提示,避免干扰。
+            return;  // Do not show a tooltip while dragging column widths, to avoid interference.
         }
         if (nameTipFor && !nameTipFor.isConnected) {
             hideNameTip();
@@ -3676,34 +3678,34 @@ function initNameTip() {
         var el = nameTipTarget(event.target);
         var to = nameTipTarget(event.relatedTarget);
         if (el && nameTipFor === el && to !== el) {
-            hideNameTip();  // 仍在同一元素内移动时不隐藏,避免闪烁。
+            hideNameTip();  // Do not hide while moving within the same element, to avoid flicker.
         }
     });
-    window.addEventListener('scroll', hideNameTip, true);  // 滚动后位置失效,直接隐藏。
+    window.addEventListener('scroll', hideNameTip, true);  // Scrolling invalidates the position, so hide it.
     document.addEventListener('pointerdown', function (event) {
         if (nameTipTarget(event.target) !== nameTipFor) {
-            hideNameTip();  // 点击提示以外的区域时关闭。
+            hideNameTip();  // Close it when clicking outside the tooltip.
         }
     });
 }
 
 /*
- * ===== 渐变背景实现 =====
- * 移植自 telegram-tt(web.telegram.org/a)的 util/gradientBackground.ts;
- * 该渐变算法改编自 http://useless.altervista.org/gradient.html(原脚本作者未知)。
- * 原始代码以 GNU GPL-3.0 授权,版权归相应原作者所有。
- * 移植并修改: Gentlesprite, 2026-09
- * 修改内容: 将原 React/TS 实现改写为原生 JS,并适配本项目 DOM 结构。
+ * ===== Gradient background implementation =====
+ * Ported from util/gradientBackground.ts in telegram-tt (web.telegram.org/a);
+ * the gradient algorithm was adapted from http://useless.altervista.org/gradient.html (original script author unknown).
+ * The original code is licensed under GNU GPL-3.0; copyright belongs to the respective original authors.
+ * Ported and modified by: Gentlesprite, 2026-09
+ * Changes: rewrote the original React/TS implementation in native JS and adapted it to this project's DOM structure.
  * SPDX-License-Identifier: GPL-3.0-only
  */
-/* ===== 渐变背景,逐行移植自官方 web.telegram.org/a(telegram-tt)的 util/gradientBackground.ts =====
-   注意:官方 Web A 与 Web K(tweb)的渐变是两套实现,色点坐标、混色公式、颜色顺序都不同。 */
-var BG_GRADIENT_SIZE = 100;  // 官方 useGradientBackground 的 CANVAS_SIZE = 100,靠 CSS 拉伸获得柔和观感。
-var BG_GRADIENT_SPEED = 0.1;  // 官方 ANIMATION_SPEED:色点向目标点移动的每帧插值系数。
-var BG_GRADIENT_EPSILON = 0.01;  // 官方 POSITION_EPSILON:色点与目标的距离小于该值视为到位。
-var BG_GRADIENT_BLEND_POWER = 3;  // 官方 BLEND_POWER:按"与最近色点的距离差"加权的幂次。
-var BG_GRADIENT_STEP = 2;  // 官方 KEY_POINT_STEP:每个颜色点每次前进 2 个索引。
-var BG_GRADIENT_POINTS = [  // 官方 KEY_POINTS:8 个色点的归一化坐标。
+/* ===== Gradient background, ported line by line from the official util/gradientBackground.ts in web.telegram.org/a (telegram-tt) =====
+   Note: the official Web A and Web K (tweb) gradients are different implementations, with different point coordinates, blending formulas, and color order. */
+var BG_GRADIENT_SIZE = 100;  // Official useGradientBackground CANVAS_SIZE = 100; CSS stretches it for a softer appearance.
+var BG_GRADIENT_SPEED = 0.1;  // Official ANIMATION_SPEED: per-frame interpolation factor for moving color points toward their targets.
+var BG_GRADIENT_EPSILON = 0.01;  // Official POSITION_EPSILON: a point is considered to have arrived when its distance to the target is below this value.
+var BG_GRADIENT_BLEND_POWER = 3;  // Official BLEND_POWER: exponent used to weight the difference in distance from the nearest color point.
+var BG_GRADIENT_STEP = 2;  // Official KEY_POINT_STEP: each color point advances by 2 indices at a time.
+var BG_GRADIENT_POINTS = [  // Official KEY_POINTS: normalized coordinates of 8 color points.
     [0.265, 0.582],
     [0.176, 0.918],
     [0.415, 0.836],
@@ -3715,34 +3717,34 @@ var BG_GRADIENT_POINTS = [  // 官方 KEY_POINTS:8 个色点的归一化坐标�
 ];
 var bgCanvas = null;
 var bgCtx = null;
-var bgHelperCanvas = null;  // 隐藏的小画布,先写入 ImageData 再拷贝到主画布,与官方两级结构一致。
+var bgHelperCanvas = null;  // Hidden small canvas; write ImageData here before copying it to the main canvas, matching the official two-level structure.
 var bgHelperCtx = null;
 var bgColors = [];
 var bgKeyShift = 0;
 var bgCurrentPositions = [];
 var bgTargetPositions = [];
 var bgAnimating = false;
-var bgLastProgress = -1;  // 上一轮的已完成任务总数,-1 表示尚未记录基数。
-// 涂鸦遮罩烘焙相关:把 pattern.svg 光栅化后逐帧用 destination-in 烙进画布,取代 CSS mask-image,
-// 从而消除 Chrome 对「带遮罩的 canvas 每帧重绘」的分块闪烁(Edge 不触发此 bug)。
-var bgDoodleImg = null;     // 加载并补全尺寸的涂鸦原图。
-var bgDoodlePattern = null; // 由遮罩瓦片画布生成的重复图案,用于在设备像素空间 1:1 平铺。
-var bgDoodleLoader = null;  // 遮罩图加载器。
-var bgDoodleDpr = 0;        // 当前瓦片所用像素密度,用于判断是否需要重建。
-var bgDoodleTileW = 0;      // 遮罩瓦片宽(设备像素),对应官方 mask-size 的 26.875rem(430px)。
-var bgDoodleTileH = 0;      // 遮罩瓦片高(设备像素),按原图宽高比推算。
-var bgDoodleOffX = 0;       // 对应官方 mask-position:center 的平铺原点横向偏移(设备像素)。
-var bgDoodleOffY = 0;       // 对应官方 mask-position:center 的平铺原点纵向偏移(设备像素)。
-var BG_PATTERN_URL = 'img/pattern.svg';     // 官方涂鸦图案,与被移除的 CSS mask-image 同一文件。
-var BG_PATTERN_TILE = 430;                   // 官方 26.875rem(1rem=16px)对应的瓦片宽度(CSS px)。
-var BG_PATTERN_ASPECT = 2960 / 1440;         // 遮罩原图 viewBox 宽高比,取不到固有尺寸时兜底。
+var bgLastProgress = -1;  // Total number of completed tasks in the previous check; -1 means the baseline has not yet been recorded.
+// Doodle-mask baking: rasterize pattern.svg, then bake it into the canvas each frame with destination-in instead of CSS mask-image,
+// eliminating Chrome's tiled flicker when redrawing a masked canvas each frame (this bug does not occur in Edge).
+var bgDoodleImg = null;     // Loaded doodle source image with dimensions filled in.
+var bgDoodlePattern = null; // Repeating pattern generated from the mask tile canvas, tiled 1:1 in device-pixel space.
+var bgDoodleLoader = null;  // Mask image loader.
+var bgDoodleDpr = 0;        // Pixel density used for the current tile, to determine whether it needs rebuilding.
+var bgDoodleTileW = 0;      // Mask tile width in device pixels, corresponding to the official mask-size of 26.875rem (430px).
+var bgDoodleTileH = 0;      // Mask tile height in device pixels, calculated from the source image's aspect ratio.
+var bgDoodleOffX = 0;       // Horizontal offset of the repeating origin for the official mask-position:center (device pixels).
+var bgDoodleOffY = 0;       // Vertical offset of the repeating origin for the official mask-position:center (device pixels).
+var BG_PATTERN_URL = 'img/pattern.svg';     // Official doodle pattern, the same file as the removed CSS mask-image.
+var BG_PATTERN_TILE = 430;                   // Tile width in CSS pixels corresponding to the official 26.875rem (1rem = 16px).
+var BG_PATTERN_ASPECT = 2960 / 1440;         // Aspect ratio of the mask source viewBox, used as a fallback if intrinsic dimensions are unavailable.
 
-function bgHexToRgb(hex) {  // 把 #rrggbb 颜色解析为 [r, g, b] 数组。
+function bgHexToRgb(hex) {  // Parse an #rrggbb color into an [r, g, b] array.
     var value = parseInt(hex.slice(1, 7), 16);
     return [(value >> 16) & 255, (value >> 8) & 255, value & 255];
 }
 
-function bgGetPositions(shift) {  // 官方 buildTargetPositions:取 keyPoints[(shift + i × 2) % 8] 的 4 个点。
+function bgGetPositions(shift) {  // Official buildTargetPositions: select 4 points using keyPoints[(shift + i × 2) % 8].
     var result = [];
     for (var i = 0; i < 4; i++) {
         var point = BG_GRADIENT_POINTS[(shift + i * BG_GRADIENT_STEP) % BG_GRADIENT_POINTS.length];
@@ -3751,17 +3753,17 @@ function bgGetPositions(shift) {  // 官方 buildTargetPositions:取 keyPoints[(
     return result;
 }
 
-var bgImageData = null;  // 复用的 ImageData:每帧新建会产生大量 GC 压力。
+var bgImageData = null;  // Reused ImageData; creating one every frame would cause significant GC pressure.
 
-function bgGetGradientImageData() {  // 官方 drawStaticGradient:按与最近色点的距离差 3 次幂加权混合四色。
-    // 优化点:复用 ImageData、取消每像素的数组分配、用乘法替代 Math.pow,视觉结果完全一致。
+function bgGetGradientImageData() {  // Official drawStaticGradient: blend four colors using the cube of the distance difference from the nearest color point.
+    // Optimizations: reuse ImageData, avoid per-pixel array allocations, and replace Math.pow with multiplication; the visual result is identical.
     if (!bgImageData) {
         bgImageData = bgHelperCtx.createImageData(BG_GRADIENT_SIZE, BG_GRADIENT_SIZE);
     }
     var pixels = bgImageData.data;
     var offset = 0;
     var size = BG_GRADIENT_SIZE;
-    // 色点坐标与颜色提到循环外,避免每个像素重复读取数组。
+    // Move color-point coordinates and colors outside the loop to avoid repeated array reads for every pixel.
     var px0 = bgCurrentPositions[0][0], py0 = bgCurrentPositions[0][1];
     var px1 = bgCurrentPositions[1][0], py1 = bgCurrentPositions[1][1];
     var px2 = bgCurrentPositions[2][0], py2 = bgCurrentPositions[2][1];
@@ -3772,7 +3774,7 @@ function bgGetGradientImageData() {  // 官方 drawStaticGradient:按与最近�
     var c3r = bgColors[3][0], c3g = bgColors[3][1], c3b = bgColors[3][2];
     for (var y = 0; y < size; y++) {
         var yRatio = y / size;
-        // 行方向的差值在外层算一次,内层复用。
+        // Calculate the row-direction difference once in the outer loop and reuse it in the inner loop.
         var ay = yRatio - py0, by = yRatio - py1, cy = yRatio - py2, dy = yRatio - py3;
         var ay2 = ay * ay, by2 = by * by, cy2 = cy * cy, dy2 = dy * dy;
         for (var x = 0; x < size; x++) {
@@ -3792,8 +3794,8 @@ function bgGetGradientImageData() {  // 官方 drawStaticGradient:按与最近�
             if (d3 < min) {
                 min = d3;
             }
-            // 权重 = (1 - (距离 - 最近距离)) 的 BG_GRADIENT_BLEND_POWER(3) 次幂;
-            // 常数 3 用连乘代替 Math.pow,速度快一个量级。
+            // Weight = (1 - (distance - nearest distance)) raised to BG_GRADIENT_BLEND_POWER (3);
+            // Replace Math.pow with repeated multiplication for the constant exponent 3, which is an order of magnitude faster.
             var k0 = 1 - (d0 - min), k1 = 1 - (d1 - min);
             var k2 = 1 - (d2 - min), k3 = 1 - (d3 - min);
             var w0 = k0 * k0 * k0, w1 = k1 * k1 * k1;
@@ -3804,7 +3806,7 @@ function bgGetGradientImageData() {  // 官方 drawStaticGradient:按与最近�
             }
             if (total === 0) {
                 total = 1;
-            }  // 避免除零(原实现会产出 NaN)。
+            }  // Avoid division by zero (the original implementation would produce NaN).
             var n0 = w0 / total, n1 = w1 / total, n2 = w2 / total, n3 = w3 / total;
             pixels[offset++] = c0r * n0 + c1r * n1 + c2r * n2 + c3r * n3;
             pixels[offset++] = c0g * n0 + c1g * n1 + c2g * n2 + c3g * n3;
@@ -3815,7 +3817,7 @@ function bgGetGradientImageData() {  // 官方 drawStaticGradient:按与最近�
     return bgImageData;
 }
 
-function bgDrawImageData(id) {  // 先写入隐藏画布,再拉伸拷贝到设备分辨率主画布,随后用 destination-in 烘焙涂鸦。
+function bgDrawImageData(id) {  // Write to the hidden canvas first, stretch-copy to the device-resolution main canvas, then bake in the doodle with destination-in.
     var viewW = bgCanvas.width || BG_GRADIENT_SIZE;
     var viewH = bgCanvas.height || BG_GRADIENT_SIZE;
     bgHelperCtx.putImageData(id, 0, 0);
@@ -3825,9 +3827,9 @@ function bgDrawImageData(id) {  // 先写入隐藏画布,再拉伸拷贝到设�
     bgCtx.imageSmoothingEnabled = true;
     bgCtx.drawImage(bgHelperCanvas, 0, 0, BG_GRADIENT_SIZE, BG_GRADIENT_SIZE, 0, 0, viewW, viewH);
     if (bgDoodlePattern) {
-        /* 用 destination-in 把涂鸦烘焙进画布像素,取代 CSS mask-image:遮罩不再由浏览器合成层处理,
-           每帧只剩两次全屏绘制,Chrome 不再有逐帧重合成遮罩导致的分块闪烁。
-           图案在设备像素空间 1:1 平铺,不缩放,清晰度与矢量遮罩一致。 */
+        /* Bake the doodle into the canvas pixels with destination-in instead of CSS mask-image, so the browser no longer handles the mask in a compositing layer.
+           Each frame now needs only two full-screen draws, eliminating Chrome's tiled flicker from recompositing the mask every frame.
+           Tile the pattern 1:1 in device-pixel space without scaling, preserving the sharpness of the vector mask. */
         bgCtx.globalCompositeOperation = 'destination-in';
         bgCtx.setTransform(1, 0, 0, 1, 0, 0);
         bgCtx.translate(bgDoodleOffX, bgDoodleOffY);
@@ -3837,25 +3839,25 @@ function bgDrawImageData(id) {  // 先写入隐藏画布,再拉伸拷贝到设�
     bgCtx.restore();
 }
 
-function bgDoodleAspect() {  // 遮罩原图宽高比:优先取固有尺寸,退化成默认 300×150 等异常时按 viewBox 兜底。
+function bgDoodleAspect() {  // Aspect ratio of the mask source: prefer intrinsic dimensions, falling back to the viewBox for cases such as the default 300×150 size.
     var width = bgDoodleImg.naturalWidth;
     var height = bgDoodleImg.naturalHeight;
     if (width > 0 && height > 0) {
         var ratio = height / width;
-        if (ratio > 1.2 && ratio < 3.0) {  // 合理涂鸦宽高比区间,排除浏览器默认 300×150 退化尺寸。
+        if (ratio > 1.2 && ratio < 3.0) {  // Accept a plausible doodle aspect ratio and exclude the browser's fallback 300×150 dimensions.
             return ratio;
         }
     }
     return BG_PATTERN_ASPECT;
 }
 
-function bgBuildDoodle() {  // 把遮罩原图按当前设备像素密度光栅化为瓦片画布,再生成重复图案。
+function bgBuildDoodle() {  // Rasterize the mask source into a tile canvas at the current device pixel ratio, then create the repeating pattern.
     if (!bgDoodleImg || !bgCtx) {
         return;
     }
-    var dpr = window.devicePixelRatio || 1;  // 不封顶:放大时浏览器 dpr 会升高,按真实值光栅化才 1:1 清晰。
+    var dpr = window.devicePixelRatio || 1;  // Do not cap the value: the browser DPR rises when zooming, and rasterizing at the real value keeps it sharp at 1:1.
     if (bgDoodlePattern && bgDoodleDpr === dpr) {
-        return;  // 像素密度未变化无需重建,避免拖动窗口时反复光栅化 SVG。
+        return;  // No rebuild is needed if the pixel density is unchanged; this avoids repeatedly rasterizing the SVG while resizing the window.
     }
     bgDoodleDpr = dpr;
     var tileW = Math.max(1, Math.round(BG_PATTERN_TILE * dpr));
@@ -3864,31 +3866,31 @@ function bgBuildDoodle() {  // 把遮罩原图按当前设备像素密度光栅�
     tile.width = tileW;
     tile.height = tileH;
     var tileCtx = tile.getContext('2d');
-    // 瓦片宽高比与 viewBox 一致,SVG 矢量按目标尺寸清晰光栅化,不会出现发虚或留白。
+    // Match the tile aspect ratio to the viewBox; rasterizing the SVG vector at the target size prevents blur and empty margins.
     tileCtx.drawImage(bgDoodleImg, 0, 0, tileW, tileH);
     bgDoodlePattern = bgCtx.createPattern(tile, 'repeat');
 }
 
-function bgUpdateDoodleGeometry() {  // 依据瓦片宽高比与画布尺寸计算居中平铺偏移(设备像素)。
+function bgUpdateDoodleGeometry() {  // Calculate centered tile offsets in device pixels from the tile aspect ratio and canvas dimensions.
     if (!bgDoodleImg || !bgCanvas) {
         return;
     }
-    var dpr = window.devicePixelRatio || 1;  // 不封顶:与瓦片光栅化、画布分辨率保持一致,放大才清晰。
+    var dpr = window.devicePixelRatio || 1;  // Do not cap the value: keep it consistent with tile rasterization and canvas resolution for sharp zooming.
     bgDoodleTileW = BG_PATTERN_TILE * dpr;
     bgDoodleTileH = bgDoodleTileW * bgDoodleAspect();
     bgDoodleOffX = ((bgCanvas.width - bgDoodleTileW) / 2) % bgDoodleTileW;
     bgDoodleOffY = ((bgCanvas.height - bgDoodleTileH) / 2) % bgDoodleTileH;
 }
 
-function bgResizeCanvas() {  // 按视口设备分辨率设定主画布,并同步遮罩平铺偏移与图案,随后立即重绘。
+function bgResizeCanvas() {  // Set the main canvas to the viewport's device resolution, sync the mask tile offsets and pattern, then redraw immediately.
     if (!bgCanvas || !bgCtx) {
         return;
     }
-    var dpr = window.devicePixelRatio || 1;  // 不封顶:画布按真实设备分辨率建立,放大时随 resize 重建且清晰。
+    var dpr = window.devicePixelRatio || 1;  // Do not cap the value: build the canvas at the actual device resolution so it stays sharp when zoomed and resized.
     var width = Math.max(1, Math.round((bgCanvas.clientWidth || window.innerWidth || 1) * dpr));
     var height = Math.max(1, Math.round((bgCanvas.clientHeight || window.innerHeight || 1) * dpr));
     if (bgCanvas.width !== width || bgCanvas.height !== height) {
-        bgCanvas.width = width;  // 重设宽高会清空画布并重置状态,需重建变换。
+        bgCanvas.width = width;  // Changing the dimensions clears the canvas and resets its state, so rebuild the transform.
         bgCanvas.height = height;
     }
     bgUpdateDoodleGeometry();
@@ -3896,7 +3898,7 @@ function bgResizeCanvas() {  // 按视口设备分辨率设定主画布,并同�
     bgDrawImageData(bgGetGradientImageData());
 }
 
-function bgEnsureSvgSize(text) {  // 给无固有尺寸的 SVG 补上与 viewBox 一致的 width/height,避免被缩放模糊。
+function bgEnsureSvgSize(text) {  // Add width/height matching the viewBox to an SVG without intrinsic dimensions, preventing blur from scaling.
     return text.replace(/<svg([^>]*)>/i, function (match, attrs) {
         if (/\bwidth\s*=/.test(attrs) && /\bheight\s*=/.test(attrs)) {
             return match;
@@ -3909,7 +3911,7 @@ function bgEnsureSvgSize(text) {  // 给无固有尺寸的 SVG 补上与 viewBox
     });
 }
 
-function bgLoadDoodle() {  // 异步加载涂鸦遮罩,就绪后烘焙进画布并显示背景,失败则退化为纯渐变。
+function bgLoadDoodle() {  // Load the doodle mask asynchronously, bake it into the canvas and show the background when ready, or fall back to a plain gradient on failure.
     bgDoodleLoader = new Image();
     bgDoodleLoader.onload = function () {
         bgDoodleImg = bgDoodleLoader;
@@ -3921,11 +3923,11 @@ function bgLoadDoodle() {  // 异步加载涂鸦遮罩,就绪后烘焙进画布�
             URL.revokeObjectURL(bgDoodleLoader.src);
         }
     };
-    bgDoodleLoader.onerror = function () {  // 遮罩加载失败:退化为无涂鸦的纯渐变背景,至少不再闪。
+    bgDoodleLoader.onerror = function () {  // If the mask fails to load, fall back to a plain gradient background without doodles, at least avoiding flicker.
         bgCanvas.classList.add('on');
     };
-    // 直接加载无固有尺寸的 SVG 会让浏览器退化成 300×150 再放大,导致涂鸦模糊;
-    // 故先取文本、补上与 viewBox 一致的 width/height 再生成 Blob URL,确保按目标尺寸清晰光栅化。
+    // Loading an SVG without intrinsic dimensions directly makes the browser fall back to 300×150 and then enlarge it, blurring the doodles;
+    // fetch the text first, add width/height matching the viewBox, then create a Blob URL so it rasterizes sharply at the target size.
     if (typeof fetch === 'function') {
         fetch(BG_PATTERN_URL).then(function (response) {
             return response.text();
@@ -3933,14 +3935,14 @@ function bgLoadDoodle() {  // 异步加载涂鸦遮罩,就绪后烘焙进画布�
             var blob = new Blob([bgEnsureSvgSize(text)], {type: 'image/svg+xml'});
             bgDoodleLoader.src = URL.createObjectURL(blob);
         }).catch(function () {
-            bgDoodleLoader.src = BG_PATTERN_URL;  // 取文本失败则退回直接加载(可能发虚,仅兜底)。
+            bgDoodleLoader.src = BG_PATTERN_URL;  // If fetching the text fails, fall back to direct loading (which may be blurry).
         });
     } else {
         bgDoodleLoader.src = BG_PATTERN_URL;
     }
 }
 
-function bgStepPositions() {  // 官方 stepPositions:色点向目标点做 0.1 线性插值,到位后停止。
+function bgStepPositions() {  // Official stepPositions: linearly interpolate color points toward their targets by 0.1, stopping when they arrive.
     var moving = false;
     for (var i = 0; i < 4; i++) {
         var current = bgCurrentPositions[i];
@@ -3955,7 +3957,7 @@ function bgStepPositions() {  // 官方 stepPositions:色点向目标点做 0.1 
     return moving;
 }
 
-function bgAnimate() {  // 官方 animate:仅在色点移动期间逐帧重绘,静止后自动停止,开销几乎为零。
+function bgAnimate() {  // Official animate: redraw each frame only while color points are moving, then stop automatically with almost no overhead.
     var moving = bgStepPositions();
     bgDrawImageData(bgGetGradientImageData());
     if (moving) {
@@ -3965,7 +3967,7 @@ function bgAnimate() {  // 官方 animate:仅在色点移动期间逐帧重绘,�
     }
 }
 
-function bgAdvancePosition() {  // 官方 advancePosition:推进到下一个目标位并启动补间;官方在发送消息时调用。
+function bgAdvancePosition() {  // Official advancePosition: move to the next target and start interpolation; the official code calls this when sending a message.
     bgTargetPositions = bgGetPositions(bgKeyShift);
     bgKeyShift = (bgKeyShift + 1) % BG_GRADIENT_POINTS.length;
     if (!bgAnimating) {
@@ -3993,15 +3995,15 @@ function initBackgroundGradient() {
     if (!bgColors.length) {
         return;
     }
-    // 官方初始布点为 keyPoints[0,2,4,6],首个目标与当前位置相同,因此加载后与官方静止状态一致。
+    // The official initial points are keyPoints[0,2,4,6]; the first targets match their current positions, so after loading the page is in the same static state as the official version.
     bgCurrentPositions = bgGetPositions(0);
     bgTargetPositions = bgGetPositions(0);
     bgKeyShift = 1;
-    // 启用 alpha:涂鸦以外区域透明,露出页面底色,观感与原 CSS mask 一致。
+    // Enable alpha so areas outside the doodles are transparent and reveal the page background, matching the original CSS mask appearance.
     bgCtx = bgCanvas.getContext('2d', {alpha: true});
-    bgResizeCanvas();  // 按设备分辨率建立主画布并完成首次绘制(此时尚无涂鸦,仅渐变)。
+    bgResizeCanvas();  // Build the main canvas at device resolution and draw the first frame (gradient only; no doodles yet).
     window.addEventListener('resize', bgResizeCanvas);
-    bgLoadDoodle();  // 遮罩就绪后再添加 on 类显示背景,避免未遮罩的全屏渐变闪现。
+    bgLoadDoodle();  // Add the on class only after the mask is ready, preventing an unmasked full-screen gradient from flashing.
 }
 
 bindSections();
@@ -4020,24 +4022,24 @@ bindSupport();
 bindMenu();
 initSettings();
 initVersion();
-loadStorageFilters();  // 先恢复筛选条件,下面重建表头时才带得出漏斗激活态。
+loadStorageFilters();  // Restore filters first so the header rebuilt below can show the active funnel state.
 currentStorage = STORAGE_TABS.indexOf(savedStorage) > -1 ? savedStorage : 'download';
-applyStorageTab();  // 先按保存的选项刷新高亮,此时尚未拉取数据,列表保持空态。
-applySectionVisibility();  // 按可用功能调整侧边栏,随后switchSection会锁定到可用的页面。
+applyStorageTab();  // Update the highlight from the saved selection first; data has not been fetched yet, so the list remains empty.
+applySectionVisibility();  // Adjust the sidebar to available features; switchSection will then lock to an available page.
 switchSection(savedSection);
 switchListen(savedListen);
 currentNotice = NOTICE_TABS.indexOf(savedNotice) > -1 ? savedNotice : 'download';
-applyNoticeTab();  // 按保存的选项刷新高亮,此时尚未拉取数据,列表保持空态。
+applyNoticeTab();  // Update the highlight from the saved selection first; data has not been fetched yet, so the list remains empty.
 document.getElementById('toggleAll').onclick = toggleAll;
 document.getElementById('toggleUpload').onclick = toggleUploadAll;
-initCols();  // 恢复上次的列宽并生成拖拽分隔条。
-bindPause();  // 绑定全局暂停/恢复按钮。
-initNameTip();  // 悬停文件名时显示完整名称。
-initBackgroundGradient();  // 启动 Telegram 风格的动画渐变背景。
+initCols();  // Restore the previous column widths and create the draggable dividers.
+bindPause();  // Bind the global pause/resume button.
+initNameTip();  // Show the full filename on hover.
+initBackgroundGradient();  // Start the Telegram-style animated gradient background.
 
-/* 页面不可见(切到后台标签/最小化)时暂停轮询。
-   后台标签不会被合成显示,继续每秒拉取数据、比对指纹、重建 DOM 只是白白吃 CPU;
-   回到前台时立即补一次刷新,观感完全不受影响。 */
+/* Pause polling when the page is not visible (switched to a background tab or minimized).
+   A background tab is not composited for display, so continuing to fetch data, compare fingerprints, and rebuild the DOM every second only wastes CPU;
+   refresh immediately when it returns to the foreground, with no visible impact. */
 var pollTimer = 0;
 
 function startPolling() {
@@ -4057,11 +4059,11 @@ document.addEventListener('visibilitychange', function () {
     if (document.hidden) {
         stopPolling();
     } else {
-        refresh();  // 回到前台先补一次,避免看到后台期间滞留的旧数据。
+        refresh();  // Refresh immediately on return to the foreground to avoid showing stale data from the background interval.
         startPolling();
     }
 });
 
-refresh(true);  // 首屏强制按最新数据渲染,跳过去重,确保进度条开局即正确显示。
+refresh(true);  // Force the initial page to render with the latest data, skipping deduplication so progress bars display correctly from the start.
 startPolling();
-startStoragePolling();  // 记录页轮询:内部按当前区块判断,只有停留在记录页才真正查询数据库。
+startStoragePolling();  // History-page polling checks the current section internally and queries the database only while the history page is active.

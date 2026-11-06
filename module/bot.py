@@ -2577,7 +2577,7 @@ class KeyboardButton:
             chat_id=None
     ):
         # Center the year keyboard on year and show 12 years (six earlier and five later); the arrow buttons page through 12 years at a time.
-        # selected_year为当前选中的年份,翻页只改变展示窗口,不改变选中年份。
+        # selected_year is the currently selected year; paging changes only the displayed range, not the selection.
         keyboard: list = []
         start_year: int = year - 6
         end_year: int = start_year + 11
@@ -3408,17 +3408,17 @@ class DownloadChatHandler(CallbackHandler):
                 enable=False
             )
             if data == BotCallbackText.DOWNLOAD_CHAT_ID:
-                # 点击执行任务时统一打印记录download_chat配置的字典,无论是否使用关键词,便于核对本次任务的筛选条件。
+                # When a task is executed, always log the download_chat configuration dictionary, whether or not keywords are used, to verify its filters.
                 log.info(f'Running /download_chat with current filters: {downloader.download_chat_filter}.')
-                # 仅派发成功(返回匹配到的链接列表)才清除配置;失败时保留配置与原菜单,便于直接重试。
+                # Clear the configuration only if dispatch succeeds (returns the matched links); on failure, retain it and the original menu for an easy retry.
                 if await downloader.download_chat(chat_id=chat_id, callback_query=query) is not None:
                     self.__remove_chat_id(downloader, chat_id)
-                    # 仅当指针指向本次结束的任务时才清理,避免误清同一用户的其它任务。
+                    # Clean up only if the pointer refers to the task that just ended, to avoid clearing another task belonging to the same user.
                     if downloader.download_chat_active.get(user_id) == chat_id:
                         downloader.download_chat_active.pop(user_id, None)
             elif data == BotCallbackText.DOWNLOAD_CHAT_ID_CANCEL:
                 self.__remove_chat_id(downloader, chat_id)
-                # 仅当指针指向本次结束的任务时才清理,避免误清同一用户的其它任务。
+                # Clean up only if the pointer refers to the task that just ended, to avoid clearing another task belonging to the same user.
                 if downloader.download_chat_active.get(user_id) == chat_id:
                     downloader.download_chat_active.pop(user_id, None)
                 await query.message.edit_text(
@@ -3444,7 +3444,7 @@ class DownloadChatHandler(CallbackHandler):
                     )
                 )
             except MessageNotModified:
-                pass  # 菜单内容未变化(如重复设置同一日期),属良性no-op。
+                pass  # The menu did not change (for example, the same date was set again); this is a harmless no-op.
         elif data in (BotCallbackText.FILTER_START_DATE, BotCallbackText.FILTER_END_DATE):
             dtype = None
             p_s_d = ''
@@ -3454,7 +3454,7 @@ class DownloadChatHandler(CallbackHandler):
             elif data == BotCallbackText.FILTER_END_DATE:
                 dtype = CalenderKeyboard.END_TIME_BUTTON
                 p_s_d = 'end'
-            # 已选过日期时,日历直接跳到选中日期所在的年月,并绿色标记那一天。
+            # If a date was already selected, jump to its year and month and mark that day in green.
             start_time, end_time = self.__get_update_time(downloader, chat_id)
             selected_time = start_time if data == BotCallbackText.FILTER_START_DATE else end_time
             selected_date = None
@@ -3507,7 +3507,7 @@ class DownloadChatHandler(CallbackHandler):
                                            chat_id=chat_id)
                 log.info(f'Date changed to {year}-{month}.')
         elif data.startswith(BotCallbackPrefix.SELECT_YEAR):
-            # 打开年份选择键盘,回调数据形如"select_year_{start|end}_{页面中心年}_{当前月}_{选中年份}"。
+            # Open the year-selection keyboard; callback data has the form "select_year_{start|end}_{page_center_year}_{current_month}_{selected_year}".
             parts = data.split('_')
             dtype = None
             if 'start' in data:
@@ -3519,14 +3519,14 @@ class DownloadChatHandler(CallbackHandler):
                 month = int(parts[-2])
                 selected_year = int(parts[-1])
             except ValueError:
-                # 兼容缺少选中年份参数的旧回调数据,此时选中年份即页面中心年。
+                # For older callback data without a selected-year parameter, use the page's center year as the selected year.
                 year = int(parts[-2])
                 month = int(parts[-1])
                 selected_year = year
             await kb.year_keyboard(dtype=dtype, year=year, month=month, selected_year=selected_year, chat_id=chat_id)
             log.info(f'Opened year selector; selected date: {selected_year}-{month}.')
         elif data.startswith(BotCallbackPrefix.SET_YEAR):
-            # 选定年份后回到日历视图,回调数据形如"set_year_{start|end}_{所选年}_{当前月}"。
+            # Return to the calendar after selecting a year; callback data has the form "set_year_{start|end}_{selected_year}_{current_month}".
             parts = data.split('_')
             dtype = None
             if 'start' in data:
@@ -3571,11 +3571,11 @@ class DownloadChatHandler(CallbackHandler):
                 f'Date range set: start={self.__get_update_time(downloader, chat_id)[0]}, end={self.__get_update_time(downloader, chat_id)[1]}.')
         elif data.startswith(('drop_keyword_', 'ignore_keyword')):
             if data.startswith('drop_keyword_'):
-                # 回调数据只携带关键词在列表中的下标,避免超长关键词把callback_data撑破64字节限制。
+                # Include only the keyword's list index in callback data to avoid exceeding the 64-byte limit with long keywords.
                 keyword_list: list = downloader.adding_keywords.get(chat_id, [])
                 try:
                     keyword_index: int = int(data.split('_')[-1])
-                except ValueError:  # 历史按钮携带的是关键词原文而非下标,直接忽略。
+                except ValueError:  # An old button contains the keyword text rather than its index; ignore it.
                     keyword_index = -1
                 if 0 <= keyword_index < len(keyword_list):
                     keyword = keyword_list[keyword_index]
@@ -3634,7 +3634,7 @@ class DownloadChatHandler(CallbackHandler):
                 BotCallbackText.CANCEL_KEYWORD_INPUT
         ):
             if data == BotCallbackText.DOWNLOAD_CHAT_KEYWORD_FILTER:
-                # 同一用户同时只保留一个输入模式,从其它任务切换过来时提示归属,避免关键词被误写到上一个任务。
+                # Keep only one input mode per user; when switching from another task, show its owner to avoid writing keywords to the previous task by mistake.
                 previous = downloader.keyword_handlers.get(user_id)
                 switched: bool = previous is not None and previous[0] != chat_id
                 panel_text: str = self.__filter_prompt(downloader, chat_id)
@@ -3801,7 +3801,7 @@ class CommandButtonHandler(CallbackHandler):
         command = command_map.get(data)
         if not command:
             return None
-        # 复用start_command_guide,与直接发送无参命令进入引导的行为保持一致。
+        # Reuse start_command_guide so button clicks behave like directly sending a command without arguments.
         await downloader.start_command_guide(message=query.message, command=command, callback_query=query)
 
 
@@ -3879,7 +3879,7 @@ CALLBACK_HANDLERS: tuple = (
 
 
 async def dispatch_callback_data(ctx: CallbackContext) -> None:
-    """按注册表顺序分发回调,首个匹配的处理器负责处理。"""
+    """Dispatch callbacks in registry order; the first matching handler processes the callback."""
     for handler in CALLBACK_HANDLERS:
         if handler.match(ctx.data):
             await handler.handle(ctx)

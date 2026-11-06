@@ -1405,7 +1405,7 @@ class TelegramRestrictedMediaDownloader(Bot):
         return file_name
 
     def get_media_meta(self, message: pyrogram.types.Message, dtype) -> Dict[str, Union[int, str]]:
-        """获取媒体元数据。"""
+        """Get media metadata."""
         file_id: int = getattr(message, 'id')
         temp_file_path: str = self.app.get_temp_file_path(message, dtype)
         _sever_meta = getattr(message, dtype)
@@ -1423,7 +1423,7 @@ class TelegramRestrictedMediaDownloader(Bot):
         }
 
     async def __download_scheduler(self) -> None:
-        """下载调度器,按最大并发数依次把排队中的消息派发为下载任务。"""
+        """Dispatch queued messages as download tasks, respecting the maximum concurrency limit."""
         while True:
             item: Union[dict, None] = None
             dispatched: bool = False
@@ -1649,7 +1649,7 @@ class TelegramRestrictedMediaDownloader(Bot):
             save_directory: str,
             with_move: bool = True
     ) -> bool:
-        """检测文件是否下完。"""
+        """Check whether the file has finished downloading."""
         temp_ext: str = '.temp'
         local_file_size: int = get_file_size(file_path=temp_file_path, temp_ext=temp_ext)
         format_local_size: str = MetaData.suitable_units_display(local_file_size)
@@ -2383,17 +2383,17 @@ class TelegramRestrictedMediaDownloader(Bot):
                 task_keys.append(str(_link))
         task_keys = list(dict.fromkeys(task_keys))
         last_update_time: float = 0
-        update_interval: float = 5.0  # 基准更新间隔(秒),实际间隔按并发tracker数与消息总量动态放大。
-        edit_fail_count: int = 0  # 连续编辑失败计数,超过上限视为消息已失效,停止跟踪。
-        sandglass: str = '⏳'  # 当前沙漏图标,仅在完成进度实际增长时切换,避免无意义的频繁翻转。
-        last_done: int = 0  # 记录上次编辑时的已完成数,初值0避免首帧done=0时0>-1误翻转成⌛。
+        update_interval: float = 5.0  # Base update interval in seconds; scale it by the number of concurrent trackers and total messages.
+        edit_fail_count: int = 0  # Count consecutive edit failures; stop tracking when the limit is exceeded because the message is likely invalid.
+        sandglass: str = '⏳'  # Current hourglass icon; switch it only when completion progress increases, avoiding pointless frequent changes.
+        last_done: int = 0  # Record the completed count at the last edit; initialize to 0 so the first frame with done=0 does not incorrectly switch from 0 > -1 to ⌛.
         while True:
             try:
                 total: int = 0
                 done: int = 0
                 for key in task_keys:
                     task: Union[DownloadTask, None] = DownloadTask.get(key)
-                    if task is None:  # 任务已被清理(如整链接被移除),视为已结束。
+                    if task is None:  # The task was cleared (for example, the whole link was removed); treat it as finished.
                         continue
                     for member in task.member_info.values():
                         total += 1
@@ -2477,20 +2477,20 @@ class TelegramRestrictedMediaDownloader(Bot):
     ) -> dict:
         retry = retry if retry else {'id': -1, 'count': 0}
         diy_download_type = [_ for _ in DownloadType()] if with_upload else diy_download_type
-        # 消息对象不可哈希(pyrogram的Object禁用了__hash__),只有链接字符串能作为登记键。
+        # Message objects are unhashable (pyrogram.Object disables __hash__), so only link strings can be used as registration keys.
         enqueue_key: Union[str, None] = message_ids if isinstance(message_ids, str) else None
         try:
             if enqueue_key:
-                # 解析(含RPC)完成前该链接尚未入队,登记供上传侧媒体组轮询判定"是否还有成员未入队"。
+                # The link is not queued until parsing (including RPCs) finishes; register it so the uploader's media-group poller can check whether members are still awaiting enqueueing.
                 DownloadTask.PENDING_ENQUEUE.add(enqueue_key)
             if album_members:
-                # 媒体组(download_chat):成员已在检索阶段逐个按类型/日期筛选通过,直接整组打包。
-                # 不再RPC展开整组(免去展开失败导致整组丢失),也不在下载阶段二次过滤
-                # (避免日期失效与实况照片等类型判定与检索阶段不一致)。
+                # Media groups from download_chat: each member already passed type/date filtering during search, so package the group directly.
+                # Do not expand the group via RPC again (avoids losing the group if expansion fails) or filter it again during download
+                # (avoids inconsistencies with the search phase, such as expired dates or live-photo type detection).
                 _first = album_members[0]
                 meta: dict = {
                     'link_type': LinkType.GROUP if len(album_members) > 1 else LinkType.SINGLE,
-                    # 频道ID优先用调用方给的已知值:部分消息的message.chat可能为None,直接取.chat.id会抛AttributeError。
+                    # Prefer the known channel ID supplied by the caller: message.chat may be None for some messages, and accessing .chat.id would raise AttributeError.
                     'chat_id': album_chat_id if album_chat_id is not None
                     else getattr(getattr(_first, 'chat', None), 'id', None),
                     'message': album_members,
@@ -2516,22 +2516,22 @@ class TelegramRestrictedMediaDownloader(Bot):
 
             link_type, chat_id, message, member_num = meta.values()
             if str(chat_id) in ('me', 'self'):
-                chat_id = self.my_id or chat_id  # 归一化me/self。
+                chat_id = self.my_id or chat_id  # Normalize me/self.
             task: DownloadTask = DownloadTask.get_or_create(link)
-            # 创建任务时即锁定归属者,且每次请求都刷新为当前请求者,
-            # 避免同一链接被不同用户先后下载时沿用首个用户的owner、通知发错人。
+            # Lock the owner when creating the task and refresh it to the current requester on every request,
+            # so a later user downloading the same link does not inherit the first user's ownership and receive the wrong notices.
             if owner is not None:
                 task.owner = owner
             task.link_type = link_type
             task.chat_id = chat_id
-            # 重试会按链接重新解析(媒体组会整组展开,使member_num膨胀),覆盖将导致member_num永远
-            # 大于complete_num、"下载完成"通知不再触发,故只在首次拉取(非重试)时赋值。
+            # Retries reparse the link (expanding media groups and inflating member_num); overwriting it would keep member_num above complete_num
+            # and prevent the "Download complete" notice from firing, so set it only on the initial fetch, not on retries.
             if retry.get('count', 0) == 0:
                 task.member_num = member_num
-            # 首次创建任务时锁定重试上限,同一link的重试复用该实例,因此运行中修改配置不会让正在重试的任务按新上限被判死;新任务仍按当时的配置值锁定。
+            # Lock the retry limit when creating a task. Retries for the same link reuse this instance, so configuration changes cannot fail an active retry under a new limit; new tasks use the current setting.
             if not task.max_retry:
                 task.max_retry = self.app.max_download_retries
-            # 整组打包时message是列表,取首条成员登记频道信息。
+            # When packaging a whole group, message is a list; use its first member to register channel information.
             ChatInfo.add(chat=getattr(album_members[0] if album_members else message, 'chat', None), chat_id=chat_id)
             DownloadTask.add_item(
                 link=link,
@@ -2671,11 +2671,11 @@ class TelegramRestrictedMediaDownloader(Bot):
             }
         finally:
             if enqueue_key:
-                # 无论解析成功、失败还是重试,入队后立即移除登记,杜绝残留导致媒体组永久等待。
+                # Remove the registration immediately after enqueueing, whether parsing succeeded, failed, or will be retried, so stale entries do not leave a media group waiting forever.
                 DownloadTask.PENDING_ENQUEUE.discard(enqueue_key)
 
     def __process_links(self, link: Union[str, list]) -> Union[set, None]:
-        """将链接(文本格式或链接)处理成集合。"""
+        """Convert links (from text or individual links) into a set."""
         start_content: str = 'https://t.me/'
         links: set = set()
         if isinstance(link, str):
@@ -2707,13 +2707,13 @@ class TelegramRestrictedMediaDownloader(Bot):
             return None
 
     def __retry_call(self, notice, _future):
-        self.pending_retry_tasks.discard(_future)  # 重试任务已结束,从待执行集合中移除。
+        self.pending_retry_tasks.discard(_future)  # The retry has finished; remove it from the pending set.
         self.queue.task_done()
         console.log(notice, style='#FF4689')
 
     async def __download_media_from_links(self) -> None:
         await self.app.client.start(use_qr=False)
-        # 打开网页记录数据库,保存目录使用telegram的会话目录;打开失败时放弃记录功能,不影响下载与上传。
+        # Open the web-record database in the Telegram session directory; if opening fails, disable record-keeping without affecting downloads or uploads.
         self.storage_database = build_storage_database(work_directory=self.app.work_directory)
         if not await self.storage_database.open():
             self.storage_database = None
@@ -2724,7 +2724,7 @@ class TelegramRestrictedMediaDownloader(Bot):
             client=self.app.client,
             remote_config=remote_config
         )
-        self.pb.progress.start()  # v1.1.8修复登录输入手机号不显示文本问题。
+        self.pb.progress.start()  # v1.1.8: Fixed an issue where the phone-number prompt was not displayed during login.
         ConnectionStatus.start()
         if self.app.bot_token is not None:
             result = await self.start_bot(
@@ -2741,7 +2741,7 @@ class TelegramRestrictedMediaDownloader(Bot):
                     device_model=Application.DEVICE_MODEL
                 )
             )
-            self.web.start()  # 配置机器人时,在打印"机器人启动成功"之前先启动网页面板(打印访问信息表格)。
+            self.web.start()  # When a bot is configured, start the web panel (which prints the access-information table) before printing "Bot started successfully."
             console.log(result, style='#B1DB74' if self.is_bot_running else '#FF4689')
             if self.is_bot_running:
                 self.uploader = TelegramUploader(download_object=self)
@@ -2756,15 +2756,15 @@ class TelegramRestrictedMediaDownloader(Bot):
                     )
         self.is_running = True
         self.running_log.add(self.is_running)
-        self.scheduler = self.loop.create_task(self.__download_scheduler())  # 启动下载调度器,由调度器统一派发排队中的任务。
+        self.scheduler = self.loop.create_task(self.__download_scheduler())  # Start the scheduler, which dispatches queued downloads.
         links: Union[set, None] = self.__process_links(link=self.app.links)
-        # 将初始任务添加到队列中。
+        # Add the initial tasks to the queue.
         [await self.loop.create_task(self.create_download_task(message_ids=link, retry=None)) for link in
          sorted(links)] if links else None
-        # 未配置机器人时,网页面板在"有无有效链接"检测通过之后再启动,已配置机器人的情况已在上方"机器人启动成功"输出前启动了web。
-        # 无机器人且无任何有效链接时__process_links会直接退出,此时不应白启动web。
+        # Without a configured bot, start the web panel only after checking for valid links; when a bot is configured, the panel was started above before printing "Bot started successfully."
+        # If there is no bot and no valid link, __process_links exits directly, so do not start the web panel needlessly.
         self.web.start() if not self.app.bot_token else None
-        # 处理队列中的任务与机器人事件。
+        # Process queued tasks and bot events.
         while (
                 not self.queue.empty()
                 or self.is_bot_running
@@ -2772,7 +2772,7 @@ class TelegramRestrictedMediaDownloader(Bot):
                 or self.pending_retry_tasks
         ):
             if self.queue.empty():
-                await asyncio.sleep(0.5)  # 队列为空时等待调度器派发任务,避免阻塞在队列获取上。
+                await asyncio.sleep(0.5)  # When the queue is empty, wait for the scheduler to dispatch a task instead of blocking on queue retrieval.
                 continue
             result = await self.queue.get()
             try:
@@ -2783,9 +2783,9 @@ class TelegramRestrictedMediaDownloader(Bot):
                     f'{_t(KeyWord.REASON)}:"{e}"')
             except Exception as e:
                 log.error(f'Error processing the queue, {_t(KeyWord.REASON)}: "{e}"', exc_info=True)
-        # 等待所有任务完成。
+        # Wait for all tasks to finish.
         await self.queue.join()
-        if self.scheduler:  # 停止下载调度器。
+        if self.scheduler:  # Stop the download scheduler.
             self.scheduler.cancel()
             self.scheduler = None
         await self.app.client.stop() if self.app.client.is_connected else None
@@ -2847,7 +2847,7 @@ class TelegramRestrictedMediaDownloader(Bot):
             self.web.stop()
             if self.storage_database is not None:
                 try:
-                    # 先等待登记任务落库再关闭数据库,避免退出时丢失最后的记录。
+                    # Wait for registered writes to finish before closing the database, so the last records are not lost on exit.
                     self.loop.run_until_complete(
                         asyncio.wait(self.pending_storage_tasks, timeout=5)
                     ) if self.pending_storage_tasks else None
@@ -2867,5 +2867,5 @@ class TelegramRestrictedMediaDownloader(Bot):
                     export=self.gc.get_config('export_table').get('upload')
                 )
                 MetaData.pay()
-                self.app.process_shutdown(60) if len(self.running_log) == 2 else None  # v1.2.8如果并未打开客户端执行任何下载,则不执行关机。
+                self.app.process_shutdown(60) if len(self.running_log) == 2 else None  # v1.2.8: Do not shut down if the client was never opened to perform a download.
             ctrl_c()

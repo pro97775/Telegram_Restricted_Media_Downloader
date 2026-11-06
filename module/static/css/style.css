@@ -84,7 +84,7 @@ body {
     margin: 0 auto;
 }
 
-/* 两栏布局 */
+/* Two-column layout */
 .layout {
     display: grid;
     grid-template-columns: 150px minmax(0, 1fr);
@@ -97,7 +97,7 @@ body {
     grid-template-columns: minmax(0, 1fr);
 }
 
-/* 左侧边栏 */
+/* Left sidebar */
 .sidebar {
     display: flex;
     flex-direction: column;
@@ -137,7 +137,7 @@ body {
     min-width: 0;
 }
 
-/* 顶部区域 */
+/* Top section */
 .topbar {
     display: flex;
     align-items: center;
@@ -853,7 +853,7 @@ th {
     white-space: nowrap;
 }
 
-/* 进度条 */
+/* Progress bar */
 .track {
     position: relative;
     height: 6px;
@@ -881,7 +881,7 @@ th {
     transition: width .5s ease;
 }
 
-/* 统计 */
+/* Statistics */
 .stat {
     display: grid;
     grid-template-columns: repeat(5, 1fr);

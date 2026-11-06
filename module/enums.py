@@ -955,7 +955,7 @@ class GetStdioParams:
                         else:
                             input_buffer.append(char)
                             console.print(char, end='')
-                        last_second = -1  # 输入开始后不再显示倒计时。
+                        last_second = -1  # Stop displaying the countdown once input begins.
                     elif elapsed > timeout:
                         timeout_notice()
                         return default
@@ -1031,7 +1031,7 @@ class GetStdioParams:
                             input_buffer.append(char)
                             sys.stdout.write(char)
                             sys.stdout.flush()
-                        last_second = -1  # 输入开始后不再显示倒计时。
+                        last_second = -1  # Stop displaying the countdown once input begins.
 
                     elif elapsed > timeout:
                         # Clear the countdown display.
@@ -1587,7 +1587,7 @@ class BotCallbackText:
 
     def __iter__(self):
         for key, value in vars(self.__class__).items():
-            if not key.startswith('__') and not callable(value):  # 排除特殊方法和属性。
+            if not key.startswith('__') and not callable(value):  # Exclude special methods and attributes.
                 yield value
 
 
