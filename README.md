@@ -1,6 +1,6 @@
 <h1><img src="https://raw.githubusercontent.com/Gentlesprite/Telegram_Restricted_Media_Downloader/main/res/logo.png" width="56" valign="middle" alt="logo" style="display:inline-block;vertical-align:middle;margin:0 4px 0 0">&nbsp;TRMD</h1>
 
-> 支持断点续传的Telegram下载器。
+> A Telegram downloader with resumable downloads.
 
 <p style="display:flex;flex-wrap:wrap;gap:4px;align-items:center;justify-content:flex-start">
 <img src="https://img.shields.io/badge/Python-3.13.2-E74C3C?style=flat-square" alt="Python 3.13.2" style="margin:0">
@@ -13,75 +13,76 @@
 
 
 > [!Tip]
-> 本项目**推荐代理**：[点击跳转](https://proxy-seller.com/zh/?partner=CCFF5F78CF9C46A7)。  
-> 欢迎提交附带详细复现步骤的BUG反馈。  
-> **接受付费定制化需求、付费远程搭建、教学、答疑。**
+> **Recommended proxy provider:** [Visit the site](https://proxy-seller.com/zh/?partner=CCFF5F78CF9C46A7).  
+> Bug reports with detailed reproduction steps are welcome.  
+> **Paid customizations, remote setup, training, and support are available.**
 
 > [!Important]
-> 本项目没有帮你解决问题的义务。  
-> 如果你**遇到问题没有找到解决方案**：  
-> [联系作者](https://t.me/Gentlesprite)**付费**解答。  
-> 推荐先观看[视频教程](https://www.youtube.com/watch?v=ucwKJu-MrBw)并配合[“README.md”](https://github.com/Gentlesprite/Telegram_Restricted_Media_Downloader/blob/main/README.md)与[“常见问题及解决方案汇总”](https://github.com/Gentlesprite/Telegram_Restricted_Media_Downloader/wiki)。  
-> 加入[TRMD交流群](https://t.me/+6KKA-buFaixmNTE1)搜索历史聊天记录是否提到过相关问题，凡是重复的问题不予回答。
+> The project is not obligated to resolve issues for you.  
+> If you **cannot find a solution to your problem**:  
+> Contact the [developer](https://t.me/Gentlesprite) for **paid** support.  
+> We recommend watching the [video tutorial](https://www.youtube.com/watch?v=ucwKJu-MrBw) and consulting this README and the [FAQ and solutions](https://github.com/Gentlesprite/Telegram_Restricted_Media_Downloader/wiki).  
+> Join the [TRMD discussion group](https://t.me/+6KKA-buFaixmNTE1) to search its chat history for similar issues. Repeated questions may not receive a response.
 
-# 特点
+# Features
 
 > [!Tip]
-> 🤖表示需要配置机器人才能实现。
+> 🤖 indicates that a bot must be configured.
 
-|  特点  |                                                                                                                                                 说明                                                                                                                                                 |
-|:----:|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
-| 受限下载 |                                                                                                                                         下载（受保存限制）聊天中的媒体文件。                                                                                                                                         |
-| 断点续传 |                                                                                                                                           下载与上传均支持断点续传。                                                                                                                                            |
-| 网页面板 |                                                                                                                                          浏览器实时查看下载与上传进度。                                                                                                                                           |
-| 开箱即用 |   提供[`Windows`](https://github.com/Gentlesprite/Telegram_Restricted_Media_Downloader/releases)、[`Linux`](https://github.com/Gentlesprite/Telegram_Restricted_Media_Downloader/releases)平台二进制文件，并支持通过[`Docker`](https://hub.docker.com/r/gentlesprite/telegram_restricted_media_downloader)部署运行。    |
-| 批量下载 |                                                                                                                              🤖下载整个频道及其评论区（可选），并支持关键词、类型、日期等自定义过滤规则。                                                                                                                               |
-| 使用门槛 |                                                                                                                                     🤖在帮助菜单通过点击按钮逐步引导用户创建所需任务。                                                                                                                                     |
-| 消息转发 |                                                                                                                                     🤖频道开启`限制保存内容`时自动回退为下载后上传。                                                                                                                                     |
-| 文件上传 |                                                                                                                                       🤖批量上传本地文件到`Telegram`。                                                                                                                                       |
-| 实时监听 |                                                                                                                                        🤖监听频道最新消息并自动下载或转发。                                                                                                                                         |
+| Feature | Description |
+|:---:|:---:|
+| Restricted downloads | Download media from chats that restrict saving content. |
+| Resumable transfers | Downloads and uploads can resume after interruption. |
+| Web dashboard | Monitor download and upload progress in a browser. |
+| Ready to use | Windows and Linux binaries are available, and the app can be deployed with Docker. |
+| Batch downloads | 🤖 Download entire channels and optionally their comments, with custom keyword, type, and date filters. |
+| Guided setup | 🤖 Create tasks through step-by-step prompts in the help menu. |
+| Message forwarding | 🤖 If a channel restricts saving content, forwarding falls back to download-and-upload. |
+| File uploads | 🤖 Batch-upload local files to Telegram. |
+| Live monitoring | 🤖 Monitor new channel messages and download or forward them automatically. |
 
-# 免责声明
+# Disclaimer
 
-本项目以`GNU GPL-3.0`协议开源发布。
+This project is released as open-source software under the `GNU GPL-3.0` license.
 
-**所有使用本软件的行为及其后果均由使用者自行承担全部法律责任**，开发者不对任何使用行为及其后果负责。
+**Users are solely responsible for all use of this software and any resulting consequences.** The developer accepts no liability for any use or its consequences.
 
 ------
 
-*本项目按“原样”提供，不附带任何明示或暗示的保证。*
+*This project is provided "as is," without warranties of any kind, express or implied.*
 
-|      作者       |       [Gentlesprite](https://github.com/Gentlesprite)        |
-| :-------------: | :----------------------------------------------------------: |
-| YouTube视频教程 |   [点击观看](https://www.youtube.com/watch?v=ucwKJu-MrBw)    |
-| Telegram交流群  |          [点击加入](https://t.me/+6KKA-buFaixmNTE1)          |
-|  **支持作者**   | [点击跳转](https://github.com/Gentlesprite/Telegram_Restricted_Media_Downloader/tree/main?tab=readme-ov-file#80%E6%94%AF%E6%8C%81%E4%BD%9C%E8%80%85) |
+| Author | Link |
+|:---:|:---:|
+| Gentlesprite | [GitHub](https://github.com/Gentlesprite) |
+| YouTube tutorial | [Watch](https://www.youtube.com/watch?v=ucwKJu-MrBw) |
+| Telegram group | [Join](https://t.me/+6KKA-buFaixmNTE1) |
+| Support the developer | [Support](https://github.com/Gentlesprite/Telegram_Restricted_Media_Downloader/tree/main?tab=readme-ov-file#support-the-developer) |
 
-# 1.0.下载地址
+# 1.0. Downloads
 
-|      平台      |                           下载地址                           |    备注    |
-| :------------: | :----------------------------------------------------------: | :--------: |
-|     Github     | [点击跳转](https://github.com/Gentlesprite/Telegram_Restricted_Media_Downloader/releases) |  &ndash;   |
-|     Gitee      | [点击跳转](https://gitee.com/Gentlesprite/Telegram_Restricted_Media_Downloader/releases) | 仅发布源码 |
-|     蓝奏云     |         [点击跳转](https://wwgr.lanzn.com/b0fopovuf)         | 密码:ceze  |
-| Telegram交流群 |          [点击加入](https://t.me/+6KKA-buFaixmNTE1)          |   群文件   |
+| Platform | Download | Notes |
+|:---:|:---:|:---:|
+| GitHub | [Releases](https://github.com/Gentlesprite/Telegram_Restricted_Media_Downloader/releases) | — |
+| Gitee | [Releases](https://gitee.com/Gentlesprite/Telegram_Restricted_Media_Downloader/releases) | Source code only |
+| Lanzou Cloud | [Download](https://wwgr.lanzn.com/b0fopovuf) | Password: `ceze` |
+| Telegram group | [Join](https://t.me/+6KKA-buFaixmNTE1) | Group files |
 
-## 1.1.推荐终端（选看）
+## 1.1. Recommended terminal (optional)
 <details>
-<summary><strong>点击展开</strong></summary>
+<summary><strong>Click to expand</strong></summary>
 
-1. _对于Windows11用户_，`Windows Terminal`默认**已经安装好**，可**跳过**下载的步骤，直接前往第3步（将`Windows Terminal`设为**默认终端**）。
+1. _For Windows 11 users_, `Windows Terminal` is installed by default. You can **skip** the download step and go directly to step 3 (setting `Windows Terminal` as the **default terminal**).
 
-2. _对于Windows10用户_，推荐使用`Windows Terminal`作为**默认终端**，仅作为推荐安装，无论安装与否**不会影响本软件的使用**，`Windows Terminal`能提供更出色的显示、交互、体验效果，以及避免出现**文字显示**乱码。
+2. _For Windows 10 users_, we recommend using `Windows Terminal` as the **default terminal**. This is optional and does not affect the software. `Windows Terminal` provides a better display and interaction experience and helps prevent **garbled text**.
 
-   `Windows Terminal`下载地址如下表：
+   Download `Windows Terminal` from one of the following sources:
 
-   |   平台   |                           下载地址                           |
+   | Platform | Download |
    | :------: | :----------------------------------------------------------: |
-   | 微软商店 | [点击跳转](https://apps.microsoft.com/detail/9n0dx20hk701?launch=true&mode=full&hl=zh-cn&gl=cn&ocid=bingwebsearch) |
-   |  Github  |  [点击跳转](https://github.com/microsoft/terminal/releases)  |
+   | Microsoft Store | [Download](https://apps.microsoft.com/detail/9n0dx20hk701?launch=true&mode=full&hl=zh-cn&gl=cn&ocid=bingwebsearch) |
+   | GitHub | [Releases](https://github.com/microsoft/terminal/releases) |
 
-3. 下载完成完成后`win+r`输入`wt`回车打开，然后将`Windows Terminal`设为**默认终端**再启动软件，教程如下：
+3. After installation, press `Win+R`, type `wt`, and press Enter. Set `Windows Terminal` as the **default terminal** before starting the software. See the screenshots below:
 
    ![image](https://raw.githubusercontent.com/Gentlesprite/Telegram_Restricted_Media_Downloader/main/res/1_1_1.png)
 
@@ -89,24 +90,23 @@
 
 </details>
 
-# 2.0.快速开始
+# 2.0. Quick start
 
-## 2.1.申请电报API
+## 2.1. Apply for a Telegram API ID and hash
 > [!IMPORTANT]
-> **申请电报API对IP纯净度要求极高，针对无法申请的情况：  
-> 可直接使用[YouTube视频教程](https://www.youtube.com/watch?v=ucwKJu-MrBw)或[B站视频](https://www.bilibili.com/video/BV1hyHJ68EcQ)简介下提供的`api`，随后`申请电报API`可省略。**
+> **Applying for a Telegram API ID and hash requires an IP address with a good reputation. If you cannot apply, you can use the `api` details provided in the description of the [YouTube tutorial](https://www.youtube.com/watch?v=ucwKJu-MrBw) or [Bilibili video](https://www.bilibili.com/video/BV1hyHJ68EcQ); then you can skip the application steps below.**
 
-1. 前往网站:**https://my.telegram.org/auth**
+1. Go to **https://my.telegram.org/auth**.
 
    
 
-2. 填写**自己绑定**`Telegram`电报的**手机号**注意手机号格式先要+地区再写入电话号码例如`+12223334455`，`+1`为地区，`222333445`为你绑定`Telegram`的**手机号**，填写后点击`Next`。
+2. Enter the **phone number associated with your Telegram account**. Include the country code first, for example, `+12223334455`, where `+1` is the country code. Click `Next`.
 
    ![image](https://raw.githubusercontent.com/Gentlesprite/Telegram_Restricted_Media_Downloader/main/res/2_1_1.png)
 
    
 
-3. 打开你的`Telegram`客户端，此时会收到来自`Telegram`账号的消息，将上面的验证码填入`Confirmation code`框中，然后点击`Sign in`。
+3. Open your Telegram client and find the message from Telegram. Enter its verification code in the `Confirmation code` field, then click `Sign in`.
 
    ![image](https://raw.githubusercontent.com/Gentlesprite/Telegram_Restricted_Media_Downloader/main/res/2_1_2.png)
 
@@ -114,115 +114,114 @@
 
    
 
-4. 点击`API development tools`按照提示填入即可。
+4. Click `API development tools` and complete the form as prompted.
 
    ![image](https://raw.githubusercontent.com/Gentlesprite/Telegram_Restricted_Media_Downloader/main/res/2_1_4.png)
 
    
 
-5. 申请成功会得到一个`api_hash`和`api_id`保存下载，**切记不要泄露给任何人！**
+5. After applying, save your `api_hash` and `api_id`. **Never share them with anyone.**
 
-## 2.2.电报机器人`bot_token`申请及使用教程（选看）
+## 2.2. Optional: apply for and use a Telegram bot `bot_token`
 > [!TIP]
-> 大部分的使用需求都能通过配置机器人满足：   
-> 例如需要下载整个频道的内容亦或是监听、转发某个频道，根据实际需求查看对应机器人命令。   
-> 故可以将`TRMD`部署在`服务器`、`NAS`，无论是`Windows`、`Linux`还是`Docker`。
+> A configured bot supports most use cases, such as downloading an entire channel or monitoring and forwarding channel messages. See the bot commands for your use case.  
+> This also allows you to deploy `TRMD` on a server or NAS using `Windows`, `Linux`, or `Docker`.
 
 <details>
-<summary><strong>点击展开</strong></summary>
+<summary><strong>Click to expand</strong></summary>
 
-### 2.2.1.申请教程
+### 2.2.1. Apply for a bot
 
-1. 前往网站：https://t.me/BotFather 
+1. Go to https://t.me/BotFather.
 
-2. 打开后会**提示**"要打开 Telegram Desktop 吗？"此时**点击**"打开Telegram Desktop"如下图所示：
+2. When prompted to open Telegram Desktop, click **Open Telegram Desktop**, as shown below:
 
    ![image](https://raw.githubusercontent.com/Gentlesprite/Telegram_Restricted_Media_Downloader/main/res/2_2_1.png)
 
-   如果没有这个弹窗，说明电脑没有安装**Telegram客户端**，安装后再重试即可。
+   If this dialog does not appear, install the **Telegram client** and try again.
 
-3. **点击开始**，如下图所示：
+3. Click **Start**, as shown below:
 
    ![image](https://raw.githubusercontent.com/Gentlesprite/Telegram_Restricted_Media_Downloader/main/res/2_2_2.png)
 
-4. 然后在当前**聊天框**中输入`/newbot`后回车，如下图所示：
+4. In the current **chat**, enter `/newbot` and press Enter, as shown below:
 
    ![image](https://raw.githubusercontent.com/Gentlesprite/Telegram_Restricted_Media_Downloader/main/res/2_2_3.png)
 
-   它会回复你`"Alright, a new bot. How are we going to call it? Please choose a name for your bot."`意思是给机器人取一个名字，如下图所示：
+   BotFather will reply: `"Alright, a new bot. How are we going to call it? Please choose a name for your bot."` Enter a display name for your bot, as shown below:
 
    ![image](https://raw.githubusercontent.com/Gentlesprite/Telegram_Restricted_Media_Downloader/main/res/2_2_4.png)
 
-5. 这个名字是显示名称（display name），并不是唯一识别码，随便设置一下即可，之后可以通过 `/setname`命令进行修改。
+5. This is the display name, not the unique username. Choose any name; you can change it later with `/setname`.
 
    ![image](https://raw.githubusercontent.com/Gentlesprite/Telegram_Restricted_Media_Downloader/main/res/2_2_5.png)
 
-6. 接着设置机器人的**唯一名称**。字符串必须 以`bot`结尾，比如 `HelloWorld_bot` 或 `HelloWorldbot` 都是合法的。如果设置的名字已经被占用需要重新设置。如设置成了 `trmd_bot`但是这个名字已经有人使用了，此时会提示`"Sorry, this username is already taken. Please try something different."`意思是已经被使用了，需要拟定一个**不重复**的，如下图所示：
+6. Next, choose a **unique username** for the bot. It must end in `bot`; for example, `HelloWorld_bot` and `HelloWorldbot` are both valid. If the username is already taken, choose another one. BotFather will show `"Sorry, this username is already taken. Please try something different."` when a name is unavailable.
 
    ![image](https://raw.githubusercontent.com/Gentlesprite/Telegram_Restricted_Media_Downloader/main/res/2_2_6.png)
 
-   如果结果如**上图**所示，则就代表名字**重复**了，需要**重新拟定**一个。
+   If you see the message shown above, the username is **taken** and you need to **choose another one**.
 
-7. 直到提示你`"Done! Congratulations on your new bot. . ."`如下图所示：
+7. Continue until BotFather displays `"Done! Congratulations on your new bot. . ."`, as shown below:
 
    ![image](https://raw.githubusercontent.com/Gentlesprite/Telegram_Restricted_Media_Downloader/main/res/2_2_7.png)
 
-   如果结果如**上图**所示，则代表`bot_token`申请成功了，箭头指的红框处就是你所申请的`bot_token`，**切记不要泄露给任何人！**
+   This means the bot was created successfully. The red box indicated by the arrow contains your `bot_token`. **Never share it with anyone.**
 
-### 2.2.2.使用教程
+### 2.2.2. Using the bot
 
-1. 申请完成后，在软件配置时询问"是否启用「机器人」（需要提供bot_token）？ - 「y|n」（默认n）"选择`y`代表**需要**使用，如下图所示：
+1. After creating the bot, when the software asks `Enable bot (requires bot_token)? - y|n (default n)`, enter `y` if you want to use it, as shown below:
 
    ![image](https://raw.githubusercontent.com/Gentlesprite/Telegram_Restricted_Media_Downloader/main/res/2_2_8.png)
 
-   然后在**上图**箭头所指处填入"2.2.1.申请教程"第7步申请的`bot_token`后回车，即可配置完成。
+   Enter the `bot_token` you obtained in step 7 of [Apply for a bot](#221-apply-for-a-bot) in the field indicated by the arrow, then press Enter to complete setup.
 
-2. 在一切配置完成，软件启动成功后等待提示"「机器人」启动成功。"，就代表机器人可以使用了，如下图所示：
+2. After setup is complete and the software starts, wait for the message `Bot started successfully.` This indicates that the bot is ready to use, as shown below:
 
    ![image](https://raw.githubusercontent.com/Gentlesprite/Telegram_Restricted_Media_Downloader/main/res/2_2_9.png)
 
-3. 在`Telegram`客户端中找到与`BotFather`的对话框，找到"2.2.1.申请教程"第7步对话的位置（或者用你自己的方式找到你的机器人的对话框），如下图所示：
+3. In the Telegram client, find your conversation with `BotFather` and locate the message from step 7 of [Apply for a bot](#221-apply-for-a-bot), or find your bot chat another way, as shown below:
 
    ![image](https://raw.githubusercontent.com/Gentlesprite/Telegram_Restricted_Media_Downloader/main/res/2_2_10.png)
 
-   然后在**上图**箭头所指处即可**跳转**到机器人对话框。
+   Click the location indicated by the arrow to open your bot chat.
 
-4. **点击**开始，如下图所示：
+4. Click **Start**, as shown below:
 
    ![image](https://raw.githubusercontent.com/Gentlesprite/Telegram_Restricted_Media_Downloader/main/res/2_2_11.png)
 
-   不出意外，会收到一条来自**机器人**发送的消息，如下图所示：
+   You should receive a message from your **bot**, as shown below:
 
    ![image](https://raw.githubusercontent.com/Gentlesprite/Telegram_Restricted_Media_Downloader/main/res/2_2_12.png)
 
-   **如果没收到**尝试给机器人发送任意命令。
+   **If you do not receive a message**, try sending the bot any command.
 
-5. 目前机器人支持的命令用法及解释如下表所示：
+5. The bot currently supports the following commands:
 
-   | 命令               | 用法                                                              | 解释                                                                     |
+   | Command | Usage | Description |
    | :----------------- |:----------------------------------------------------------------|:-----------------------------------------------------------------------|
-   | `/help`            | 向机器人发送发送`/help`即可。                                              | 展示**可用**命令。                                                            |
-   | `/download`        | `/download 链接1 链接2 链接3 链接n`或`/download 频道链接 1 100`              | 分配**新的**下载任务，两种方式可选（**指定链接下载**和**范围下载**，具体使用方法请见下方说明）。                 |
-   | `/table`           | 向机器人发送`/table`即可。                                               | 在**终端**输出**当前**下载情况的**统计信息**。                                          |
-   | `/forward`         | `/forward https://t.me/A https://t.me/B 1 100`                  | 将**频道A**的消息转发至**频道B**，其中`1`代表`起始ID`，`100`代表截止`ID`。                     |
-   | `/exit`            | 向机器人发送`/exit`即可。                                                | **退出**软件。                                                              |
-   | `/listen_download` | `/listen_download https://t.me/A https://t.me/B https://t.me/n` | **实时**监听**频道A**、**频道B**和**频道n**的**最新消息**（任意消息）进行下载。                    |
-   | `/listen_forward`  | `/listen_forward https://t.me/A https://t.me/B`                 | **实时**监听**频道A**的**最新消息**（任意消息）转发至**频道B**。当**频道A**存在`内容保护限制`时，回退至下载后上传。 |
-   | `/listen_info`     | 向机器人发送`/listen_info`即可。                                         | 查看当前已经创建的监听信息。                                                         |
-   | `/upload`          | `/upload` `本地文件` `目标频道`                                         | 上传**本地的文件**到**指定频道**。                                                  |
-   | `/upload_r`        | `/upload_r 本地文件夹 目标频道`                                          | **递归**上传文件夹（**包含子文件夹**）到**指定频道**。                                      |
-   | `/download_chat`   | `/download_chat 频道链接`                                           | 获取该频道**全部内容**，用户通过**自定义条件**进行内容筛选，最终**下载该频道中用户所需内容**。                              |
-   | `/auth`            | `/auth`或`/auth 用户ID`或`/auth @用户名`                               | 添加/移除/查看授权使用机器人的用户，支持用户`ID`或`@用户名`。                                    |
+   | `/help` | Send `/help` to the bot. | Show the **available** commands. |
+   | `/download` | `/download link1 link2 link3 linkN` or `/download channel_link 1 100` | Create a **new** download task using either specific links or a message range. |
+   | `/table` | Send `/table` to the bot. | Print current download statistics in the **terminal**. |
+   | `/forward` | `/forward https://t.me/A https://t.me/B 1 100` | Forward messages from **channel A** to **channel B**, from message ID `1` through `100`. |
+   | `/exit` | Send `/exit` to the bot. | **Exit** the software. |
+   | `/listen_download` | `/listen_download https://t.me/A https://t.me/B https://t.me/N` | **Monitor** new messages in **channels A, B, and N** and download them. |
+   | `/listen_forward` | `/listen_forward https://t.me/A https://t.me/B` | **Monitor** new messages in **channel A** and forward them to **channel B**. If channel A restricts saving content, fall back to download-and-upload. |
+   | `/listen_info` | Send `/listen_info` to the bot. | Show the configured listeners. |
+   | `/upload` | `/upload local_file target_channel` | Upload a **local file** to a **target channel**. |
+   | `/upload_r` | `/upload_r local_folder target_channel` | Recursively upload a folder, including its subfolders, to a **target channel**. |
+   | `/download_chat` | `/download_chat channel_link` | Retrieve all channel content, filter it using custom criteria, and download the selected items. |
+   | `/auth` | `/auth`, `/auth user_id`, or `/auth @username` | Add, remove, or list users authorized to use the bot. Accepts a user `ID` or `@username`. |
 
-   其他功能：
-   - （`≥v1.8.7`）转发`视频`、`图片`、`音频`、`语音`、`GIF`、`文档`、`视频笔记`、`实况图片`类型的消息给机器人，即可创建下载任务。
-      - 此项功能不受用户自定义下载类型限制，确保文件即时获取。
-      - 转发的消息将按新消息处理，每次均生成独立文件命名。暂不支持重复文件识别，请妥善管理多次转发的相同内容。
-      - 此功能仅用于便利用户日常使用，对于无法被转发、下载的消息，请根据实际需求使用对应的命令。
+   Other features:
+   - (Version `≥v1.8.7`) Forward a message containing a video, photo, audio, voice message, GIF, document, video note, or live photo to the bot to create a download task.
+      - This feature ignores custom download-type settings so the forwarded media can be retrieved immediately.
+      - Forwarded messages are treated as new messages and receive independent filenames. Duplicate-file detection is not supported; manage repeated forwards of the same content carefully.
+      - This feature is intended for convenience. For messages that cannot be forwarded or downloaded this way, use the appropriate command for your needs.
 
 ---
 
-### 2.2.3.命令
+### 2.2.3. Commands
 
 #### /help
 
@@ -230,59 +229,59 @@
 
 ---
 
-#### 菜单
+#### Menu
 
    ![image](https://raw.githubusercontent.com/Gentlesprite/Telegram_Restricted_Media_Downloader/main/res/2_2_14.png)
 
 ---
 
 #### /download
-> **⚠️ 版本变更说明**：
+> **⚠️ Version notes:**
 
-| 版本 | 说明 |
+| Version | Description |
 | --- | --- |
-| `≥v1.6.3` | 已全面支持下载时的断点续传功能（支持所有上传场景），增强了在较差网络环境下的传输稳定性与可靠性。 |
+| `≥v1.6.3` | Resumable transfers are supported in all download scenarios, improving stability and reliability on poor networks. |
 
-   - 方式一：
+   - Method 1:
      - ![image](https://raw.githubusercontent.com/Gentlesprite/Telegram_Restricted_Media_Downloader/main/res/2_2_15.png)
-     - 只要发送了正确的下载命令，终端就会创建对应的下载任务，如下图所示：
+     - Once you send a valid download command, the terminal creates the corresponding download task, as shown below:
      - ![image](https://raw.githubusercontent.com/Gentlesprite/Telegram_Restricted_Media_Downloader/main/res/2_2_16.png)
 
-   - 方式二：
+   - Method 2:
 
-     - 该功能为版本`≥v1.5.1`的新增功能，用于对于**单一链接**的范围下载，并且该方式要求指定**频道链接**、**起始ID**与**结束ID**：
+     - Added in `≥v1.5.1`, this method downloads a range from a **single link**. Specify the **channel link**, **starting ID**, and **ending ID**:
 
        ```bash
-       # 语法格式如下：
-       /download 频道链接 起始ID 结束ID
-       # 举例：
+       # Syntax:
+       /download channel_link start_id end_id
+       # Example:
        /download https://t.me/test 1 500
-       # 代表下载https://t.me/test从消息ID=1到结束ID=500的媒体。
+       # Downloads media from message ID 1 through ID 500 in https://t.me/test.
        ```
 
 ---
 
 #### /table
 
-   需要**注意**的是，这个表格是**实时**的**状态**，并不是**最终**下载完成的**结果**，每一次使用它都会随着**当前**的**下载记录**而更新。
+   **Note:** This table shows **live status**, not the **final download results**. It is updated each time you use it based on the **current** download records.
 
-   **链接统计表**的使用，如下图所示：
+   The **link statistics table** is shown below:
 
    ![image](https://raw.githubusercontent.com/Gentlesprite/Telegram_Restricted_Media_Downloader/main/res/2_2_17.png)
 
    ![image](https://raw.githubusercontent.com/Gentlesprite/Telegram_Restricted_Media_Downloader/main/res/2_2_18.png)
 
-   **注意**：由于早期代码设计缺陷，**链接统计表**为后续支持的功能：
+   **Note:** Due to an early design limitation, the **link statistics table** has the following characteristics:
 
-   - **链接统计表**仅会统计**所有支持的类型**，**并不会只统计**用户**当前所选择**的类型。
+   - The **link statistics table** counts **all supported types**; it does **not** limit the count to the types currently selected by the user.
 
-   - **链接统计表**对于**评论区媒体**的统计，会出现**总数统计错误**的问题，体现在**总数**为`1`，**小于**当前的**下载数**，**完成率**`>>100%`的问题（该问题已在`≥v1.5.9`修复）。
+   - When counting **media in comments**, the table could report an incorrect total: the **total** could be `1`, less than the number already downloaded, resulting in a **completion rate** above `100%`. This issue was fixed in `≥v1.5.9`.
 
-   - 当用户**未选择**下载**所有支持的类型**时，在**用户所选择的类型**下载完成后（或使用机器人发送**链接统计表**），尽管所有用户指定类型的文件已经下载完成，当**链接统计表**显示`完成率`不为`100%`时，代表该链接还存在其他用户未指定的文件类型，但实际用户所指定的类型已经下载完成了，是正常情况（该问题已在`≥v2.0.2`调整：在机器人设置或配置文件中被定义为跳过的下载类型与不支持的下载类型，统计时不再计入总数）。
+   - If the user has **not selected all supported types**, a completion rate below `100%` after the selected types finish (or after requesting the **link statistics table** from the bot) means the link contains other types that were not selected. The selected types are already complete, so this is expected. Since `≥v2.0.2`, download types marked as skipped in bot settings or the configuration file, as well as unsupported types, are excluded from the total.
    
-   - 版本`≥v1.6.5`起已支持**导出表格**功能，通过该命令可在运行时控制**是否**在退出后**导出指定类型的表格**。
+   - Since `≥v1.6.5`, you can use this command to control at runtime **whether to export tables of selected types** when the app exits.
    
-   **计数统计表**的使用，如下图所示：
+   The **count statistics table** is shown below:
    
    ![image](https://raw.githubusercontent.com/Gentlesprite/Telegram_Restricted_Media_Downloader/main/res/2_2_19.png)
    
@@ -292,34 +291,34 @@
 
 #### /forward
 
-> **⚠️ 注意：**  
-> 消息能否转发，在于频道是否开启了`限制保存内容`功能。  
-> 如果**无法转发**，**机器人**会在**聊天框**提供一个**下载按钮**与**下载后上传按钮（`≥v1.6.7`）**。  
+> **⚠️ Note:**  
+> Whether a message can be forwarded depends on whether the channel has **Restrict Saving Content** enabled.  
+> If **forwarding is unavailable**, the **bot** provides a **Download** button and, since `≥v1.6.7`, a **Download and upload** button in the **chat**.  
 
-> **⚠️ 版本变更说明**：
+> **⚠️ Version notes:**
 
-| 版本 | 说明 |
+| Version | Description |
 | --- | --- |
-| `≥v1.6.9` | `/forward`将支持过滤转发类型。可通过`[帮助页面]`->`[设置]`->`[转发设置]`进行修改。 |
-| `≥v1.7.5` | 为确保"受限转发"功能顺利完成，在**下载后上传**过程中，创建下载任务时将**忽略配置文件中设置的下载类型限制**，此时（指"受限转发"情况）`/forward`命令**无法按照**`[转发设置]`过滤类型。 |
-| `≥v1.8.5` | 为确保"受限转发"功能顺利完成，在**下载后上传**过程中，创建下载任务时将**忽略该链接是否被重复添加的判定**。 |
+| `≥v1.6.9` | `/forward` supports filtering by forwarding type. Change this under `[Help]` → `[Settings]` → `[Forwarding settings]`. |
+| `≥v1.7.5` | To complete restricted forwarding, the download task created during **download-and-upload** ignores the download-type restrictions in the configuration file. In this case, `/forward` **cannot** apply the type filters from `[Forwarding settings]`. |
+| `≥v1.8.5` | To complete restricted forwarding, the download task created during **download-and-upload** ignores the duplicate-link check. |
 
-- 转发消息语法：
+- Forward messages with this syntax:
     ```bash
-    /forward 频道A 频道B 起始ID 结束ID
+    /forward channel_A channel_B start_id end_id
     ```
 
-- 实例：
+- Example:
 
-    - 该实例代表转发`https://t.me/test`**频道**中从`消息ID=1`到`结束ID=500`的消息到 `https://t.me/test2` **频道**。
+    - This example forwards messages 1 through 500 from the **channel** `https://t.me/test` to the **channel** `https://t.me/test2`.
 
     ```bash
     /forward https://t.me/test https://t.me/test2 1 500
     ```
 
-- 转发至个人收藏夹（任选一种命令即可）：
+- Forward to **Saved Messages** (use either form):
 
-    - 方式1，使用`me`或`self`指向个人收藏夹（任选一种命令即可）：
+    - Method 1: use `me` or `self` to refer to Saved Messages:
 
       ```bash
       /forward https://t.me/test me 1 500
@@ -329,32 +328,32 @@
       /forward https://t.me/test self 1 500
       ```
 
-    - 方式2，使用 `https://t.me/用户名` ：
+    - Method 2: use `https://t.me/username`:
 
-      - 用户名即指个人账户信息里@后面那一串，需用户提前手动自己设置，否则无法使用该方式。
-      - 例如通过查询个人信息，得知当前设置的用户名为`@developer`，此时指向个人的链接即为`https://t.me/developer`。
+      - The username is the `@` name shown in your account profile. You must set one yourself before using this method.
+      - For example, if your profile shows `@developer`, the link to your account is `https://t.me/developer`.
 
       ```bash
       /forward https://t.me/test https://t.me/developer 1 500
       ```
 
-    - 无论使用方式1或方式2，都代表转发 `https://t.me/test`  **频道 **中从`消息ID=1`到结束`ID=500`的消息到**个人收藏夹**。
+    - Both methods forward messages 1 through 500 from the **channel** `https://t.me/test` to **Saved Messages**.
 
-- 转发个人收藏夹的内容至任意频道：
+- Forward Saved Messages to a channel:
 
-   - 方式1：
+   - Method 1:
 
       ```bash
       /forward me https://t.me/test 1 500
       ```
 
-   - 方式2：
+   - Method 2:
 
       ```bash
       /forward https://t.me/developer me 1 500
       ```
 
-   - 无论使用方式1或方式2，都代表转发**个人收藏夹**中从`消息ID=1`到结束`ID=500`的消息到`https://t.me/test` **频道**。
+   - Both methods forward messages 1 through 500 from **Saved Messages** to the **channel** `https://t.me/test`.
 
 
 ---
@@ -367,35 +366,35 @@
 
 #### /listen_download
 
-- `/listen_download`监听下载用于，实时监听该链接的最新消息进行下载。
-   - 在用户发送了正确的监听命令后，会收到机器人的成功提示。
-   - 当被监听的频道有可下载的内容时，就会自动发送命令下载。
+- `/listen_download` listens for new messages at the specified link and downloads them as they arrive.
+   - The bot confirms when a valid listening command has been received.
+   - When downloadable content appears in the monitored channel, the bot automatically starts a download.
 
-##### 注册监听下载
-
-```bash
-/listen_download https://t.me/A
-```
-
-##### 注销监听下载
-
-###### 注销方法
-
-_再次向机器人发送创建监听时的命令，机器人将会提供给用户一个用于注销监听的内联键盘，点击确认即可。_
-
-**_与此同时，也可通过`网页面板`的`监听`版块提供的按钮注销监听下载（≥v2.0.2）。_**
+##### Register a download listener
 
 ```bash
 /listen_download https://t.me/A
 ```
 
-##### 注册多个监听下载
+##### Remove a download listener
+
+###### Removal method
+
+_Send the same command used to create the listener again. The bot displays an inline keyboard for removing it; click Confirm to proceed._
+
+**_Since `≥v2.0.2`, you can also remove a download listener with the button in the web dashboard's `Listeners` section._**
+
+```bash
+/listen_download https://t.me/A
+```
+
+##### Register multiple download listeners
 
 ```bash
 /listen_download https://t.me/A https://t.me/B https://t.me/n
 ```
 
-##### 注销多个监听下载
+##### Remove multiple download listeners
 
 ```bash
 /listen_download https://t.me/A https://t.me/B https://t.me/n
@@ -405,48 +404,48 @@ _再次向机器人发送创建监听时的命令，机器人将会提供给用�
 
 #### /listen_forward
 
-> **⚠️ 版本变更说明**：
+> **⚠️ Version notes:**
 
-| 版本 | 说明 |
+| Version | Description |
 | --- | --- |
-| `≥v1.6.7` | 当检测到"受限转发"时，自动采用"下载后上传"的方式（默认**开启**）。当**下载并完成上传**后，可选择**是否删除本地文件**（默认**关闭**）。并且可通过`[帮助页面]`->`[设置]`->`[上传设置]`进行修改。 |
-| `≥v1.6.9` | `/listen_forward`将支持过滤转发类型。可通过`[帮助页面]`->`[设置]`->`[转发设置]`进行修改。 |
-| `≥v1.7.5` | 为确保"受限转发"功能顺利完成，在**下载后上传**过程中，创建下载任务时将**忽略配置文件中设置的下载类型限制**。 |
-| `≥v1.8.5` | 为确保"受限转发"功能顺利完成，在**下载后上传**过程中，创建下载任务时将**忽略该链接是否被重复添加的判定**。 |
+| `≥v1.6.7` | When restricted forwarding is detected, the bot automatically uses **download-and-upload** (enabled by default). After the upload completes, you can choose whether to **delete the local file** (disabled by default). Change these options under `[Help]` → `[Settings]` → `[Upload settings]`. |
+| `≥v1.6.9` | `/listen_forward` supports filtering by forwarding type. Change this under `[Help]` → `[Settings]` → `[Forwarding settings]`. |
+| `≥v1.7.5` | To complete restricted forwarding, the download task created during **download-and-upload** ignores the download-type restrictions in the configuration file. |
+| `≥v1.8.5` | To complete restricted forwarding, the download task created during **download-and-upload** ignores the duplicate-link check. |
 
-- `/listen_forward`监听转发用于，实时监听该链接的最新消息。
-   - 与`/forward`命令一样，消息能否转发，在于频道是否开启了`限制保存内容`功能。
-   - 但在`≥v1.6.7`起可以通过下载再上传的方式进行"转发"。
-   - 在用户发送了正确的监听命令后，会收到机器人的成功提示。
-   - 当被监听的频道有**任何**新内容时，就会自动转发至用户所指定的频道。
+- `/listen_forward` listens for new messages at the specified link and forwards them as they arrive.
+   - As with `/forward`, whether a message can be forwarded directly depends on whether the channel has **Restrict Saving Content** enabled.
+   - Since `≥v1.6.7`, restricted messages can also be forwarded by downloading and uploading them.
+   - The bot confirms when a valid listening command has been received.
+   - Whenever **any** new content appears in the monitored channel, it is automatically forwarded to the specified destination.
 
-##### 监听行为说明
+##### Listener behavior
 
-- **频道独占原则：**
-   - 每个频道**同一时间**只能激活一种监听模式（下载或转发）。
-   - 对于`/listen_forward`命令，"同一频道"特指**被监听**的源频道。
-   - 转发目标频道**不受此限制**，仍可通过`/listen_download`创建下载任务。
-- **操作限制：**
-   - 当`频道A`正在监听转发`频道B`时：
-      - 可以**同时**在`频道B`设置监听下载。
-      - 但`频道B`的监听下载，不会响应来自`频道A`的监听转发。
-- **监听切换流程：**
-   - 必须先通过**同一命令**（注册监听时的命令）来取消现有监听。
-   - 然后才能创建**新的监听**事件。
+- **One listener per channel:**
+   - A channel can have only one active listener mode (**download** or **forward**) at a time.
+   - For `/listen_forward`, the restriction applies to the **source channel** being monitored.
+   - The destination channel is **not** restricted and can still have a `/listen_download` task.
+- **Operational limits:**
+   - If `channel_A` is monitored for forwarding to `channel_B`:
+      - A download listener can be set up on `channel_B` **at the same time**.
+      - However, the download listener on `channel_B` will not process messages forwarded there by the listener on `channel_A`.
+- **Switching listener modes:**
+   - First cancel the existing listener using the **same command** used to create it.
+   - Then create the **new listener**.
 
-##### 注册监听转发
+##### Register a forwarding listener
 
 ```bash
 /listen_forward https://t.me/A https://t.me/B
 ```
 
-##### 注销监听转发
+##### Remove a forwarding listener
 
-###### 注销方法
+###### Removal method
 
-_再次向机器人发送创建监听时的命令，机器人将会提供给用户一个用于注销监听的内联键盘，点击确认即可。_
+_Send the same command used to create the listener again. The bot displays an inline keyboard for removing it; click Confirm to proceed._
 
-**_与此同时，也可通过`网页面板`的`监听`版块提供的按钮注销监听转发（≥v2.0.2）。_**
+**_Since `≥v2.0.2`, you can also remove a forwarding listener with the button in the web dashboard's `Listeners` section._**
 
 ```bash
 /listen_forward https://t.me/A https://t.me/B
@@ -456,7 +455,7 @@ _再次向机器人发送创建监听时的命令，机器人将会提供给用�
 
 #### /listen_info
 
-- `/listen_info`用于查看**当前**已经创建的**监听信息**，**直接发送**即可：
+- Use `/listen_info` to view the **current listener information**. Send the command without arguments:
 
     ```bash
     /listen_info
@@ -465,46 +464,46 @@ _再次向机器人发送创建监听时的命令，机器人将会提供给用�
 ---
 
 #### /upload
-> **⚠️ 版本变更说明**：
+> **⚠️ Version notes:**
 
-| 版本 | 说明 |
+| Version | Description |
 | --- | --- |
-| `≥v1.7.9` | 已全面支持上传时的断点续传功能（支持所有上传场景），增强了在较差网络环境下的传输稳定性与可靠性。 |
-| `≥v1.8.4` | `/upload` 命令支持`me`、`self` 作为目标频道的参数（`me`、`self` 作为目标频道参时，代表指向个人收藏夹`Saved Messages`）。 |
+| `≥v1.7.9` | Resumable transfers are supported in all upload scenarios, improving stability and reliability on poor networks. |
+| `≥v1.8.4` | The `/upload` command accepts `me` or `self` as the destination to refer to **Saved Messages**. |
 
-- `/upload`用于上传本地的文件到指定频道。
+- Use `/upload` to upload local files to a specified channel.
   
-   - 支持上传文件夹（当指定路径为文件夹时并且版本需≥v1.7.1）。
-   - _当指定的路径为**文件夹**时，将会上传指定文件夹下**所有**的文件。_
-- 上传文件语法：
+   - Folder uploads are supported when the specified path is a folder (`≥v1.7.1`).
+   - _When the path is a **folder**, **all** files in that folder are uploaded._
+- Upload syntax:
   
     ```bash
-   /upload 本地文件（夹） 目标频道
+   /upload local_file_or_folder destination_channel
    ```
-##### 注意事项
+##### Notes
 
-`Telegram` 对上传的**单个文件**大小设有**明确限制**：
+`Telegram` sets a **maximum size** for each uploaded file:
 
-- **普通用户**：**单个文件**最大上传大小为`2000 MiB`（约 2 GB）。
-- **会员用户（Telegram Premium）**：**单个文件**最大上传大小为`4000 MiB`（约 4 GB）。
+- **Regular accounts**: up to `2000 MiB` (about 2 GB) per file.
+- **Telegram Premium accounts**: up to `4000 MiB` (about 4 GB) per file.
 
-##### 对于Windows用户
-###### 上传一个文件
+##### Windows
+###### Upload a file
 ```bash
 /upload C:\files\video.mp4 https://t.me/test
 ```
-###### 上传一个文件夹
-_版本需要`≥v1.7.1`。_
+###### Upload a folder
+_Requires version `≥v1.7.1`._
 ```bash
 /upload C:\files https://t.me/test
 ```
-##### 对于Linux用户
-###### 上传一个文件
+##### Linux
+###### Upload a file
 ```
 /upload /home/username/files/video.mp4 https://t.me/test
 ```
-###### 上传一个文件夹
-_版本需要`≥v1.7.1`。_
+###### Upload a folder
+_Requires version `≥v1.7.1`._
 ```
 /upload /home/username/files https://t.me/test
 ```
@@ -512,21 +511,21 @@ _版本需要`≥v1.7.1`。_
 ---
 
 #### /upload_r
-> **⚠️ 版本变更说明**：
+> **⚠️ Version notes:**
 
-| 版本 | 说明 |
+| Version | Description |
 | --- | --- |
-| `≥v1.8.4` | `/upload_r`命令支持`me`、`self`作为目标频道的参数（`me`、`self`作为目标频道参时，代表指向个人收藏夹`Saved Messages`）。 |
+| `≥v1.8.4` | The `/upload_r` command accepts `me` or `self` as the destination to refer to **Saved Messages**. |
 
-- `/upload_r`命令是`/upload`命令的扩展版本，专为**批量文件上传**场景设计，支持递归处理目录结构，与`/upload`不同的是：
+- `/upload_r` extends `/upload` for **batch uploads** and recursively processes directory structures. Unlike `/upload`:
 
-  - `/upload_r`命令接收**文件夹路径**作为其第二个参数，自动**遍历该目录**及其**所有子目录**中的文件。
+  - It accepts a **folder path** as its second argument and automatically **searches that directory** and **all its subdirectories** for files.
 
     ```bash
     /uploadr C:\files https://t.me/test
     ```
 
-  - 当**第二个参数**为**文件路径**时，自动切换为 `/upload`的单文件上传模式。
+  - If the **second argument** is a **file path**, the command switches to `/upload`'s single-file upload mode.
 
     ```bash
     /uploadr C:\files\video.mp4 https://t.me/test
@@ -536,54 +535,54 @@ _版本需要`≥v1.7.1`。_
     /upload C:\files\video.mp4 https://t.me/test
     ```
 
-    _以上两个命令在功能上完全等效，系统会自动识别文件类型并采用相应的上传策略。_
+    _These two commands are functionally equivalent. The app detects the file type and uses the appropriate upload method._
 
 ---
 
 #### /download_chat
 
-- `/download_chat`下载指定频道。
+- Use `/download_chat` to download a specified channel.
 
-   - 与`/download`不同的是：`/download_chat`支持通过机器人发送的内联键盘进行自定义内容过滤。
-   - 该命令支持下载无法复制具体请求链接的对话。
-   - 使用该命令后，**需要通过操作机器人回复中的内联键盘**，来设置过滤器、执行任务或取消任务。
-   - 需要注意的是，在上一个`/download_chat`命令任务未执行或取消前，无法发起新的`/download_chat`命令来创建下载任务。
-   - 自版本`≥v1.7.5`起，`/download_chat`命令创建的下载任务过滤条件将完全遵循用户在内联键盘中的设置，意味着该命令不会遵循配置文件中的任何规则（例如配置文件中的下载文件类型设置）。
+   - Unlike `/download`, `/download_chat` supports custom content filters through the inline keyboard sent by the bot.
+   - This command can download chats whose specific message links cannot be copied.
+   - After sending the command, use the inline keyboard in the bot's reply to configure filters, start the task, or cancel it.
+   - You cannot create another `/download_chat` task until the previous one has been started or canceled.
+   - Since `≥v1.7.5`, tasks created with `/download_chat` follow the filters set in the inline keyboard and ignore all configuration-file rules, including configured download-type filters.
    
-- 目前支持的过滤方式：
+- Supported filters:
 
-|  过滤方式  |                       默认值                        |
+|  Filter  |                       Default                        |
 | :--------: |:------------------------------------------------:|
-|  日期范围  |           `第一条消息的发送日期`～`最后的一条消息的发生日期`            |
-|  文件类型  | `视频`、`图片`、`文档`、`音频`、`语音`、`动画（GIF）`、`视频笔记`、`实况照片` |
-| 匹配关键词 |                     &ndash;                      |
-| 包含评论区 |                       `关`                        |
+|  Date range  |           `date of the first message`–`date of the last message`            |
+|  Media type  | `video`, `photo`, `document`, `audio`, `voice`, `animation (GIF)`, `video note`, `live photo` |
+| Keyword matching |                     &ndash;                      |
+| Include comments |                       `off`                        |
 
-- 下载指定频道语法：
+- Syntax for downloading a channel:
 
    ```bash
-   /download_chat 频道链接
+   /download_chat channel_link
    ```
 
-   - 发送命令后，可**根据个人需求**设置过滤器（可选）。
+   - After sending the command, you can optionally configure filters to suit your needs.
 
-   - 在设置完成后，必须**手动点击**"执行任务"或"取消任务"以继续或终止流程，否则该命令将**始终处于等待状态，并阻塞新的`/download_chat`命令。**
+   - After configuring the filters, you must **manually click** `Start task` or `Cancel task` to continue or stop the process. Otherwise, the command will **remain pending and prevent another `/download_chat` command from running.**
 
-- 下载用户与机器人的对话媒体：
+- Download media from a conversation between a user and a bot:
 
-    用户与机器人的对话无法复制具体的请求链接，因此该方法用于解决某些用户与机器人对话中禁止用户进行转发、下载的情况。
+    A specific message link cannot be copied from a conversation between a user and a bot. Use this method when such a conversation prevents forwarding or downloading.
 
-    - 首先要获取机器人用户名称，在聊天对话框中点击机器人名称查看其用户名，此处假设机器人名称为`@developer_bot`。
+    - First, find the bot's username by clicking its name in the chat. This example uses `@developer_bot`.
 
-    - 拼接机器人的请求链接为`https://t.me/developer_bot`。
+    - Form the bot link as `https://t.me/developer_bot`.
 
         ```bash
         /download_chat https://t.me/developer_bot
         ```
 
-- 下载个人收藏夹（任选一种命令即可）：
+- Download **Saved Messages** (use either form):
 
-    - 方式1（任选一种命令即可）：
+    - Method 1 (use either command):
 
       ```bash
       /download_chat me
@@ -593,59 +592,59 @@ _版本需要`≥v1.7.1`。_
       /download_chat self
       ```
 
-    - 方式2：
+    - Method 2:
 
-      - 首先要获取用户名称，此处假设用户名已设定，个人信息中查看用户名为`@developer`。
-      - 拼接个人收藏夹的请求链接为`https://t.me/developer`。
+      - First, find your username. This example assumes your profile has the username `@developer`.
+      - Form the Saved Messages link as `https://t.me/developer`.
 
       ```bash
       /download_chat https://t.me/developer
       ```
 
-- 自版本`≥v1.8.8`起，`/download_chat`命令新增通过匹配关键词下载，匹配关键词说明：
-    - 该命令会根据消息的`text（文本）`和`caption（标题）`信息，筛选并下载包含所设置关键词的相关对话内容。
-    - 在使用该命令后点击[`🔑设置匹配关键词`]此时，机器人将进入接收关键词模式。
-    - 关键词可以为一个或多个，当关键词为多个时，以空格分隔，例如：
+- Since `≥v1.8.8`, `/download_chat` supports filtering by keyword:
+    - The command checks message `text` and `caption` and downloads matching messages that contain the configured keywords.
+    - After sending the command, click [`🔑 Set matching keywords`] to put the bot into keyword-entry mode.
+    - You can enter one or more keywords. Separate multiple keywords with spaces, for example:
     
-      `我的最爱`
+      `my favorites`
     
-      `学习 资料 健康 营养`
+      `study materials health nutrition`
 
-    - 用户再次发送已添加的关键词时，机器人会提供一个[`⌨️内联键盘`]按钮用于[`🗑️移除`]或[`👁️‍🗨️忽略`]该关键词。
-    - 同一时段内发送多个相同的已添加关键词，只会对第一个触发移除选项，后续重复内容不会重复触发。
-    - 在[`🔑设置匹配关键词`]界面：
-       - 点击[`✅确认关键词`]时，将会添加所有设置的关键词。
-       - 点击[`❌取消`]时，将会清空所有设置的关键词。
-       - 点击[`🔙返回`]时，不做任何操作，仅返回至主页面。
-- 包括评论区设置说明：
-   - 评论区开关：
-     - 默认为关闭状态。
-     - 开启时，按钮状态为[`✅包含评论区`]，匹配到的消息，存在评论区模块时，进一步匹配评论区。
-     - 关闭时，按钮状态为[`❌包含评论区`]，匹配到的消息，存在评论区模块时，忽略评论区内容。
-   - 评论区功能适用性：
-     - 平台部分频道在消息下方设有评论区模块，该功能为可选扩展项。用户需基于个人实际需求，自行判断是否需同步获取评论区内容。
-     评论区匹配与过滤规则：
-     - 开启包含评论区选项后，即便消息因`媒体类型`被过滤而未下载，但**只要该消息存在评论区**，其评论同样会被获取（`≥v2.0.8`）。
-     - **评论区的过滤条件仅遵循本次任务中用户指定的`媒体类型`作为过滤条件，其余过滤条件将被忽略（例如日期）。**
-   - 任务处理时效性：
-     - 开启包含评论区选项后，需对所匹配到的消息的评论区进行读取，消息过多时，任务创建至完成的时间可能相应延长，需耐心等待。
+    - If you send an already-added keyword again, the bot displays an [`⌨️ inline keyboard`] with options to [`🗑️ remove`] or [`👁️‍🗨️ ignore`] that keyword.
+    - If you send the same existing keyword multiple times in a row, only the first occurrence triggers the remove option.
+    - On the [`🔑 Set matching keywords`] screen:
+       - Click [`✅ Confirm keywords`] to add all entered keywords.
+       - Click [`❌ Cancel`] to clear all entered keywords.
+       - Click [`🔙 Back`] to return to the main screen without making changes.
+- Comment settings:
+   - **Include comments** toggle:
+     - Off by default.
+     - When enabled, the button reads [`✅ Include comments`]. If a matching message has a comments section, the comments are also checked.
+     - When disabled, the button reads [`❌ Include comments`], and comments are ignored.
+   - **When to use comments:**
+     - Some channels have a comments section beneath their messages. This optional feature lets you decide whether to retrieve those comments.
+   - **Comment matching and filtering:**
+     - When comments are enabled, comments are retrieved whenever a message has a comments section, even if the message itself was excluded by the `media type` filter (`≥v2.0.8`).
+     - **Comments are filtered only by the `media type` selected for the current task. Other filters, such as the date range, are ignored.**
+   - **Processing time:**
+     - With comments enabled, the app also reads comments for matching messages. Large message counts may increase task duration, so please wait for processing to finish.
 
 ---
 
 #### /auth
 
-> **⚠️ 权限说明**：
-> `/auth`命令为`root`**专用**（`root`即登录用户），非`root`用户发送该命令将收到"该命令仅`root`可用"的提示。
+> **⚠️ Permissions:**
+> The `/auth` command is **for `root` only** (`root` is the logged-in account). Other users who send it will be told that the command is restricted to `root`.
 
-- `/auth`用于管理**授权使用机器人的用户**，支持通过`用户ID`或`@用户名`添加授权，并支持查看与移除已授权用户。
+- Use `/auth` to manage **users authorized to use the bot**. You can add users by `user ID` or `@username`, view the authorized-user list, and remove users.
 
-- 查看当前已授权的用户列表（不带任何参数，直接发送即可）：
+- View the current list of authorized users by sending the command without arguments:
 
     ```bash
     /auth
     ```
 
-- 添加授权用户（`root`通过指定`用户ID`或`@用户名`进行添加）：
+- Add an authorized user by specifying a `user ID` or `@username` (`root` only):
 
     ```bash
     /auth 1234567890
@@ -655,19 +654,19 @@ _版本需要`≥v1.7.1`。_
     /auth @username
     ```
 
-- 移除授权用户：进入机器人菜单的`[🔐授权用户]`→`[🔑添加/移除授权用户]`，在已授权用户列表中点击对应的[`🗑️移除授权`]内联按钮即可移除。
+- Remove an authorized user: open the bot menu and select `[🔐 Authorized users]` → `[🔑 Add/remove authorized users]`. In the authorized-user list, click the corresponding [`🗑️ Remove authorization`] inline button.
 
 </details>
 
-## 2.3.配置文件说明
+## 2.3. Configuration file reference
 
-### 用户配置文件
+### User configuration file
 
 > [!NOTE]
-> 用户配置文件通常无需自行配置，此处旨在介绍全局配置文件中各参数的含义。  
-> 用户配置文件会在软件启动时自动在软件目录下生成`config.yaml`文件，并详细地引导用户配置参数。  
-> **手动编辑**`config.yaml`对配置进行修改时，请仔细阅读下面内容理解各参数含义。  
-> 需注意配置文件使用的引号、冒号均为半角，冒号后需有一个空格。  
+> You usually do not need to configure this file manually. This section explains the meaning of each parameter.  
+> On startup, the app creates `config.yaml` in its directory and guides you through configuring the settings.  
+> If you **edit** `config.yaml` manually, read the parameter descriptions below carefully.  
+> Use standard (half-width) quotation marks and colons in the file, and include a space after each colon.  
 
 ```yaml
 api_hash: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -702,89 +701,89 @@ session_directory: F:\directory\session\where\you\save
 temp_directory: F:\directory\temp\where\you\save
 ```
 
-#### 参数说明
+#### Parameter reference
 
-| 参数 | 说明                                                                                                                                                                                                                                          |
+| Parameter | Description                                                                                                                                                                                                                                          |
 | --- |---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `api_hash` | 申请的`api_hash`（Telegram API 凭据）。                                                                                                                                                                                                             |
-| `api_id` | 申请的`api_id`（Telegram API 凭据，需加引号）。                                                                                                                                                                                                          |
-| `bot_token` | 机器人令牌（选填）；不填则无法使用机器人功能，可前往[BotFather](https://t.me/BotFather)免费申请。                                                                                                                                                                          |
-| `download_type` | 需要下载的媒体类型，详见`download_type`参数支持下载的媒体类型表。                                                                                                                                                                                                      |
-| `is_shutdown` | 下载完成后是否自动关机，支持`true`、`false`。                                                                                                                                                                                                               |
-| `links` | 链接地址文本文件路径（一个链接一行，不要加引号，运行前准备好）。                                                                                                                                                                                                            |
-| `max_retries` | 任务重试次数，含`download`（下载任务重试次数）与`upload`（上传任务重试次数）。                                                                                                                                                                                            |
-| `max_tasks` | 最大并发任务数，含`download`与`upload`。                                                                                                                                                                                                               |
-| `proxy` | 代理配置，子字段详见`proxy`参数配置项表；不使用代理时请将`enable_proxy`设为`false`（注意键值间冒号后需保留空格，否则`YAML`解析报错）。 |
-| `save_directory` | 下载媒体保存目录（支持通配符）。                                                                                                                                                                                                                            |
-| `session_directory` | 会话保存目录（支持通配符）。                                                                                                                                                                                                                              |
-| `temp_directory` | 缓存保存目录（支持通配符）。                                                                                                                                                                                                                              |
+| `api_hash` | Your Telegram API `api_hash` credential.                                                                                                                                                                                                             |
+| `api_id` | Your Telegram API `api_id` credential (enclose it in quotes).                                                                                                                                                                                                          |
+| `bot_token` | Optional bot token. Bot features are unavailable without it. Get one for free from [BotFather](https://t.me/BotFather).                                                                                                                                                                          |
+| `download_type` | Media types to download. See the table of supported media types for this parameter.                                                                                                                                                                                                      |
+| `is_shutdown` | Whether to shut down automatically after downloads finish. Supported values: `true` or `false`.                                                                                                                                                                                                               |
+| `links` | Path to a text file containing links, one per line. Do not quote the path; create the file before starting the app.                                                                                                                                                                                                            |
+| `max_retries` | Maximum retries for tasks, with separate values for `download` and `upload`.                                                                                                                                                                                            |
+| `max_tasks` | Maximum concurrent tasks, with separate limits for `download` and `upload`.                                                                                                                                                                                                               |
+| `proxy` | Proxy settings. See the `proxy` parameter table for its fields. To disable the proxy, set `enable_proxy` to `false`. Keep a space after the colon or YAML parsing will fail. |
+| `save_directory` | Directory for downloaded media (wildcards are supported).                                                                                                                                                                                                                            |
+| `session_directory` | Directory for session files (wildcards are supported).                                                                                                                                                                                                                              |
+| `temp_directory` | Directory for cached files (wildcards are supported).                                                                                                                                                                                                                              |
 
-##### `download_type`参数支持下载的媒体类型
+##### Media types supported by `download_type`
 
-| 下载类型        | 说明                         |
+| Media type        | Description                         |
 | --------------- |----------------------------|
-| `video`         | 视频。                        |
-| `photo`         | 图片。                        |
-| `document`      | 文档。                        |
-| `audio`         | 音频。                        |
-| `voice`         | 语音。                        |
-| `animation`     | 动画（GIF）。                   |
-| `video_note`    | 视频笔记。                      |
-| `live_photo`    | 实况照片（未指定且`photo`存在时视为`photo`）。 |
+| `video`         | Video.                        |
+| `photo`         | Photo.                        |
+| `document`      | Document.                        |
+| `audio`         | Audio.                        |
+| `voice`         | Voice message.                        |
+| `animation`     | Animation (GIF).                   |
+| `video_note`    | Video note.                      |
+| `live_photo`    | Live Photo (treated as `photo` when this type is not specified and `photo` is enabled). |
 
-##### `proxy`参数配置项
+##### `proxy` parameter fields
 
-| 配置项       | 说明                                       |
+| Setting       | Description                                       |
 | ------------ | ------------------------------------------ |
-| `enable_proxy` | 是否启用代理，支持`true`、`false`。          |
-| `scheme`      | 代理协议，如`socks5`、`http`。               |
-| `hostname`    | 代理服务器`IP`或域名。                       |
-| `port`        | 代理服务器端口。                             |
-| `username`    | 代理认证用户名（选填）。                     |
-| `password`    | 代理认证密码（选填）。                       |
+| `enable_proxy` | Whether to enable the proxy. Supported values: `true` or `false`.          |
+| `scheme`      | Proxy protocol, such as `socks5` or `http`.               |
+| `hostname`    | Proxy server `IP` address or domain name.                       |
+| `port`        | Proxy server port.                             |
+| `username`    | Optional proxy authentication username.                     |
+| `password`    | Optional proxy authentication password.                       |
 
-### 通配符说明
+### Wildcards
 
-自版本`≥v1.7.4`起，`save_directory`参数将支持通配符，通配符允许用户动态生成存储路径。系统会在下载时自动将通配符替换为对应的实际值，实现按规则自动分类存储。
+Since `≥v1.7.4`, the `save_directory` parameter supports wildcards that dynamically generate storage paths. During downloads, the app replaces each wildcard with its corresponding value, allowing files to be organized automatically.
 
-- 目前`save_directory`支持的通配符如下表所示：
+- The wildcards currently supported by `save_directory` are:
   
-|      通配符      |                                         意义                                          |
+|      Wildcard      |                                         Meaning                                          |
 |:-------------:|:-----------------------------------------------------------------------------------:|
-|  `%CHAT_ID%`  |                                 以实际`频道ID`作为指定路径填充。                                  |
-| `%CHAT_NAME%` |                             以实际`频道名`作为指定路径填充（≥v1.9.6）。                              |
-| `%MIME_TYPE%` |                                 以实际`文件类型`作为指定路径填充。                                  |
-| `%MESSAGE_ID%` |             以实际`消息ID`作为指定路径填充（≥v2.1.1）；`媒体组`使用成员ID最小-最大区间（如`123-129`）。              |
-| `%MESSAGE_ID_WITH_ENTITIES%` | 同`%MESSAGE_ID%`填充规则，并额外将消息文本与格式化实体序列化为`json`文件（`{区间或ID}_entities.json`）落盘（≥v2.1.1）。 |
+|  `%CHAT_ID%`  |                                 Inserts the actual `channel ID` into the path.                                  |
+| `%CHAT_NAME%` |                             Inserts the actual `channel name` into the path (`≥v1.9.6`).                              |
+| `%MIME_TYPE%` |                                 Inserts the actual `file type` into the path.                                  |
+| `%MESSAGE_ID%` |             Inserts the actual `message ID` into the path (`≥v2.1.1`). For a `media group`, it uses the lowest-to-highest member ID range, such as `123-129`.              |
+| `%MESSAGE_ID_WITH_ENTITIES%` | Uses the same path substitution as `%MESSAGE_ID%` and also saves the message text and formatting entities as a `json` file (`{range_or_ID}_entities.json`) (`≥v2.1.1`). |
 
-- 用法示例1：
+- Example 1:
 
   ```bash
   F:\directory\media\%CHAT_ID%
   ```
 
-- 用法示例2（≥v1.9.6）：
+- Example 2 (`≥v1.9.6`):
 
   ```bash
   F:\directory\media\%CHAT_NAME%
   ```
-- 用法示例3：
+- Example 3:
 
   ```bash
   F:\directory\media\%MIME_TYPE%
   ```
 
-- 用法示例4：
+- Example 4:
 
   ```bash
   F:\directory\media\%CHAT_NAME%\%CHAT_ID%\%MIME_TYPE%
   ```
 
-### 全局配置文件
+### Global configuration file
 
 > [!NOTE]
-> 全局配置文件通常无需自行配置，此处旨在介绍全局配置文件中各参数的含义。  
-> 部分参数支持通过机器人设置进行修改。
+> You usually do not need to edit the global configuration file manually. This section explains its parameters.  
+> Some parameters can be changed through the bot settings.
 
 ```yaml
 authorized_users: []
@@ -809,234 +808,234 @@ upload:
   download_upload: true
 ```
 
-#### 参数说明
+#### Parameter reference
 
-| 参数 | 说明                                                                                                           |
+| Parameter | Description                                                                                                           |
 | --- |--------------------------------------------------------------------------------------------------------------|
-| `authorized_users` | 通过`/auth`命令设置的记录有权限使用机器人的用户。                                                                                 |
-| `console_log_level` | 终端显示的最低日志级别（如`WARNING`）。                                                                                     |
-| `export_table` | 运行结束时是否导出统计表，含`count`（控制运行结束时是否导出下载计数统计表）、`link`（控制运行结束时是否导出下载链接统计表）、`upload`（控制运行结束时是否导出上传统计表）。             |
-| `file_log_level` | `TRMD_LOG.log`文件中记录的最低日志级别（如`INFO`）。                                                                         |
-| `forward_type` | 控制`/listen_forward`与`/forward`命令可转发的文件类型，详见`forward_type`参数支持转发的媒体类型。                                        |
-| `notice` | 控制机器人启动时是否向用户发送启动提示（欢迎语）。                                                                               |
-| `upload` | 控制转发时，频道中受保护内容的处理方式，含`delete`（控制频道中受保护内容在下载上传完成后是否删除本地文件，默认关闭）与`download_upload`（控制频道中受保护内容是否回退至下载后上传，默认开启）。 |
+| `authorized_users` | Users authorized to use the bot with the `/auth` command.                                                                                 |
+| `console_log_level` | Minimum log level shown in the terminal, such as `WARNING`.                                                                                     |
+| `export_table` | Whether to export statistics tables when the app exits: `count` for download counts, `link` for download links, and `upload` for upload statistics.             |
+| `file_log_level` | Minimum log level recorded in `TRMD_LOG.log`, such as `INFO`.                                                                         |
+| `forward_type` | File types that `/listen_forward` and `/forward` can forward. See the list of media types supported by `forward_type`.                                        |
+| `notice` | Whether the bot sends a startup notification (welcome message).                                                                               |
+| `upload` | How to handle protected channel content during forwarding: `delete` controls whether the local file is deleted after download and upload (off by default); `download_upload` controls whether restricted forwarding falls back to download-and-upload (on by default). |
 
-##### `forward_type`参数支持转发的媒体类型
+##### Media types supported by `forward_type`
 
-| 下载类型         | 说明                             |
+| Media type         | Description                             |
 |--------------|--------------------------------|
-| `text`       | 文本。                            |
-| `video`      | 视频。                            |
-| `photo`      | 图片。                            |
-| `document`   | 文档。                            |
-| `audio`      | 音频。                            |
-| `voice`      | 语音。                            |
-| `animation`  | 动画（GIF）。                       |
-| `video_note` | 视频笔记。                          |
-| `live_photo` | 实况照片（未指定且`photo`存在时视为`photo`）。 |
+| `text`       | Text.                            |
+| `video`      | Video.                            |
+| `photo`      | Photo.                            |
+| `document`   | Document.                            |
+| `audio`      | Audio.                            |
+| `voice`      | Voice message.                            |
+| `animation`  | Animation (GIF).                       |
+| `video_note` | Video note.                          |
+| `live_photo` | Live Photo (treated as `photo` when this type is not specified and `photo` is enabled). |
 
-### 全局配置文件存放路径
-#### 对于Windows用户
+### Global configuration file location
+#### Windows
   ```bash
   %APPDATA%/TRMD/.CONFIG.yaml
   ```
-#### 对于Linux用户
+#### Linux
   ```bash
   ~/.config/TRMD/.CONFIG.yaml
   ```
 
-## 2.4.使用注意事项
+## 2.4. Notes
 <details>
-<summary><strong>点击展开</strong></summary>
+<summary><strong>Click to expand</strong></summary>
 
-### 链接获取方法
+### How to copy a link
 
-对想要保存的媒体文件点击**鼠标右键**然后选择**复制消息直链**，如下图所示：
+Right-click the media you want to save and select **Copy message link**, as shown below:
 
    ![image](https://raw.githubusercontent.com/Gentlesprite/Telegram_Restricted_Media_Downloader/main/res/2_4_1.png)
 
 ---
 
-### links参数的文本内容具体写法
+### Format of the `links` text file
 
-如下图所示，即一行代表一个链接：
+As shown below, put one link on each line:
 
    ![image](https://raw.githubusercontent.com/Gentlesprite/Telegram_Restricted_Media_Downloader/main/res/2_4_2.png)
 
 ---
 
-### 常见的links参数的文本内容的错误写法
+### Common `links` file formatting mistakes
 
-如下图所示：
+See the example below:
 
    ![image](https://raw.githubusercontent.com/Gentlesprite/Telegram_Restricted_Media_Downloader/main/res/2_4_3.png)
 
 ---
 
-### 关于私密频道链接的下载行为
+### Downloading links from private channels
 
-- 要求当前所登录的`Telegram`账号，在这个私密频道中，否则会报错无法下载。
-- 这是`Telegram`服务端设计所决定的，任何下载器都无法越界。
-
----
-
-### 重复链接问题说明
-
-#### 问题描述
-
-- 如上图所示，在提交的下载任务中，存在多个**前缀相同但参数不同**的链接（如`?comment`、`?single`或`?single&comment`）。
-
-#### 问题原因
-
-- 当链接包含`?comment`参数时，会自动下载**原始消息及其评论区内容**。
-- 如果同时提交**相同前缀但无`?comment`的链接**，会导致**同一资源被重复添加**至下载队列。
-- 若前一次任务尚未完成，重复提交相同资源会触发**任务冲突**，进而引发下载异常。
-
-#### 解决方案
-
-- **`≥v2.0.8`已针对重复链接导致的资源竞争问题进行自动处理。**
-- **仅需提交一个完整链接**（如带`?comment`的版本），系统会自动处理**原始内容及评论区**，无需额外提交无参数版本。
-- **避免重复提交相同资源**，确保每条链接的`t.me/c/<频道>/<消息ID>`部分唯一，防止任务冗余。
-- 由于这些链接的**频道名**和**消息ID**完全一致，实际上指向的是**同一资源**的不同表现形式。
-- 但请注意以下参数的功能差异：
-  - `?comment`用于标识是否下载**评论区**内容。
-  - `?single`用于在**媒体组**中指定仅下载该消息ID对应的单个资源。
-  - `?single&comment`用于指定仅下载评论区中该消息ID所对应的内容。
+- The Telegram account currently logged in must be a member of the private channel; otherwise, downloads will fail.
+- This restriction is imposed by Telegram's servers and cannot be bypassed by any downloader.
 
 ---
 
-### `Telegram`字段解释
+### Duplicate links
 
-|                字段                 |                     解释                      |
+#### Description
+
+- As shown above, a submitted download task may contain multiple links with the **same prefix but different parameters**, such as `?comment`, `?single`, or `?single&comment`.
+
+#### Cause
+
+- When a link includes the `?comment` parameter, the app downloads the **original message and its comments**.
+- Submitting another link with the **same prefix but without `?comment`** can add the **same resource to the download queue more than once**.
+- If the earlier task has not finished, submitting the same resource again can cause a **task conflict** and a download error.
+
+#### Solution
+
+- **Since `v2.0.8`, the app automatically handles resource conflicts caused by duplicate links.**
+- **Submit just one complete link** (for example, one with `?comment`). The app handles both the **original content and its comments**, so there is no need to submit another version without parameters.
+- **Avoid submitting the same resource more than once.** Make sure the `t.me/c/<channel>/<message ID>` portion is unique for each link to prevent redundant tasks.
+- Links with the same **channel name** and **message ID** point to the **same resource**, even if their query parameters differ.
+- Note the different purposes of these parameters:
+  - `?comment` indicates whether to download **comments**.
+  - `?single` selects one item from a **media group**.
+  - `?single&comment` selects one item with the specified message ID from the comments.
+
+---
+
+### Telegram link fields
+
+|                Field                 |                     Meaning                      |
 | :---------------------------------: | :-------------------------------------------: |
-|             `?comment`              |              **评论区**的链接。               |
-|              `?single`              |               **单独**的链接。                |
-|          `?single&comment`          |         **评论区**中**单独**的链接。          |
-|                `/c`                 |             **私密**频道的链接。              |
-|     `https://t.me/TEST/111/666`     |        频道`TEST`**话题**`111`的链接。        |
-| `https://t.me/c/1111111111/333/666` | **私密**频道`1111111111`**话题**`333`的链接。 |
+|             `?comment`              |              A link to **comments**.               |
+|              `?single`              |               A **single-item** link.                |
+|          `?single&comment`          |         A **single-item** link in **comments**.          |
+|                `/c`                 |             A **private channel** link.              |
+|     `https://t.me/TEST/111/666`     |        Link to **topic** `111` in channel `TEST`.        |
+| `https://t.me/c/1111111111/333/666` | Link to **topic** `333` in private channel `1111111111`. |
 
-#### 链接解释说明
+#### Link details
 
-##### `Telegram`链接组成
+##### Telegram link structure
 
-|   频道类型   |                     链接组成                      |
+|   Channel type   |                     Link structure                      |
 | :----------: | :-----------------------------------------------: |
-|   正常频道   |           `https://t.me/频道名/消息ID`            |
-|   私密频道   |    `https://t.me/c/频道名(10位纯数字)/消息ID`     |
-|   话题频道   |        `https://t.me/频道名/话题ID/消息ID`        |
-| 私密话题频道 | `https://t.me/c/频道名(10位纯数字)/话题ID/消息ID` |
+|   Public channel   |           `https://t.me/channel_name/message_id`            |
+|   Private channel   |    `https://t.me/c/channel_id(10 digits)/message_id`     |
+|   Topic channel   |        `https://t.me/channel_name/topic_id/message_id`        |
+| Private topic channel | `https://t.me/c/channel_id(10 digits)/topic_id/message_id` |
 
-##### `Telegram`链接所有链接格式
+##### Telegram link formats
 
-"所有"指的是如果有**合并发送为一组**的文件，则给定一个链接，所有**合并发送的文件**会被全部下载。
+"All" means that if files were sent together as a group, one link downloads **every file in that group**.
 
-"媒体"指的是用户在`config.yaml`文件中，通过`download_type`参数所设置的所需下载类型的媒体。
+"Media" means the media types selected with the `download_type` setting in `config.yaml`.
 
-| 链接                                       | 实际频道名 | 消息ID | 解释                                           |
+| Link                                       | Resolved channel | Message ID | Description                                           |
 |:----------------------------------------:| :----: |:----:|:--------------------------------------------:|
-| `https://t.me/TEST/111`                  | `TEST` | `111` | 下载该链接的**所有媒体**。                       |
-| `https://t.me/TEST/111?single`           | `TEST` | `111` | 下载该链接的**对应的一个媒体**。                       |
-| `https://t.me/TEST/111?comment=666`      | `TEST` | `111` | 下载该链接的**所有媒体**的同时，下载该链接下方**评论区里所有的媒体（前提该链接存在评论区，否则视为`https://t.me/TEST/111`处理）。** |
-| `https://t.me/TEST/111?single&comment=666` | `TEST` | `111` | 下载该链接下方的**评论区**的**对应的一个媒体。** |
-| `https://t.me/c/1111111111/666`          | `-1001111111111` | `666` | 下载该**私密频道**链接的**所有**媒体。 |
-| `https://t.me/TEST/111/666` | `TEST` | `666` | 下载该**话题**链接的**所有**媒体。 |
-| `https://t.me/c/1111111111/333/666` | `-1001111111111` | `666` | 下载该**私密话题**链接的所有媒体。 |
+| `https://t.me/TEST/111`                  | `TEST` | `111` | Download **all media** from this link.                       |
+| `https://t.me/TEST/111?single`           | `TEST` | `111` | Download **one media item** from this link.                       |
+| `https://t.me/TEST/111?comment=666`      | `TEST` | `111` | Download **all media** from this link and **all media in its comments** (if the link has no comments, it is handled as `https://t.me/TEST/111`). |
+| `https://t.me/TEST/111?single&comment=666` | `TEST` | `111` | Download **one media item** from the linked **comments**. |
+| `https://t.me/c/1111111111/666`          | `-1001111111111` | `666` | Download **all media** from this **private channel** link. |
+| `https://t.me/TEST/111/666` | `TEST` | `666` | Download **all media** from this **topic** link. |
+| `https://t.me/c/1111111111/333/666` | `-1001111111111` | `666` | Download all media from this **private topic** link. |
 
 ---
 
-### 如何下载评论区的文件
+### Downloading files from comments
 
-#### 复制的链接时，带`?comment`字段
+#### Copy a link with the `?comment` parameter
 
-通常在评论区复制任意一条消息链接即可。
-
----
-
-### 评论区链接的下载行为规则的说明
-
-#### 标准链接（无`?comment`参数）
-
-- 仅下载**消息正文内容**（即频道/群组中直接发布的原始消息）。
-- **不包含评论区内容**，即使原消息存在评论，也不会被纳入下载任务。
-
-#### 带`?comment`参数的链接
-
-- 下载**消息正文 + 关联的全部评论区内容**（完整会话结构）。
-- 若原消息**无评论区**（如频道消息或评论功能关闭），则**仅下载消息正文内容**，与无参数版本行为一致。
+Usually, you can copy the link to any message in the comments.
 
 ---
 
-#### 非下载评论区的推荐写法
+### How comment links are handled
 
-如下表所示:
+#### Standard links (without `?comment`)
 
-|   频道类型   |               链接                |
+- Downloads only the **message content** (the original post in the channel or group).
+- **Does not include comments**, even if the original message has comments.
+
+#### Links with the `?comment` parameter
+
+- Downloads the **message content and all associated comments** (the complete thread).
+- If the original message has **no comments** (for example, it is a channel message or comments are disabled), only the **message content** is downloaded, as with a link without parameters.
+
+---
+
+#### Recommended link formats when not downloading comments
+
+Use the formats shown below:
+
+|   Channel type   |               Link                |
 | :----------: | :-------------------------------: |
-|   正常频道   |       https://t.me/xxx/111        |
-|   私密频道   |   https://t.me/c/xxxxxxxxxx/111   |
-|   话题频道   |     https://t.me/xxx/xxx/111      |
-| 私密话题频道 | https://t.me/c/xxxxxxxxxx/xxx/111 |
+|   Public channel   |       https://t.me/xxx/111        |
+|   Private channel   |   https://t.me/c/xxxxxxxxxx/111   |
+|   Topic channel   |     https://t.me/xxx/xxx/111      |
+| Private topic channel | https://t.me/c/xxxxxxxxxx/xxx/111 |
 
 ---
 
-### 关于`?single`及`?single&comment`参数的下载行为说明
+### How `?single` and `?single&comment` affect downloads
 
-#### 功能变更概述
+#### Overview
 
-自`≥v1.5.8`版本起，链接中包含`?single`或`?single&comment`参数时，系统将启用**单文件下载模式**。此模式专为以下场景设计与优化：
+Since `v1.5.8`, links containing `?single` or `?single&comment` enable **single-item download mode**, designed for these use cases:
 
-- 解决`≥1.5.8`版本`/listen_download`当监听到合并发送的文件时，出现**重复下载问题**。
-- 用户需求，仅需从合并发送的多媒体组中提取**特定单一文件**。
-- 用户需求，仅需下载评论区中的**单个指定媒体**（避免评论区媒体过多时，迟迟下载不到想要的文件）。
+- Prevents **duplicate downloads** when `/listen_download` detects grouped files (`v1.5.8` and later).
+- Extracts **one specific file** from a grouped media message.
+- Downloads **one specific media item** from comments, which can be useful when there are many comments.
 
-#### 参数行为详解
+#### Parameter behavior
 
-|       参数格式       |                下载范围                |           应用场景            |
+|       Parameter format       |                Download scope                |           Use case            |
 | :------------------: | :------------------------------------: | :---------------------------: |
-|     `xx?single`      |  仅下载消息正文中的**xx对应媒体文件**  |  从合并图组/视频组提取单文件  |
-| `?single&comment=xx` | 仅下载评论区中的**xx所对应的媒体文件** | 获取评论区单独分享的图片/视频 |
+|     `xx?single`      | Download only the **media item corresponding to `xx`** in the message | Extract one item from a grouped photo/video message |
+| `?single&comment=xx` | Download only the **media item corresponding to `xx`** in the comments | Retrieve one photo/video shared in the comments |
 
-#### 版本兼容性说明
+#### Version compatibility
 
-- 此特性**仅对`≥v1.5.8`版本**生效。
-- 历史版本中这些参数可能被忽略，导致完整内容下载。
+- This feature is supported **only in `v1.5.8` and later**.
+- Older versions may ignore these parameters and download all content.
 
-#### 最佳实践建议
+#### Best practices
 
-##### 单一文件下载
+##### Downloading a single file
 
-当消息包含多个媒体文件时，使用标准链接附加`?single`参数可精准获取首个文件：
+When a message contains multiple media files, append `?single` to its standard link to retrieve just one file:
 
 ```
 https://t.me/c/123456789/123?single
 ```
 
-##### 评论区单文件下载
+##### Downloading one file from comments
 
-需从评论区单独下载文件时，应采用复合参数格式：
+To download one file from comments, use the combined parameter format:
 
 ```
 https://t.me/c/123456789/123?single&comment=xx
 ```
 
-##### 参数互斥原则
+##### Parameter compatibility
 
-- 避免同时提交同一消息的完整版和单文件版链接（`≥v2.0.8`已针对重复链接导致的资源竞争问题进行自动处理）。
-- 单文件模式与评论区下载模式（`?comment`）不可混用。
+- Avoid submitting both full-content and single-item links for the same message. Duplicate-link conflicts are handled automatically in `v2.0.8` and later.
+- Single-item mode cannot be combined with comment-download mode (`?comment`).
    </details>
 
-## 2.5.软件更新教程
+## 2.5. Software update tutorial
 
 ![image](https://raw.githubusercontent.com/Gentlesprite/Telegram_Restricted_Media_Downloader/main/res/2_5_1.png)
 
-# 3.0.在生产环境中运行
+# 3.0. Running in production
 
-_**推荐**使用`Python==3.13.2`作为该项目环境（避免使用其他`Python`版本导致运行时出现报错）。_
+_**Python 3.13.2 is recommended** for this project to avoid runtime errors that may occur with other Python versions._
 
-## 对于Windows用户
+## Windows
 
-_需自行安装`python`与`git`并配置**环境变量**。_
+_Install `python` and `git` and configure the **PATH environment variable**._
 
 ```shell
 git clone https://github.com/Gentlesprite/Telegram_Restricted_Media_Downloader.git
@@ -1045,105 +1044,105 @@ python -m pip install --upgrade pip
 pip install -r requirements.txt
 python main.py
 ```
-## 对于Linux用户
+## Linux
 
-_克隆本项目并**进入项目目录**。_
+_Clone the project and **change to its directory**._
 
 ```bash
 git clone https://github.com/Gentlesprite/Telegram_Restricted_Media_Downloader.git
 cd Telegram_Restricted_Media_Downloader
 ```
-_**更新**`pip`版本（推荐）。_
+_**Upgrade** `pip` (recommended)._ 
 
 ```bash
 python3 -m pip install --upgrade pip
 ```
 
-_创建并使用**虚拟环境**（可选）。_
+_Create and activate a **virtual environment** (optional)._ 
 
 ```bash
 python3 -m venv venv
 source venv/bin/activate
 ```
 
-_安装程序运行**所需依赖**并等待全部安装完成。_
+_Install the **required dependencies** and wait for the installation to finish._
 
 ```bash
 pip3 install -r requirements.txt
 ```
 
-_运行程序（到这一步就安装完成并运行了，后面是注意事项）。_
+_Run the app. Installation is complete; the following section contains additional notes._
 
 ```bash
 python3 main.py
 ```
 
-### 注意事项
+### Notes
 
-**_如果选择创建虚拟环境运行，在下次运行时也需要先激活虚拟环境。_**
+**_If you use a virtual environment, activate it before running the app each time._**
 
-在项目目录下，**激活虚拟环境**后再运行程序。
+From the project directory, **activate the virtual environment** before running the app.
 
 ```bash
 source venv/bin/activate
 python3 main.py
 ```
 
-_如果提示**没有安装pip**使用如下命令进行安装：_
+_If you are told that **pip is not installed**, install it with:_
 
 ```bash
 sudo apt update
 sudo apt-get install python3-pip
 ```
 
-## 关于更新
+## Updating
 
-_在**项目目录**下打开终端使用如下命令拉取仓库当前的**最新版本**_：
+_Open a terminal in the **project directory** and run this command to get the **latest version**:_
 
 ```shell
 git pull
 ```
 
-_由于新版本可能使用了**新的依赖**，使用`git pull`拉取后，最好更新一下依赖（如果是**虚拟环境**请先激活再执行）。_
+_A new version may use **new dependencies**, so update them after running `git pull`. If you use a **virtual environment**, activate it first._
 
 ```shell
 pip3 install -r requirements.txt
 ```
 
-# 4.0.运行前设置命令行参数（高阶用法）
+# 4.0. Command-line options (advanced)
 
 > [!NOTE]
-> 自版本`≥v1.8.3`起：  
-> 用户可在**运行前**通过**命令行参数**对**软件运行配置**进行**更多自定义设置**。    
+> Since `v1.8.3`:  
+> You can use **command-line options** to further customize the app's **runtime configuration** before starting it.    
 
 <details>
-<summary><strong>点击展开</strong></summary>
+<summary><strong>Click to expand</strong></summary>
 
-_**设置命令行运行参数**需先在**软件目录**打开**终端**，或**任意位置**打开终端**进入软件目录**（**经常**使用建议**配置环境变量**）。_
+_To set command-line options, open a terminal in the **application directory**, or open a terminal elsewhere and **change to the application directory**. If you use the app frequently, consider configuring your **PATH environment variable**._
 
-**目前支持的**命令行参数用法及解释如下表所示：
+The currently supported command-line options are listed below:
 
-| 短参数  |     长参数     |            解释            |
+| Short option  |     Long option     |            Description            |
 |:----:|:-----------:| :------------------------: |
-| `-h` |  `--help`   |          展示帮助          |
-| `-v` | `--version` |        展示版本信息        |
-| `-q` |  `--quiet`  | 跳过重新配置文件的确认提示 |
-| `-c` | `--config`  |   设置用户配置文件的路径   |
-| `-s` | `--session` |     设置会话文件的路径     |
-| `-t` |  `--temp`   |     设置运行缓存的路径     |
-| `-p` |  `--port`   |   设置网页面板的端口   |
+| `-h` |  `--help`   |          Show help          |
+| `-v` | `--version` |        Show version information        |
+| `-q` |  `--quiet`  | Skip the confirmation prompt for reconfiguring the file |
+| `-c` | `--config`  |   Set the user configuration file path   |
+| `-s` | `--session` |     Set the session file path     |
+| `-t` |  `--temp`   |     Set the temporary-file path     |
+| `-p` |  `--port`   |   Set the web dashboard port   |
 
-_**长参数与短参数最终结果一致。**_
+_**Long and short options have the same effect.**_
 
 ---
 
-## 4.1.参数
+## 4.1. Options
 
-#### -h、--help
+#### -h, --help
 
-   该参数用于展示帮助。
+   This option displays help.
 
-   - 对于生产环境用户（**需要先完成前置步骤**[_“3.0.在生产环境中运行”_](https://github.com/Gentlesprite/Telegram_Restricted_Media_Downloader?tab=readme-ov-file#30%E5%9C%A8%E7%94%9F%E4%BA%A7%E7%8E%AF%E5%A2%83%E4%B8%AD%E8%BF%90%E8%A1%8C)）：
+   - For production deployments (**complete the prerequisite steps first** in [_“3.0. Running in production”_](https://github.com/Gentlesprite/Telegram_Restricted_Media_Downloader?tab=readme-ov-file#30%E5%9C%A8%E7%94%9F%E4%BA%A7%E7%8E%AF%E5%A2%83%E4%B8%AD%E8%BF%90%E8%A1%8C)):
 
      ```bash
      python3 main.py -h
@@ -1153,7 +1152,7 @@ _**长参数与短参数最终结果一致。**_
      python3 main.py --help
      ```
 
-   - 对于Windows用户：
+   - For Windows users:
 
      ```bash
      TRMD.exe -h
@@ -1163,7 +1162,7 @@ _**长参数与短参数最终结果一致。**_
      TRMD.exe --help
      ```
 
-   - 对于Linux用户：
+   - For Linux users:
 
      ```bash
      ./TRMD -h
@@ -1175,21 +1174,11 @@ _**长参数与短参数最终结果一致。**_
 
 ---
 
-#### -v、--version
+#### -v, --version
 
-   该参数用于展示版本信息。
+   This option displays version information.
 
-   - 对于生产环境用户（**需要先完成前置步骤**[_“3.0.在生产环境中运行”_](https://github.com/Gentlesprite/Telegram_Restricted_Media_Downloader?tab=readme-ov-file#30%E5%9C%A8%E7%94%9F%E4%BA%A7%E7%8E%AF%E5%A2%83%E4%B8%AD%E8%BF%90%E8%A1%8C)）：
-
-     ```bash
-     TRMD.exe -v
-     ```
-
-     ```bash
-     TRMD.exe --version
-     ```
-
-   - 对于Windows用户：
+   - For production deployments (**complete the prerequisite steps first** in [_“3.0. Running in production”_](https://github.com/Gentlesprite/Telegram_Restricted_Media_Downloader?tab=readme-ov-file#30-running-in-production)):
 
      ```bash
      TRMD.exe -v
@@ -1199,7 +1188,17 @@ _**长参数与短参数最终结果一致。**_
      TRMD.exe --version
      ```
 
-   - 对于Linux用户：
+   - For Windows users:
+
+     ```bash
+     TRMD.exe -v
+     ```
+
+     ```bash
+     TRMD.exe --version
+     ```
+
+   - For Linux users:
 
      ```bash
      ./TRMD -v
@@ -1211,15 +1210,15 @@ _**长参数与短参数最终结果一致。**_
 
 ---
 
-#### -q、--quiet
+#### -q, --quiet
    
-   | 使用须知                                         |
+   | Usage notes                                         |
    | ------------------------------------------------ |
-   | _1.该参数用于跳过重新配置文件的确认提示。_       |
-   | _2.用户配置文件缺少必要参数时，指定该参数无效。_ |
-   | _3.该参数为一次性设置，不记忆。_                 |
+   | _1. This option skips the confirmation prompt for reconfiguring the file._       |
+   | _2. This option has no effect if the user configuration file is missing required parameters._ |
+   | _3. This option is temporary and is not saved._                 |
    
-   - 对于生产环境用户（**需要先完成前置步骤**[_“3.0.在生产环境中运行”_](https://github.com/Gentlesprite/Telegram_Restricted_Media_Downloader?tab=readme-ov-file#30%E5%9C%A8%E7%94%9F%E4%BA%A7%E7%8E%AF%E5%A2%83%E4%B8%AD%E8%BF%90%E8%A1%8C)）：
+   - For production deployments (**complete the prerequisite steps first** in [_“3.0. Running in production”_](https://github.com/Gentlesprite/Telegram_Restricted_Media_Downloader?tab=readme-ov-file#30-running-in-production)):
    
      ```bash
      python3 main.py -q
@@ -1229,7 +1228,7 @@ _**长参数与短参数最终结果一致。**_
      python3 main.py --quiet
      ```
      
-   - 对于Windows用户：
+   - For Windows users:
    
      ```bash
      TRMD.exe -q
@@ -1239,7 +1238,7 @@ _**长参数与短参数最终结果一致。**_
      TRMD.exe --quiet
      ```
      
-   - 对于Linux用户：
+   - For Linux users:
    
      ```bash
      ./TRMD -q
@@ -1251,19 +1250,19 @@ _**长参数与短参数最终结果一致。**_
 
 ---
 
-#### -c、--config
+#### -c, --config
 
-   | 使用须知                                                                                                                                                                                                                |
+   | Usage notes                                                                                                                                                                                                             |
    |---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-   | _1.该参数用于设置用户配置文件的路径。_                                                                                                                                                                                               |
-   | _2.**该参数旨在解决多个实例（多开）场景下，避免重复部署软件本体而设计的配置分离方案。**_                                                                                                                                                                    |
-   | _3.该参数需指定一个**符合**[“2.3.配置文件说明（用户配置文件）”](https://github.com/Gentlesprite/Telegram_Restricted_Media_Downloader?tab=readme-ov-file#%E7%94%A8%E6%88%B7%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6)格式规范的文件，**并且后缀名需为`.yaml`**。_ |
-   | _4.当指定的**文件路径无效**时，将使用软件**默认**设置。_                                                                                                                                                                                  |
-   | _5.该参数为一次性设置，不记忆。_                                                                                                                                                                                                  |
+   | _1. This option sets the path to the user configuration file._                                                                                                                                                            |
+   | _2. **It lets multiple instances use separate configuration files without requiring a separate copy of the application.**_                                                                                                |
+   | _3. Specify a file that follows the format described in [“User configuration file”](https://github.com/Gentlesprite/Telegram_Restricted_Media_Downloader?tab=readme-ov-file#user-configuration-file) and has a `.yaml` extension._ |
+   | _4. If the specified **file path is invalid**, the application uses its **default** settings._                                                                                                                           |
+   | _5. This option is temporary and is not saved._                                                                                                                                                                           |
 
-   - 对于生产环境用户（**需要先完成前置步骤**[_“3.0.在生产环境中运行”_](https://github.com/Gentlesprite/Telegram_Restricted_Media_Downloader?tab=readme-ov-file#30%E5%9C%A8%E7%94%9F%E4%BA%A7%E7%8E%AF%E5%A2%83%E4%B8%AD%E8%BF%90%E8%A1%8C)）：
+   - For production deployments (**complete the prerequisite steps first** in [_“3.0. Running in production”_](https://github.com/Gentlesprite/Telegram_Restricted_Media_Downloader?tab=readme-ov-file#30-running-in-production)):
 
-     以`Linux`系统为例（`Winodws`系统同理），此处假设用户配置文件位于`/home/username/files/example.yaml`。
+     The example below is for `Linux` (the same applies to `Windows`) and assumes the user configuration file is located at `/home/username/files/example.yaml`.
 
      ```bash
      python3 main.py -c /home/username/files/example.yaml
@@ -1273,9 +1272,9 @@ _**长参数与短参数最终结果一致。**_
      python3 main.py --config /home/username/files/example.yaml
      ```
 
-   - 对于Windows用户：
+   - For Windows users:
 
-     此处假设用户配置文件位于`C:\files\example.yaml`。
+     This example assumes the user configuration file is located at `C:\files\example.yaml`.
 
      ```bash
      TRMD.exe -c C:\files\example.yaml
@@ -1285,9 +1284,9 @@ _**长参数与短参数最终结果一致。**_
      TRMD.exe --config C:\files\example.yaml
      ```
 
-   - 对于Linux用户：
+   - For Linux users:
 
-      此处假设用户配置文件位于`/home/username/files/example.yaml`。
+      This example assumes the user configuration file is located at `/home/username/files/example.yaml`.
 
       ```bash
       ./TRMD -c /home/username/files/example.yaml
@@ -1299,27 +1298,27 @@ _**长参数与短参数最终结果一致。**_
 
 ---
 
-#### -s、--session
+#### -s, --session
 
-> **⚠️ 版本变更说明**：
+> **⚠️ Version notes:**
 
-| 版本 | 说明 |
+| Version | Description |
 | --- | --- |
-| `≥v1.8.5` | `-s`、`--session`参数在设置后将被保存到用户配置文件的`session_directory`参数中，下次使用时无需重复指定，除非需要修改该设置。 |
-| `≥v2.1.1` | `-s`、`--session`指定的会话目录中会新增`TRMDStorage.db`数据库文件，用于保存网页面板的下载与上传记录，删除或迁移该文件仅影响网页记录，不影响账号登录。 |
+| `≥v1.8.5` | After you set `-s` or `--session`, its value is saved as `session_directory` in the user configuration file. You do not need to specify it again unless you want to change it. |
+| `≥v2.1.1` | A `TRMDStorage.db` database is created in the session directory specified with `-s` or `--session`. It stores download and upload history for the web dashboard. Deleting or moving it affects only dashboard history, not account login. |
 
-   | 使用须知                                                                                                      |
+   | Usage notes                                                                                                 |
    |-----------------------------------------------------------------------------------------------------------|
-   | _1.该参数用于设置会话文件的路径。_                                                                                       |
-   | _2.软件会在用户登录成功时后，默认在运行目录下生成`sessions`文件夹，用于保存当前账号信息，以便后续快速登录。_                                             |
-   | _3.**该参数旨在**解决多账号登录场景下需**手动重命名**会话文件的问题，使用该参数用户可通过**直接**指定不同路径，选择对应账号进行登录。_                               |
-   | _4.该参数需指定一个**文件夹**，可包含已有的`.session`文件，指定为空文件夹或不存在时，登录后将在**该路径自动生成**会话文件。_                                 |
-   | _5.该参数设置后会被记忆，下次无需重复设置（`≥v1.8.5`）。_                                                                       |
-   | _6.会话文件夹内除`.session`会话文件外，还会生成`TRMDStorage.db`数据库文件（`≥v2.1.1`），用于保存网页面板的下载与上传记录；删除或迁移该文件仅清空网页记录，不影响账号登录。_ |
+   | _1. This option sets the path to the session files._                                                                    |
+   | _2. After a successful login, the application creates a `sessions` folder in its working directory to save the current account information for faster future logins._ |
+   | _3. **This option avoids having to rename session files manually** when using multiple accounts. Specify a different path to select the account to log in with._   |
+   | _4. Specify a **folder** that may contain existing `.session` files. If the folder is empty or does not exist, a session file is **created there automatically** after login._ |
+   | _5. The setting is saved, so you do not need to specify it again (`≥v1.8.5`)._                                         |
+   | _6. In addition to `.session` files, the session folder contains `TRMDStorage.db` (`≥v2.1.1`), which stores web dashboard download and upload history. Deleting or moving this database clears only the dashboard history; it does not affect account login._ |
 
-   - 对于生产环境用户（**需要先完成前置步骤**"[_“3.0.在生产环境中运行”_](https://github.com/Gentlesprite/Telegram_Restricted_Media_Downloader?tab=readme-ov-file#30%E5%9C%A8%E7%94%9F%E4%BA%A7%E7%8E%AF%E5%A2%83%E4%B8%AD%E8%BF%90%E8%A1%8C)）：
+   - For production deployments (**complete the prerequisite steps first** in [_“3.0. Running in production”_](https://github.com/Gentlesprite/Telegram_Restricted_Media_Downloader?tab=readme-ov-file#30-running-in-production)):
 
-     以`Linux`系统为例（`Winodws`系统同理），此处假设会话文件位于`/home/username/files/session`。
+     The example below is for `Linux` (the same applies to `Windows`) and assumes the session folder is located at `/home/username/files/session`.
 
      ```bash
      python3 main.py -s /home/username/files/session
@@ -1329,9 +1328,9 @@ _**长参数与短参数最终结果一致。**_
      python3 main.py --session /home/username/session
      ```
 
-   - 对于Windows用户：
+   - For Windows users:
 
-     此处假设会话文件位于`C:\files\session`。
+     This example assumes the session folder is located at `C:\files\session`.
 
      ```bash
      TRMD.exe -s C:\files\session
@@ -1341,9 +1340,9 @@ _**长参数与短参数最终结果一致。**_
      TRMD.exe --session C:\files\session
      ```
 
-   - 对于Linux用户：
+   - For Linux users:
 
-     此处假设会话文件位于`/home/username/files/session`。
+     This example assumes the session folder is located at `/home/username/files/session`.
 
      ```bash
      ./TRMD -s /home/username/files/session
@@ -1355,25 +1354,25 @@ _**长参数与短参数最终结果一致。**_
 
 ---
 
-#### -t、--temp
+#### -t, --temp
 
-> **⚠️ 版本变更说明**：
+> **⚠️ Version notes:**
 
-| 版本 | 说明 |
+| Version | Description |
 | --- | --- |
-| `≥v1.8.5` | `-t`、`--temp`参数在设置后将被保存到用户配置文件的`temp_directory`参数中，下次使用时无需重复指定，除非需要修改该设置。 |
+| `≥v1.8.5` | After you set `-t` or `--temp`, its value is saved as `temp_directory` in the user configuration file. You do not need to specify it again unless you want to change it. |
 
-   | 使用须知                                                     |
+   | Usage notes                                                  |
    | ------------------------------------------------------------ |
-   | _1.该参数用于设置运行缓存的路径。_                           |
-   | _2.缓存即软件运行过程中，记录**下载和上传**信息的**存储中转站**。_ |
-   | _3.**断点续传**的实现同样离不开缓存机制的设计，用户可**根据实际需求自定义缓存存放的路径**。_ |
-   | _4.该参数需指定一个**文件夹**，指定为空文件夹或不存在时，运行时将在**该路径自动生成**生成缓存文件。_ |
-   | _5.该参数设置后会被记忆，下次无需重复设置（`≥v1.8.5`）。_    |
+   | _1. This option sets the path for temporary files._          |
+   | _2. Temporary storage holds information about **downloads and uploads** while the application is running._ |
+   | _3. **Resumable transfers** rely on this cache. You can **choose a custom cache location to suit your needs**._ |
+   | _4. Specify a **folder**. If it is empty or does not exist, cache files are **created there automatically** at runtime._ |
+   | _5. The setting is saved, so you do not need to specify it again (`≥v1.8.5`)._ |
    
-   - 对于生产环境用户（**需要先完成前置步骤**[_“3.0.在生产环境中运行”_](https://github.com/Gentlesprite/Telegram_Restricted_Media_Downloader?tab=readme-ov-file#30%E5%9C%A8%E7%94%9F%E4%BA%A7%E7%8E%AF%E5%A2%83%E4%B8%AD%E8%BF%90%E8%A1%8C)）：
+   - For production deployments (**complete the prerequisite steps first** in [_“3.0. Running in production”_](https://github.com/Gentlesprite/Telegram_Restricted_Media_Downloader?tab=readme-ov-file#30-running-in-production)):
    
-     以`Linux`系统为例（`Winodws`系统同理），此处假设缓存文件位于`/home/username/files/temp`。
+     The example below is for `Linux` (the same applies to `Windows`) and assumes the temporary-file folder is located at `/home/username/files/temp`.
    
      ```bash
      python3 main.py -t /home/username/files/temp
@@ -1383,9 +1382,9 @@ _**长参数与短参数最终结果一致。**_
      python3 main.py --temp /home/username/temp
      ```
    
-   - 对于Windows用户：
+   - For Windows users:
    
-     此处假设缓存文件位于`C:\files\temp`。
+     This example assumes the temporary-file folder is located at `C:\files\temp`.
    
      ```bash
      TRMD.exe -t C:\files\temp
@@ -1395,9 +1394,9 @@ _**长参数与短参数最终结果一致。**_
      TRMD.exe --temp C:\files\temp
      ```
    
-   - 对于Linux用户：
+   - For Linux users:
    
-     此处假设缓存文件位于`/home/username/files/temp`。
+     This example assumes the temporary-file folder is located at `/home/username/files/temp`.
    
      ```bash
      ./TRMD -t /home/username/files/temp
@@ -1409,20 +1408,20 @@ _**长参数与短参数最终结果一致。**_
 
 ---
 
-#### -p、--port
+#### -p, --port
 
-  | 使用须知                                                         |
+  | Usage notes                                                      |
   |--------------------------------------------------------------|
-  | _1.网页面板默认启用，通过浏览器查看下载进度。_                                        |
-  | _2.网页面板会在后台启动网页服务，终端仍可正常操作。_ |
-  | _3.`Web配置`信息会在运行的终端提供，以便打开网页时输入账号密码。_                          |
-  | _4.**关闭浏览器窗口不会影响程序运行**，程序退出时面板自动关闭。_                          |
-  | _5.该参数用于指定网页面板的**端口号**，范围为`0`~`65535`，若不指定，将使用`2921`端口，端口被占用时自动分配。_       |
-  | _6.该参数为一次性设置，不记忆。_                                           |
+  | _1. The web dashboard is enabled by default and lets you view download progress in a browser._ |
+  | _2. The dashboard's web service runs in the background, so you can continue using the terminal._ |
+  | _3. `Web configuration` details are shown in the terminal; use them to enter the username and password when opening the dashboard._ |
+  | _4. **Closing the browser window does not stop the application**. The dashboard closes when the application exits._ |
+  | _5. This option sets the dashboard **port** (`0`–`65535`). The default is `2921`; if the port is occupied, an available port is assigned automatically._ |
+  | _6. This option is temporary and is not saved._ |
   
-  - 对于生产环境用户（**需要先完成前置步骤**"[_“3.0.在生产环境中运行”_](https://github.com/Gentlesprite/Telegram_Restricted_Media_Downloader?tab=readme-ov-file#30%E5%9C%A8%E7%94%9F%E4%BA%A7%E7%8E%AF%E5%A2%83%E4%B8%AD%E8%BF%90%E8%A1%8C)）：
+  - For production deployments (**complete the prerequisite steps first** in [_“3.0. Running in production”_](https://github.com/Gentlesprite/Telegram_Restricted_Media_Downloader?tab=readme-ov-file#30-running-in-production)):
   
-    此处假设使用`1024`端口。
+    This example uses port `1024`.
   
     ```bash
     python3 main.py -p 1024
@@ -1432,9 +1431,9 @@ _**长参数与短参数最终结果一致。**_
     python3 main.py --port 1024
     ```
   
-  - 对于Windows用户：
+  - For Windows users:
   
-    此处假设使用`1024`端口。
+    This example uses port `1024`.
   
     ```bash
     TRMD.exe -p 1024
@@ -1444,9 +1443,9 @@ _**长参数与短参数最终结果一致。**_
     TRMD.exe --port 1024
     ```
   
-  - 对于Linux用户：
+  - For Linux users:
   
-    此处假设使用`1024`端口。
+    This example uses port `1024`.
   
     ```bash
     ./TRMD -p 1024
@@ -1459,28 +1458,28 @@ _**长参数与短参数最终结果一致。**_
   </details>
 
 
-# 5.0.通过编译后运行
+# 5.0. Running a compiled build
 
-_**推荐**使用`Python==3.13.2`作为该项目环境，并使用**虚拟环境**，**避免**添加不必要的库，从而**减小**输出的文件大小。_
+_We **recommend** using `Python==3.13.2` in a **virtual environment** and **avoiding** unnecessary packages to **reduce** the size of the build output._
 
-_`Windows`构建说明：_
-   - **Windows构建会启用`--clang`**。
-   - 需安装`Visual Studio`并勾选`C++ Clang Compiler for Windows`组件以提供`clang-cl`。  
-   - 下载`Visual Studio`时须留意版本，其安装的`LLVM`/`clang`版本须**≥19**，因Nuitka编译所用的`#embed`（C23）常量嵌入仅在该版本起受支持。  
-   - 在`Windows`下，`build.py`必须在**x64 Native Tools Command Prompt for VS**中运行，`Nuitka`依靠该命令行预置的`MSVC`与`Windows SDK`编译环境。
-   - 在`CMD`/`PowerShell`中运行，将因所需环境变量在编译期报错，并且`Nuitka`不再回退至`gcc`/`zig`（仅当`MSVC`完全探测不到时才触发回退）。
+_`Windows` build notes:_
+   - **The Windows build enables `--clang`.**
+   - Install `Visual Studio` and select the `C++ Clang Compiler for Windows` component to provide `clang-cl`.
+   - Check the `Visual Studio` version: its `LLVM`/`clang` version must be **≥19**, because the `#embed` (C23) constant embedding used by Nuitka is supported only in that version and later.
+   - On `Windows`, run `build.py` from the **x64 Native Tools Command Prompt for VS**. Nuitka relies on the `MSVC` and `Windows SDK` build environment initialized by that prompt.
+   - Running from `CMD` or `PowerShell` causes a compile-time error because the required environment variables are missing. Nuitka no longer falls back to `gcc`/`zig` (fallback occurs only if `MSVC` cannot be detected at all).
 
-同[_“3.0.在生产环境中运行”_](https://github.com/Gentlesprite/Telegram_Restricted_Media_Downloader?tab=readme-ov-file#30%E5%9C%A8%E7%94%9F%E4%BA%A7%E7%8E%AF%E5%A2%83%E4%B8%AD%E8%BF%90%E8%A1%8C)**前置步骤一致**。
+Follow the same **prerequisites** as in [_“3.0. Running in production”_](https://github.com/Gentlesprite/Telegram_Restricted_Media_Downloader?tab=readme-ov-file#30-running-in-production).
 
-执行代码：
+Run the build command:
 
 ```bash
 python build.py
 ```
 
-# 6.0.通过Docker运行
+# 6.0. Running with Docker
 
-_**Docker环境运行配置文件模板参考（前提：需完全按照后续教程提供的命令启动Docker）：**_
+_**Example configuration for Docker** (you must start Docker using the commands provided below):_
 
 ```yaml
 api_hash: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
@@ -1515,29 +1514,29 @@ session_directory: /app/sessions
 temp_directory: /app/temp
 ```
 
-由于`Docker`容器的工作目录为`/app`，配置文件中的路径应填写**容器内路径**，实际文件通过`docker run`的`-v`卷挂载映射至宿主机目录：
+The Docker container's working directory is `/app`, so configuration paths must be **paths inside the container**. The `-v` volume mounts in `docker run` map the corresponding files to host directories:
 
-| 配置项 | 容器内路径（写入配置） | 对应的主机路径 |
+| Setting | Container path (use in configuration) | Corresponding host path |
 | --- | --- | --- |
 | `save_directory` | `/app/downloads/%CHAT_NAME%/%MIME_TYPE%` | `./downloads/%CHAT_NAME%/%MIME_TYPE%` |
 | `session_directory` | `/app/sessions` | `./sessions` |
 | `temp_directory` | `/app/temp` | `./temp` |
 | `links` | `/app/TRMD/links.txt` | `./config/links.txt` |
 
-- _*另挂载`./form:/app/form`为程序内部统计/表单导出目录（`/app/form`）。_
-- _*代理`hostname`（示例`192.168.1.10`）仅作为参考，实际部署时需替换为各自代理服务器的`ip`地址（可通过`ip addr`或`ifconfig`查看本机局域网`IP`）。若运行环境已可直接访问`Telegram`服务器，则可不启用代理：将`enable_proxy`设为`false`。_
+- _*Also mount `./form:/app/form` for the application's internal statistics and form-export directory (`/app/form`)._
+- _*The proxy `hostname` (`192.168.1.10` in this example) is only a placeholder. Replace it with your proxy server's `IP` address (use `ip addr` or `ifconfig` to check your local network `IP`). If the environment can access `Telegram` directly, you can disable the proxy by setting `enable_proxy` to `false`._
 
-方式1：
+Method 1:
 
-- _确保`docker`已安装并配置**环境变量。**_
+- _Make sure `docker` is installed and available on your **PATH**._
 
-- 使用`docker`从远程仓库拉取镜像，注意`TRMD`版本需要`≥2.0.2`：
+- Use `docker` to pull the image from the remote repository. The `TRMD` version must be `≥2.0.2`:
 
   ```bash
   docker pull gentlesprite/telegram_restricted_media_downloader:latest
   ```
 
-- 首次使用时需要进入容器配置文件：
+- On first use, run the container interactively to configure the application:
 
   ```bash
   docker run -it --rm \
@@ -1553,13 +1552,13 @@ temp_directory: /app/temp
     python main.py --config /app/TRMD/config.yaml --port 2921
   ```
 
-- 如果是通过`Windows`使用`wsl2`运行`docker`：
+- If you are running `docker` through `wsl2` on `Windows`:
 
   ```bash
   docker run -it --rm --name trmd -v ./config:/app/TRMD -v ./sessions:/app/sessions -v ./downloads:/app/downloads -v ./temp:/app/temp -v ./form:/app/form -e TZ=Asia/Shanghai gentlesprite/telegram_restricted_media_downloader:latest python main.py --config /app/TRMD/config.yaml --port 2921
   ```
 
-- 如果已配置完成的情况下，直接创建并启动容器：
+- After configuration is complete, create and start the container:
 
   ```bash
   docker run -it -d \
@@ -1575,80 +1574,80 @@ temp_directory: /app/temp
     python main.py --config /app/TRMD/config.yaml --port 2921
   ```
 
-- 如果是通过`Windows`使用`wsl2`运行`docker`：
+- If you are running `docker` through `wsl2` on `Windows`:
 
   ```bash
   docker run -it -d --name trmd -v ./config:/app/TRMD -v ./sessions:/app/sessions -v ./downloads:/app/downloads -v ./temp:/app/temp -v ./form:/app/form -p 2921:2921 -e TZ=Asia/Shanghai gentlesprite/telegram_restricted_media_downloader:latest python main.py --config /app/TRMD/config.yaml --port 2921
   ```
 
-方式2：
+Method 2:
 
-- _确保`git`、`docker`、`docker-compose`已安装并配置**环境变量。**_
+- _Make sure `git`, `docker`, and `docker-compose` are installed and available on your **PATH**._
 
-- 使用`git`克隆仓库：
+- Clone the repository with `git`:
 
   ```bash
   git clone https://github.com/Gentlesprite/Telegram_Restricted_Media_Downloader.git
   ```
 
-- 进入项目文件夹：
+- Change to the project directory:
 
   ```bash
   cd Telegram_Restricted_Media_Downloader
   ```
 
-- 首次使用时需要进入容器配置文件：
+- On first use, run the container interactively to configure the application:
 
   ```bash
   docker-compose run --rm --service-ports --name trmd trmd
   ```
 
-- 如果已配置完成的情况下，直接创建并启动容器：
+- After configuration is complete, create and start the container:
 
   ```bash
   docker-compose up -d
   ```
 
-以上两种方式启动后，通过在终端或在`Telegram`中向机器人发送`/help`命令查看`Web配置`以访问网页面板（包含端口、账号、密码与访问链接），类似下表：
+After starting with either method, view the `Web configuration` to access the dashboard. Run `/help` in the terminal or send it to the bot in `Telegram`. It includes the port, username, password, and URL, as shown below:
 
-| 属性 | 内容                    |
+| Property | Value                   |
 |----| ----------------------- |
-| 端口 | `2921`                  |
-| 账号 | `cLJqKG3b`              |
-| 密码 | `AiJaKSObcRCZ`          |
-| 链接 | `http://127.0.0.1:2921` |
+| Port | `2921`                  |
+| Username | `cLJqKG3b`              |
+| Password | `AiJaKSObcRCZ`          |
+| URL | `http://127.0.0.1:2921` |
 
 > [!IMPORTANT]
-> `Docker`环境下链接中的`IP`为`容器IP`并非`宿主机IP`，请使用`宿主机IP`加`端口`访问，此处的`http://127.0.0.1:2921`仅作为演示。
+> In a `Docker` environment, the `IP` in the URL is the **container IP**, not the **host IP**. Access the dashboard using the host IP and port. `http://127.0.0.1:2921` is shown only as an example.
 
-_账号密码由系统随机生成，使用浏览器打开[http://127.0.0.1:2921](http://127.0.0.1:2921)网页输入账号密码即可进入。_
+_The username and password are generated randomly. Open [http://127.0.0.1:2921](http://127.0.0.1:2921) in a browser and enter them to sign in._
 
-- **仅在已配置机器人的情况下**，也可在`Telegram`中向机器人发送`/help`命令查看上述`Web配置`。
-- 网页面板默认使用`2921`端口，可通过`-p`、`--port`参数指定自定义端口，端口被占用时自动分配可用端口。
-- 网页面板在后台启动网页服务，终端仍可正常操作；**关闭浏览器窗口不会影响程序运行**，程序退出时面板自动关闭。
-- 首次通过账号密码登录成功后，面板会向**此浏览器**下发一个有效期`30`天的`Cookie`，使用此浏览器的访问行为在软件重启或重新访问后依然免密。
-- 如需远程访问，请自行查看并替换`ip`地址为公网`ip`，并开放`2921`或`自定义`的端口。
+- **If a bot is configured**, you can also send `/help` to it in `Telegram` to view the `Web configuration` described above.
+- The dashboard uses port `2921` by default. Use `-p` or `--port` to specify another port; if it is occupied, an available port is assigned automatically.
+- The dashboard's web service runs in the background, so you can continue using the terminal. **Closing the browser window does not stop the application**; the dashboard closes when the application exits.
+- After the first successful username-and-password login, the dashboard stores a `Cookie` in **this browser** that is valid for `30` days. This browser can access the dashboard without signing in again, even after the application restarts.
+- For remote access, replace the `ip` address with your public `ip` and open port `2921` or your `custom` port.
 
-其他命令：
+Other commands:
 
-- 如需查看运行日志：
+- To view the application logs:
 
   ```bash
   docker logs trmd
   ```
 
-- **不再使用**时，停止并删除容器：
+- When you are **finished using the application**, stop and remove the container:
 
   ```bash
   docker stop trmd && docker rm trmd
   ```
 
-# 7.0.联系作者
+# 7.0. Contact
 
   Telegram：[@Gentlesprite](https://t.me/Gentlesprite)
 
-  邮箱：Gentlesprites@outlook.com
+  Email: Gentlesprites@outlook.com
 
-# 8.0.支持作者
+# 8.0. Support the developer
 
 ![image](https://raw.githubusercontent.com/Gentlesprite/Telegram_Restricted_Media_Downloader/main/res/pay.png)

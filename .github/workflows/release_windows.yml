@@ -42,14 +42,13 @@ jobs:
     - name: Prepare release files
       shell: bash
       run: |
-        mkdir -p "release\使用手册"
-        cp "output\TRMD.exe" "release\TRMD.exe"
-        cp "res\使用必读.pdf" "release\使用手册\使用必读.pdf"
-        cp "res\Wiki.pdf" "release\使用手册\常见问题及解决方案汇总.pdf"
-        cp "res\2_5_1.png" "release\使用手册\软件更新教程.png"
+        mkdir -p "release/Documentation"
+        cp "output/TRMD.exe" "release/TRMD.exe"
+        cp "res/User_Guide.pdf" "release/Documentation/User_Guide.pdf"
+        cp "res/FAQ.pdf" "release/Documentation/FAQ.pdf"
         cd release
-        "..\res\bin\rar.exe" a "TRMD_${{ env.CLEAN_VERSION }}-windows-64.rar" "TRMD.exe" "使用手册"
-        rm -rf "使用手册"
+        "../res/bin/rar.exe" a "TRMD_${{ env.CLEAN_VERSION }}-windows-64.rar" "TRMD.exe" "Documentation"
+        rm -rf "Documentation"
 
     - name: Upload release asset to GitHub
       uses: softprops/action-gh-release@v3

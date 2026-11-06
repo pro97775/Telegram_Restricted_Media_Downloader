@@ -21,7 +21,7 @@ from module import (
 
 def ready_nuitka() -> None:
     if NUITKA_VERSION < MIN_NUITKA_VERSION:
-        print(f'Nuitka版本不满足要求,请升级到{".".join(map(str, MIN_NUITKA_VERSION))}或更高版本。')
+        print(f'Nuitka version is too old. Upgrade to {".".join(map(str, MIN_NUITKA_VERSION))} or later.')
         sys.exit(1)
     subprocess.run(
         f'{UV}pip install --upgrade --no-cache-dir "nuitka[app]=={".".join(map(str, NUITKA_VERSION))}"',
@@ -33,7 +33,7 @@ def ready_web() -> list:
     for relative_directory in ('module/templates', 'module/static'):
         path = str(Path(relative_directory).resolve())
         if not os.path.isdir(path):
-            print(f'未找到网页面板的资源目录:"{path}"。')
+            print(f'Web dashboard assets directory not found: "{path}".')
             sys.exit(1)
         web_directories.append((path, relative_directory))
     return web_directories
@@ -71,7 +71,7 @@ def check_python_version():
 
     if not version_valid:
         print(
-            f'Python版本不满足要求\n当前版本:{sys.version}\n要求范围:{".".join(map(str, MIN_PYTHON_VERSION))} ≤ Python 版本 < {".".join(map(str, MAX_PYTHON_VERSION))}\n请安装符合要求的Python版本后重试。')
+            f'Unsupported Python version.\nCurrent version: {sys.version}\nRequired range: {".".join(map(str, MIN_PYTHON_VERSION))} ≤ Python < {".".join(map(str, MAX_PYTHON_VERSION))}\nInstall a supported Python version and try again.')
         sys.exit(1)
 
     print(f'{GRID}\nPython:\n{sys.version}\n{GRID}', flush=True)

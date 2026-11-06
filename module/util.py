@@ -151,7 +151,7 @@ async def collect_message_id(
     try:
         group = await message.get_media_group()
     except Exception as e:  # noqa: BLE001  预取失败(如 FloodWait/超时)不影响主流程,错误不往外抛。
-        log.warning(f'预取媒体组成员id列表失败,原因:"{e}"。')
+        log.warning(f'Failed to prefetch media group member IDs. Reason: "{e}".')
         group = None
     group_ids = [m.id for m in group if getattr(m, 'id', None) is not None] if group else []
     cache[media_group_id] = group_ids
@@ -193,7 +193,7 @@ def save_message_entities(
         with open(file_path, 'w', encoding='UTF-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2, default=str)
     except Exception as e:  # noqa: BLE001  实体落盘失败绝不影响下载主流程,错误不往外抛。
-        log.warning(f'保存消息实体JSON失败,原因:"{e}"。')
+        log.warning(f'Failed to save message entity JSON. Reason: "{e}".')
 
 
 def message_entity_to_dict(entity) -> dict:
@@ -361,7 +361,7 @@ async def get_message_by_link(
     except ValueError:
         chat_id = match.group(1)
     message_id: int = int(match.group(2))
-    log.info(f'解析链接:"{link}",频道:"{chat_id}",消息ID:"{message_id}"。')
+    log.info(f'Parsed link: "{link}", channel: "{chat_id}", message ID: "{message_id}".')
     comment_message: list = []
     if LinkType.COMMENT in record_type:
         # 如果用户需要同时下载媒体下面的评论,把评论中的所有信息放入列表一起返回。
@@ -372,7 +372,7 @@ async def get_message_by_link(
                 if '=' in origin_link and int(origin_link.split('=')[-1]) != comment.id:
                     continue
             comment_message.append(comment)
-        log.info(f'链接:"{link}"的评论中检索到媒体:"{len(comment_message)}"条。')
+        log.info(f'Found {len(comment_message)} media item(s) in the comments for link "{link}".')
     message = await client.get_messages(chat_id=chat_id, message_ids=message_id)
     is_group, group_message = await __is_group(message)
     if single_link:
@@ -387,7 +387,7 @@ async def get_message_by_link(
                 group_message.extend(comment_message)
         if comment_message:
             link_type: str = LinkType.TOPIC if LinkType.TOPIC in record_type else LinkType.COMMENT
-            log.info(f'链接:"{link}"解析为"{link_type}",媒体数量:"{len(group_message)}"。')
+            log.info(f'Link "{link}" parsed as "{link_type}" with {len(group_message)} media item(s).')
             return {
                 'link_type': link_type,
                 'chat_id': chat_id,
@@ -396,7 +396,7 @@ async def get_message_by_link(
             }
         else:
             link_type = LinkType.TOPIC if LinkType.TOPIC in record_type else LinkType.GROUP
-            log.info(f'链接:"{link}"解析为"{link_type}",媒体数量:"{len(group_message)}"。')
+            log.info(f'Link "{link}" parsed as "{link_type}" with {len(group_message)} media item(s).')
             return {
                 'link_type': link_type,
                 'chat_id': chat_id,
@@ -405,7 +405,7 @@ async def get_message_by_link(
             }
     elif is_group is False and group_message is None:  # 单文件。
         link_type = LinkType.TOPIC if LinkType.TOPIC in record_type else LinkType.SINGLE
-        log.info(f'链接:"{link}"解析为"{link_type}",媒体数量:"1"。')
+        log.info(f'Link "{link}" parsed as "{link_type}" with 1 media item.')
         return {
             'link_type': link_type,
             'chat_id': chat_id,
@@ -686,7 +686,7 @@ def reset_web_session() -> str:
         with open(file=TRMD_WEB_SESSION, mode='w', encoding='UTF-8') as f:
             f.write(token)
     except OSError as e:
-        log.warning(f'重置网页面板令牌失败,原因:"{e}"。')
+        log.warning(f'Failed to reset the web dashboard token. Reason: "{e}".')
     return token
 
 
@@ -703,9 +703,9 @@ def get_web_session() -> str:
     try:
         with open(file=TRMD_WEB_SESSION, mode='w', encoding='UTF-8') as f:
             f.write(token)
-        log.info(f'已生成网页面板令牌:"{TRMD_WEB_SESSION}"。')
+        log.info(f'Generated web dashboard token at "{TRMD_WEB_SESSION}".')
     except OSError as e:
-        log.warning(f'保存网页面板令牌失败,原因:"{e}"。')
+        log.warning(f'Failed to save the web dashboard token. Reason: "{e}".')
     return token
 
 
@@ -732,18 +732,18 @@ def get_nuitka_version():
 
 
 def check_environment():
-    log.info(f'{SOFTWARE_SHORT_NAME}:{VERSION_SEMVER},更新日期:{__update_date__}。')
+    log.info(f'{SOFTWARE_SHORT_NAME}: {VERSION_SEMVER}, build date: {__update_date__}.')
     log.info(
-        f'文件日志等级:"{logging.getLevelName(FILE_LOG_LEVEL)}",终端日志等级:"{logging.getLevelName(CONSOLE_LOG_LEVEL)}"。')
-    log.info(f'工作目录:"{get_work_directory()}"。')
+        f'File log level: "{logging.getLevelName(FILE_LOG_LEVEL)}", console log level: "{logging.getLevelName(CONSOLE_LOG_LEVEL)}".')
+    log.info(f'Working directory: "{get_work_directory()}".')
     if is_nuitka():
-        log.info(f'检测到"__compiled__",当前运行于"Nuitka"编译产物中,版本:{get_nuitka_version()}。')
+        log.info(f'Detected "__compiled__"; running from a Nuitka build, version {get_nuitka_version()}.')
     elif is_pyinstaller():
-        log.info('检测到"sys.frozen",当前运行于"PyInstaller"打包产物中。')
+        log.info('Detected "sys.frozen"; running from a PyInstaller bundle.')
     elif is_docker():
-        log.info('检测到"Docker"容器标识,当前运行于"Docker"容器中。')
+        log.info('Detected a Docker container marker; running inside a Docker container.')
     else:
-        log.info('当前运行于"源码"环境中。')
+        log.info('Running from source.')
 
 
 def get_executable_path() -> str:
@@ -773,7 +773,7 @@ def is_docker() -> bool:
     """检查是否在Docker容器中运行。"""
     # 检查/.dockerenv文件是否存在。 # noqa.
     if os.path.exists('/.dockerenv'):  # noqa.
-        log.debug('检测到"/.dockerenv",当前运行于"Docker"容器中。')  # noqa.
+        log.debug('Detected "/.dockerenv"; running inside a Docker container.')  # noqa.
         return True
 
     # 检查/proc/1/cgroup中是否包含"docker"。
@@ -781,14 +781,14 @@ def is_docker() -> bool:
         with open('/proc/1/cgroup', 'r') as f:
             content: str = f.read()
             if 'docker' in content or 'kubepods' in content:  # noqa.
-                log.debug('检测到"/proc/1/cgroup"容器标识,当前运行于"Docker"容器中。')
+                log.debug('Detected a container marker in "/proc/1/cgroup"; running inside a Docker container.')
                 return True
     except (FileNotFoundError, IOError):
         pass
     except Exception:  # noqa.
         pass
 
-    log.debug('未检测到容器标识,当前运行于非"Docker"环境。')
+    log.debug('No container marker detected; running outside Docker.')
     return False
 
 
@@ -875,9 +875,9 @@ def build_task_callback(callback: str, chat_id, separator: str = '|', limit: int
     encoded: bytes = data.encode('utf-8')
     encoded_length: int = len(encoded)
     if encoded_length <= limit:
-        log.debug(f'callback_data:"{encoded}",长度:{encoded_length},未超过{limit}字节,原样返回。')
+        log.debug(f'callback_data: "{encoded}", length: {encoded_length} bytes; within the {limit}-byte limit, returning unchanged.')
         return data
-    log.warning(f'callback_data:"{encoded}",长度:{encoded_length},已超过{limit}字节,已截断回调数据:"{payload}"。')
+    log.warning(f'callback_data: "{encoded}", length: {encoded_length} bytes; exceeds the {limit}-byte limit, truncated payload: "{payload}".')
     # 先按任务身份的字节数留出余量,再截回调数据,避免负切片把任务身份整段切掉。
     kept: str = encoded[:max(limit - len(suffix.encode('utf-8')), 0)].decode('utf-8', errors='ignore')
     return f'{kept}{suffix}'
@@ -976,7 +976,7 @@ class LimitCall:  # https://github.com/tangyoha/telegram_media_downloader/blob/m
             if not waiting:
                 waiting = True  # 达到上限时只提示一次,避免每秒重复打印。
                 ConnectionStatus.enter_flood(
-                    f'请求已达每分钟{self.max_limit_call_times}次的上限,等待{int(self.time_window - time_span) + 1}秒后继续。'
+                    f'Request limit of {self.max_limit_call_times} per minute reached; retry in {int(self.time_window - time_span) + 1} second(s).'
                 )
 
             await asyncio.sleep(1)

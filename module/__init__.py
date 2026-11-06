@@ -50,7 +50,7 @@ class CustomDumper(yaml.Dumper):
 
 class CallerFilter(logging.Filter):
     PROJECT_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    """为日志记录补充上层调用者信息,格式为"模块名.函数名"。"""
+    """Add the calling module and function name to log records."""
 
     def filter(self, record: logging.LogRecord) -> bool:
         try:
@@ -194,7 +194,7 @@ log = logging.getLogger('rich')
 def get_commit_hash():
     env_commit = os.environ.get('TRMD_COMMIT_HASH')
     if env_commit:
-        log.debug(f'通过环境变量TRMD_COMMIT_HASH获取commit hash:{env_commit}。')
+        log.debug(f'Got commit hash from the TRMD_COMMIT_HASH environment variable: {env_commit}.')
         return env_commit
     repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     if os.path.isdir(os.path.join(repo_root, '.git')):
@@ -208,17 +208,17 @@ def get_commit_hash():
             )
             if completed.returncode == 0 and completed.stdout.strip():
                 commit_hash: str = completed.stdout.strip()
-                log.debug(f'通过git获取commit hash:{commit_hash}。')
+                log.debug(f'Got commit hash from Git: {commit_hash}.')
                 return commit_hash
         except Exception as e:
-            log.debug(f'无法获取commit hash,原因:"{e}"')
+            log.debug(f'Could not get commit hash. Reason: "{e}"')
     return None
 
 
 def get_build_time():
     env_build_time = os.environ.get('TRMD_BUILD_TIME')
     if env_build_time:
-        log.debug(f'通过环境变量TRMD_BUILD_TIME获取build time:{env_build_time}。')
+        log.debug(f'Got build time from the TRMD_BUILD_TIME environment variable: {env_build_time}.')
         return env_build_time
     return None
 
@@ -231,38 +231,38 @@ VERSION_WITH_COMMIT = f'{__version__}+{COMMIT}' if COMMIT else __version__
 CustomDumper.add_representer(type(None), CustomDumper.represent_none)  # noqa.
 README = r'''
 ```yaml
-api_hash: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx # 申请的api_hash。
-api_id: 'xxxxxxxx' # 申请的api_id。
-# bot_token（选填）如果不填，就不能使用机器人功能。可前往https://t.me/BotFather免费申请。
+api_hash: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx # Your Telegram API hash.
+api_id: 'xxxxxxxx' # Your Telegram API ID.
+# bot_token (optional): bot features are unavailable if omitted. Get one free from https://t.me/BotFather.
 bot_token: 123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11
-download_type: # 需要下载的类型。支持的参数:video,photo,document,audio,voice,animation。
-- video # 视频。
-- photo # 图片。
-- document # 文档。
-- audio # 音频。
-- voice # 语音。
-- animation # GIF。
-- video_note # 视频笔记。
-- live_photo # 实况图片（当不指定时，并且photo类型存在的情况下，live_photo类型将被视为photo类型）。
-is_shutdown: true # 下载完成后是否自动关机。支持的参数：true,false。
-links: D:\path\where\your\link\files\save\content.txt # 链接地址写法如下:
-# 新建txt文本，一个链接为一行，将路径填入即可请不要加引号，在软件运行前就准备好。
-# D:\path\where\your\link\txt\save\content.txt 一个链接一行。
+download_type: # Media types to download. Supported values: video, photo, document, audio, voice, animation, video_note, live_photo.
+- video # Video.
+- photo # Photo.
+- document # Document.
+- audio # Audio.
+- voice # Voice message.
+- animation # GIF.
+- video_note # Video note.
+- live_photo # Live photo (treated as a photo if unspecified and photo is enabled).
+is_shutdown: true # Shut down the computer after downloads finish. Supported values: true, false.
+links: D:\path\where\your\link\files\save\content.txt # Path to the text file containing media links.
+# Create a .txt file with one link per line and enter its path without quotation marks. Create it before starting TRMD.
+# Example: D:\path\where\your\link\txt\save\content.txt (one link per line).
 max_retries:
-  download: 5 # 最大的下载任务的重试次数。
-  upload: 3 # 最大的上传任务的重试次数。
+  download: 5 # Maximum download retry attempts.
+  upload: 3 # Maximum upload retry attempts.
 max_tasks:
-  download: 5 # 最大同时下载的任务数。
-  upload: 3 # 最大同时上传的任务数。
-proxy: # 代理部分，如不使用请全部填null注意冒号后面有空格，否则不生效导致报错。
-  enable_proxy: true # 是否开启代理。支持的参数：true,false。
-  hostname: 127.0.0.1 # 代理的ip地址。
-  scheme: socks5 # 代理的类型。支持的参数：http,socks4,socks5。
-  port: 10808 # 代理ip的端口。支持的参数：0~65535。
-  username: null # 代理的账号，没有就填null。
-  password: null # 代理的密码，没有就填null。
-save_directory: F:\directory\media\where\you\save # 下载的媒体保存的目录（支持通配符）。
-session_directory: F:\directory\session\where\you\save # 会话的保存目录（支持通配符）。
-temp_directory: F:\directory\temp\where\you\save # 缓存保存的目录（支持通配符）。
+  download: 5 # Maximum concurrent download tasks.
+  upload: 3 # Maximum concurrent upload tasks.
+proxy: # For no proxy, set all values to null. Keep a space after each colon.
+  enable_proxy: true # Enable proxy usage. Supported values: true, false.
+  hostname: 127.0.0.1 # Proxy IP address or hostname.
+  scheme: socks5 # Proxy type. Supported values: http, socks4, socks5.
+  port: 10808 # Proxy port. Valid range: 0-65535.
+  username: null # Proxy username, or null if not required.
+  password: null # Proxy password, or null if not required.
+save_directory: F:\directory\media\where\you\save # Directory for downloaded media (wildcards supported).
+session_directory: F:\directory\session\where\you\save # Directory for session files (wildcards supported).
+temp_directory: F:\directory\temp\where\you\save # Directory for temporary files (wildcards supported).
 ```
 '''  # noqa.

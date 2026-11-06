@@ -252,7 +252,7 @@ class WebHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(body)
         except (ConnectionAbortedError, ConnectionResetError, BrokenPipeError) as e:
-            log.info(f'响应写入被客户端中止,{_t(KeyWord.REASON)}:"{e}"')
+            log.info(f'Client interrupted response writing, {_t(KeyWord.REASON)}:"{e}"')
 
     def __response_progress(self) -> None:
         """返回进度数据的JSON。"""
@@ -299,7 +299,7 @@ class WebHandler(BaseHTTPRequestHandler):
         try:
             return json.loads(self.rfile.read(length).decode('UTF-8'))
         except Exception as e:
-            log.debug(f'解析请求数据失败,{_t(KeyWord.REASON)}:"{e}"')
+            log.debug(f'Failed to parse request data, {_t(KeyWord.REASON)}:"{e}"')
             return {}
 
     def __response_remove_listener(self) -> None:
@@ -307,7 +307,7 @@ class WebHandler(BaseHTTPRequestHandler):
         web: Union[Web, None] = getattr(self.server, 'web', None)
         payload: dict = self.__read_json()
         if web is None:
-            body: dict = {'status': False, 'e_code': '网页面板未就绪。'}
+            body: dict = {'status': False, 'e_code': 'Web dashboard is not ready.'}
         else:
             body: dict = web.remove_listener(
                 kind=str(payload.get('kind') or ''),
@@ -326,7 +326,7 @@ class WebHandler(BaseHTTPRequestHandler):
         web: Union[Web, None] = getattr(self.server, 'web', None)
         payload: dict = self.__read_json()
         if web is None:
-            body: dict = {'status': False, 'e_code': '网页面板未就绪'}  # 末尾句号由前端统一补。
+            body: dict = {'status': False, 'e_code': 'Web dashboard is not ready'}  # The frontend adds the final period.
         else:
             body: dict = web.set_config(
                 directory=payload.get('save_directory'),
@@ -344,7 +344,7 @@ class WebHandler(BaseHTTPRequestHandler):
         web: Union[Web, None] = getattr(self.server, 'web', None)
         payload: dict = self.__read_json()
         if web is None:
-            body: dict = {'status': False, 'e_code': '网页面板未就绪。'}
+            body: dict = {'status': False, 'e_code': 'Web dashboard is not ready.'}
         else:
             body: dict = web.set_pause(bool(payload.get('paused')))
         self.__response_body(
@@ -376,7 +376,7 @@ class WebHandler(BaseHTTPRequestHandler):
             with open(file=file_path, mode='rb') as f:
                 body = f.read()
         except OSError as e:
-            log.warning(f'读取网页文件"{file_path}"失败,{_t(KeyWord.REASON)}:"{e}"')
+            log.warning(f'Failed to read web file "{file_path}", {_t(KeyWord.REASON)}:"{e}"')
             self.send_error(404)
             return
         if os.path.basename(file_path) == Web.INDEX_FILE:  # 首页需要替换标记与版本号。
@@ -422,7 +422,7 @@ class Web:
     STATIC_DIRECTORY: str = os.path.join('module', 'static')
     INDEX_FILE: str = 'index.html'
     TEMPLATE_FILES: tuple = ('index.html',)  # 模板目录提供的页面,其余请求一律按静态资源处理。
-    UNGROUPED: str = '未分组'
+    UNGROUPED: str = 'Ungrouped'
     REMOVE_LISTEN_TIMEOUT: int = 10  # 等待事件循环移除监听的超时时间,单位为秒。
     REMEMBER_COOKIE_MAX_AGE: int = 30 * 24 * 3600  # Cookie的有效期,单位为秒(30天)。
     STORAGE_TIMEOUT: int = 3  # 等待事件循环返回网页记录的超时时间,单位为秒。
@@ -474,7 +474,7 @@ class Web:
         try:
             return Web.__bind_port(port)
         except OSError as e:
-            log.warning(f'无法使用{port}端口,已自动分配新的端口,{_t(KeyWord.REASON)}:"{e}"')
+            log.warning(f'Port {port} is unavailable; assigned a new port, {_t(KeyWord.REASON)}:"{e}"')
             return Web.__bind_port(0)
 
     @staticmethod
@@ -485,7 +485,7 @@ class Web:
             base_directory = getattr(sys, '_MEIPASS', sys.prefix)  # noqa.
         template_directory: str = os.path.join(base_directory, Web.TEMPLATE_DIRECTORY)
         static_directory: str = os.path.join(base_directory, Web.STATIC_DIRECTORY)
-        log.info(f'网页模板目录:"{template_directory}",静态资源目录:"{static_directory}"。')
+        log.info(f'Web template directory: "{template_directory}"; static assets directory: "{static_directory}".')
         return template_directory, static_directory
 
     @staticmethod
@@ -495,28 +495,28 @@ class Web:
             return ''
         seconds: int = int(seconds)
         if seconds < 60:
-            return f'{seconds}秒'
+            return f'{seconds} sec'
         if seconds < 3600:
-            return f'{seconds // 60}分{seconds % 60}秒'
-        return f'{seconds // 3600}时{seconds % 3600 // 60}分{seconds % 60}秒'
+            return f'{seconds // 60} min {seconds % 60} sec'
+        return f'{seconds // 3600} hr {seconds % 3600 // 60} min {seconds % 60} sec'
 
     def start(self) -> bool:
         """在后台线程启动网页面板。"""
         for directory in (self.template_directory, self.static_directory):
             if not os.path.isdir(directory):
-                log.error(f'网页面板启动失败,未找到网页目录:"{directory}"。')
+                log.error(f'Failed to start web dashboard: web directory not found: "{directory}".')
                 return False
         try:
             self.server = ThreadingHTTPServer((self.ip, self.port), WebHandler)  # type: ignore[arg-type]
         except OSError as e:
-            log.error(f'网页面板启动失败,{_t(KeyWord.REASON)}:"{e}"')
+            log.error(f'Failed to start web dashboard, {_t(KeyWord.REASON)}:"{e}"')
             return False
         self.server.web = self
         # 请求处理线程设为守护线程,退出时不会被网页面板的长连接/在途请求阻塞。
         self.server.daemon_threads = True
         self.thread = threading.Thread(target=self.server.serve_forever, name='TRMDWeb', daemon=True)
         self.thread.start()
-        log.info(f'网页面板已启动,链接:"{self.protocol}://{self.LOCAL_IP}:{self.port}"。')
+        log.info(f'Web dashboard started at "{self.protocol}://{self.LOCAL_IP}:{self.port}".')
         self.print_meta()
         console.log(Issues.DOCKER_HOST_IP_TIP, style='#5AC8FA') if is_docker() else None
         return True
@@ -535,19 +535,19 @@ class Web:
         try:
             srv.server_close()
         except Exception as e:  # noqa: BLE001.
-            log.debug(f'关闭网页面板监听套接字失败,{_t(KeyWord.REASON)}:"{e}"')
-        log.info('网页面板已停止。')
+            log.debug(f'Failed to close web dashboard listening socket, {_t(KeyWord.REASON)}:"{e}"')
+        log.info('Web dashboard stopped.')
 
     def print_meta(self) -> None:
         """打印网页面板的访问信息。"""
         PanelTable(
-            title='Web配置',
-            header=('属性', '内容'),
+            title='Web Dashboard',
+            header=('Property', 'Value'),
             data=[
                 [_t(WebMeta.PORT), self.port],
                 [_t(WebMeta.USERNAME), self.username],
                 [_t(WebMeta.PASSWORD), self.password],
-                ['链接', f'{self.protocol}://{Web.LOCAL_IP}:{self.port}']
+                ['URL', f'{self.protocol}://{Web.LOCAL_IP}:{self.port}']
             ],
             show_lines=True
         ).print_meta()
@@ -619,7 +619,7 @@ class Web:
                     'percent': round(complete_num / base_num * 100, 1) if base_num else 0.0
                 })
         except Exception as e:
-            log.debug(f'获取链接进度时出错,{_t(KeyWord.REASON)}:"{e}"')
+            log.debug(f'Error getting link progress, {_t(KeyWord.REASON)}: "{e}"')
         return result
 
     def get_members(self, task: DownloadTask) -> list:
@@ -633,7 +633,7 @@ class Web:
             item: dict = task.items.get(message_id) or {}
             meta: dict = self.format_queue_message(item, member.get('state')) if item else {}
             result.append({
-                'name': member.get('name') or meta.get('name') or f'消息 {message_id}',
+                'name': member.get('name') or meta.get('name') or f'Message {message_id}',
                 'size': member.get('size') or meta.get('size') or '',
                 'size_byte': int(member.get('size_byte') or 0),
                 'date': member.get('date') or meta.get('date') or '',
@@ -655,7 +655,7 @@ class Web:
     def parse_queue_message(self, item: dict) -> dict:
         """解析排队消息的名称、大小与日期。"""
         message = item.get('message')
-        result: dict = {'name': '消息 ' + str(getattr(message, 'id', '')), 'size': '', 'date': ''}
+        result: dict = {'name': 'Message ' + str(getattr(message, 'id', '')), 'size': '', 'date': ''}
         try:
             result['date'] = str(getattr(message, 'date', '') or '')[:10]
             if self.app is None:
@@ -665,7 +665,7 @@ class Web:
                 result['name'] = str(split_path(self.app.get_temp_file_path(message, dtype)).get('file_name'))
                 result['size'] = MetaData.suitable_units_display(getattr(getattr(message, dtype), 'file_size', 0))
         except Exception as e:
-            log.debug(f'解析排队消息时出错,{_t(KeyWord.REASON)}:"{e}"')
+            log.debug(f'Error parsing queued message, {_t(KeyWord.REASON)}: "{e}"')
         return result
 
     def get_listeners(self) -> dict:
@@ -685,7 +685,7 @@ class Web:
                     continue  # 转发规则固定为"监听频道 转发频道"两段,异常规则直接跳过。
                 result['forward'].append({'source': args[0], 'target': args[1]})
         except Exception as e:
-            log.debug(f'获取监听信息时出错,{_t(KeyWord.REASON)}:"{e}"')
+            log.debug(f'Error getting listener information, {_t(KeyWord.REASON)}: "{e}"')
         return result
 
     @staticmethod
@@ -722,7 +722,7 @@ class Web:
             )
             storages: list = future.result(timeout=Web.STORAGE_TIMEOUT)
         except Exception as e:
-            log.debug(f'获取网页记录失败,{_t(KeyWord.REASON)}:"{e}"')
+            log.debug(f'Failed to get web history, {_t(KeyWord.REASON)}: "{e}"')
             return []
         self.__fill_storage_chat_names(storages)  # 先把缓存里已有的标题补进记录,展示即为"标题(ID)"。
         return [Web.format_storage(storage) for storage in storages]
@@ -764,7 +764,7 @@ class Web:
         try:
             usage = shutil.disk_usage(root or os.getcwd())
         except Exception as e:
-            log.debug(f'读取磁盘空间失败,{_t(KeyWord.REASON)}:"{e}"')
+            log.debug(f'Failed to read disk space, {_t(KeyWord.REASON)}: "{e}"')
             data.update({'total': 0, 'used': 0, 'free': 0, 'percent': 0.0})
         else:
             total: int = int(usage.total)
@@ -775,9 +775,9 @@ class Web:
                 'used': used,
                 'free': free,
                 'percent': round(used * 100 / total, 1) if total else 0.0,
-                'used_text': '已用{0}'.format(MetaData.suitable_units_display(used)),
-                'free_text': '可用{0}'.format(MetaData.suitable_units_display(free)),
-                'total_text': '共{0}'.format(MetaData.suitable_units_display(total))
+                'used_text': 'Used: {0}'.format(MetaData.suitable_units_display(used)),
+                'free_text': 'Free: {0}'.format(MetaData.suitable_units_display(free)),
+                'total_text': 'Total: {0}'.format(MetaData.suitable_units_display(total))
             })
         data.update(self.cache_size())
         return data
@@ -879,7 +879,7 @@ class Web:
         try:
             asyncio.run_coroutine_threadsafe(storage_db.update_chat_names(pending), loop)
         except Exception as e:
-            log.debug(f'回写网页记录频道标题失败,{_t(KeyWord.REASON)}:"{e}"')
+            log.debug(f'Failed to backfill the channel title in the web history, {_t(KeyWord.REASON)}: "{e}"')
 
     def remove_listener(self, kind: str, link: str) -> dict:
         """按网页面板的请求移除已注册的监听下载或监听转发。
@@ -895,10 +895,10 @@ class Web:
             dict: status为是否移除成功,失败时e_code为失败原因。
         """
         if self.downloader is None:
-            return {'status': False, 'e_code': '网页面板未关联下载器。'}
+            return {'status': False, 'e_code': 'The web dashboard is not connected to the downloader.'}
         loop: Union[AbstractEventLoop, None] = self.downloader.loop
         if loop is None or not loop.is_running():
-            return {'status': False, 'e_code': '下载器未运行，无法移除监听。'}
+            return {'status': False, 'e_code': 'The downloader is not running, so listeners cannot be removed.'}
         future = asyncio.run_coroutine_threadsafe(
             self.downloader.cancel_listen_from_web(kind=kind, link=link),
             loop
@@ -906,8 +906,8 @@ class Web:
         try:
             return future.result(timeout=Web.REMOVE_LISTEN_TIMEOUT)
         except Exception as e:
-            log.debug(f'移除监听失败,{_t(KeyWord.REASON)}:"{e}"')
-            return {'status': False, 'e_code': '移除监听超时，请稍后重试。'}
+            log.debug(f'Failed to remove listener, {_t(KeyWord.REASON)}:"{e}"')
+            return {'status': False, 'e_code': 'Removing the listener timed out. Please try again later.'}
 
     def set_pause(self, paused: bool) -> dict:
         """按网页面板的请求切换全局暂停状态。
@@ -922,12 +922,12 @@ class Web:
             dict: status为是否切换成功,失败时e_code为失败原因。
         """
         if self.app is None:
-            return {'status': False, 'e_code': '配置未加载，无法暂停。'}
+            return {'status': False, 'e_code': 'Configuration is not loaded, so the task cannot be paused.'}
         if self.downloader is None:
-            return {'status': False, 'e_code': '网页面板未关联下载器。'}
+            return {'status': False, 'e_code': 'The web dashboard is not connected to the downloader.'}
         loop: Union[AbstractEventLoop, None] = self.downloader.loop
         if loop is None or not loop.is_running():
-            return {'status': False, 'e_code': '下载器未运行，无法暂停。'}
+            return {'status': False, 'e_code': 'The downloader is not running, so tasks cannot be paused.'}
 
         def apply(_paused: bool) -> None:
             # 同一闭包内顺序切换标志与事件,避免HTTP线程读到不一致的中间状态。
@@ -967,7 +967,7 @@ class Web:
         try:
             result: dict = {'download': int(values.get('download')), 'upload': int(values.get('upload'))}
         except (AttributeError, TypeError, ValueError):
-            error_parts.append(f'{name}必须是整数')
+            error_parts.append(f'{name} must be an integer')
             return None
         if result['download'] < lower or result['upload'] < lower:
             error_parts.append(f'{name}{range_text}')
@@ -993,7 +993,7 @@ class Web:
                 need_confirm为True表示目录不存在且尚未创建。
         """
         if not path:
-            return {'status': False, 'e_code': '保存目录不能为空'}
+            return {'status': False, 'e_code': 'The save directory cannot be empty.'}
         clean_path: str = path
         for placeholder in SaveDirectoryPrefix():
             if placeholder in clean_path:
@@ -1002,7 +1002,7 @@ class Web:
         drive, tail = os.path.splitdrive(clean_path)
         invalid: list = [c for c in '<>:"|?*' if c in tail]
         if invalid:
-            return {'status': False, 'e_code': f'路径包含非法字符：{"、".join(sorted(set(invalid)))}'}
+            return {'status': False, 'e_code': f'Path contains invalid characters: {", ".join(sorted(set(invalid)))}'}
         if os.path.isdir(clean_path):
             return {'status': True}
         if not allow_create:
@@ -1010,9 +1010,9 @@ class Web:
         try:
             os.makedirs(clean_path, exist_ok=True)
         except Exception as e:
-            return {'status': False, 'e_code': f'目录无效或无法创建,{_t(KeyWord.REASON)}:"{e}"'}
+            return {'status': False, 'e_code': f'Invalid directory or unable to create it, {_t(KeyWord.REASON)}:"{e}"'}
         if not os.path.isdir(clean_path):
-            return {'status': False, 'e_code': '保存目录不是一个有效的目录'}
+            return {'status': False, 'e_code': 'The save directory is not a valid directory.'}
         return {'status': True}
 
     def __adjust_client_semaphores(self, download: int, upload: int) -> None:
@@ -1040,7 +1040,7 @@ class Web:
             else:
                 adjust()
         except Exception as e:
-            log.warning(f'实时更新并发信号量失败,{_t(KeyWord.REASON)}:"{e}"')
+            log.warning(f'Failed to update concurrency semaphores at runtime, {_t(KeyWord.REASON)}: "{e}"')
 
     def __wake_upload_waiters(self) -> None:
         """唤醒排队等待上传名额的任务,让它们按新的并发上限重新检查。
@@ -1058,7 +1058,7 @@ class Web:
         try:
             loop.call_soon_threadsafe(lambda: uploader.notify_waiters())
         except Exception as e:
-            log.warning(f'唤醒排队上传任务失败,{_t(KeyWord.REASON)}:"{e}"')
+            log.warning(f'Failed to wake queued upload tasks, {_t(KeyWord.REASON)}: "{e}"')
 
     def set_config(self, directory=None, max_tasks=None, max_retries=None, confirm_directory: bool = False) -> dict:
         """按网页面板的请求一次性修改多项配置。
@@ -1074,23 +1074,23 @@ class Web:
                 目录待确认时额外返回need_confirm为True。
         """
         if self.app is None:
-            return {'status': False, 'e_code': '配置未加载，无法修改'}  # 末尾句号由前端统一补。
+            return {'status': False, 'e_code': 'Configuration is not loaded, so it cannot be changed'}  # The frontend adds the final period.
         error_parts: list = []
         need_confirm: bool = False  # 目录不存在;待其它错误都排除后再请求前端二次确认。
-        tasks = self.__check_number_pair(max_tasks, 1, 10, '并发数', '必须为1到10之间的整数', error_parts)
-        retries = self.__check_number_pair(max_retries, 1, None, '重试次数', '必须大于0', error_parts)
+        tasks = self.__check_number_pair(max_tasks, 1, 10, 'Concurrent task count', 'must be an integer from 1 to 10', error_parts)
+        retries = self.__check_number_pair(max_retries, 1, None, 'Retry count', 'must be greater than 0', error_parts)
         if directory is not None:
             checked: dict = self.__check_save_directory(directory, allow_create=confirm_directory)
             if checked.get('need_confirm'):
                 need_confirm = True  # 目录不存在不是错误,先不与其它错误一起返回。
             elif not checked.get('status'):
-                error_parts.append(checked.get('e_code') or '保存目录无效')
+                error_parts.append(checked.get('e_code') or 'The save directory is invalid.')
         if error_parts:
             # 存在不合法的项:先让用户改正,此时不提示创建目录(有一项不合法就一项都不改)。
-            return {'status': False, 'e_code': '；'.join(error_parts)}
+            return {'status': False, 'e_code': '; '.join(error_parts)}
         if need_confirm:
             # 其它项均合法,仅目录不存在:此时不落盘、不创建,交回前端二次确认后再提交。
-            return {'status': False, 'need_confirm': True, 'e_code': f'目录"{directory}"不存在，是否创建'}
+            return {'status': False, 'need_confirm': True, 'e_code': f'The directory "{directory}" does not exist. Create it?'}
         save_config: dict = copy.deepcopy(self.app.config)  # 先在副本上改动:落盘失败时原配置不受影响。
         if directory is not None:
             save_config['save_directory'] = directory
@@ -1099,7 +1099,7 @@ class Web:
         if retries is not None:
             save_config['max_retries'] = retries
         if not self.app.save_config(save_config):  # 多项改动合并后,整个请求只在这里写一次配置文件。
-            return {'status': False, 'e_code': '配置文件保存失败，请稍后重试'}  # 末尾句号由前端统一补。
+            return {'status': False, 'e_code': 'Failed to save the configuration file. Please try again later.'}  # The frontend adds the final period.
         self.app.config = save_config
         if directory is not None:
             self.app.save_directory = directory
@@ -1112,10 +1112,10 @@ class Web:
             self.app.max_download_retries = retries['download']
             self.app.max_upload_retries = retries['upload']
         log.info(
-            f'运行时修改配置文件成功,'
-            f'保存目录:"{self.app.save_directory}",'
-            f'下载并发数:"{self.app.max_download_task}",上传并发数:"{self.app.max_upload_task}",'
-            f'下载重试次数:"{self.app.max_download_retries}",上传重试次数:"{self.app.max_upload_retries}"。')
+            f'Configuration updated at runtime; '
+            f'save directory: "{self.app.save_directory}", '
+            f'download concurrency: "{self.app.max_download_task}", upload concurrency: "{self.app.max_upload_task}", '
+            f'download retries: "{self.app.max_download_retries}", upload retries: "{self.app.max_upload_retries}".')
         return {'status': True}
 
     def get_upload_tasks(self, tasks: Union[list, None] = None) -> list:
@@ -1152,7 +1152,7 @@ class Web:
                     'error': task.error_msg if task.error_msg else ''
                 })
         except Exception as e:
-            log.debug(f'获取上传任务时出错,{_t(KeyWord.REASON)}:"{e}"')
+            log.debug(f'Error getting upload tasks, {_t(KeyWord.REASON)}: "{e}"')
         return result
 
     @staticmethod
@@ -1279,7 +1279,7 @@ class Web:
                 result['notices'] = self.get_notices()
             return result
         except Exception as e:
-            log.debug(f'生成进度数据时出错,{_t(KeyWord.REASON)}:"{e}"')
+            log.debug(f'Failed to generate progress data, {_t(KeyWord.REASON)}:"{e}"')
             result: dict = {
                 'count': {'success': 0, 'failure': 0, 'skip': 0},
                 'is_paused': bool(self.app.is_paused) if self.app else False,  # 全局暂停状态,供前端展示与切换。

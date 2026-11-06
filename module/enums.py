@@ -54,6 +54,33 @@ class DownloadType:
     VIDEO_NOTE: str = 'video_note'
     LIVE_PHOTO: str = 'live_photo'
 
+    PROXY_NOT_CONFIGURED = (
+        '🛡 [#79FCD4]Proxy configuration[/#79FCD4][#FF79D4] instructions:[/#FF79D4]\n'
+        '[link=https://github.com/Gentlesprite/Telegram_Restricted_Media_Downloader/wiki]Open the troubleshooting wiki[/link]\n'
+        '[#FCFF79]If the page is unavailable, consult issue 14 in the packaged[/#FCFF79] '
+        '[#79E2FC]FAQ.pdf[/#79E2FC][#FCFF79].[/#FCFF79]'
+    )
+    SYSTEM_TIME_NOT_SYNCHRONIZED = (
+        '🕒 [#FF7979]The system clock is not synchronized.[/#FF7979] '
+        '[#79FCD4]See the troubleshooting discussion:[/#79FCD4]\n'
+        'https://github.com/Gentlesprite/Telegram_Restricted_Media_Downloader/issues/5#issuecomment-2580677184\n'
+        '[#FCFF79]If unavailable, consult issue 4 in the packaged[/#FCFF79] '
+        '[#79E2FC]FAQ.pdf[/#79E2FC][#FCFF79], then restart TRMD.[/#FCFF79]'
+    )
+    PROXY_CONFIG_TIP = (
+        '❓ [#79FCD4]For proxy configuration help:[/#79FCD4]\n'
+        '🌐 [link=https://github.com/Gentlesprite/Telegram_Restricted_Media_Downloader/wiki]Open the troubleshooting wiki[/link]\n'
+        '🛑 [#FCFF79]If unavailable, consult issue 14 in the packaged[/#FCFF79] '
+        '[#79E2FC]FAQ.pdf[/#79E2FC][#FCFF79].[/#FCFF79]'
+    )
+    MULTI_SESSION_TIP = (
+        '🔧 [#FF79D4]Choose one of the following options:[/#FF79D4]\n'
+        '[#D4FC79]1. Close any extra application instances.[/#D4FC79]\n'
+        '[#D4FC79]2. Run[/#D4FC79] "[#79FCD4]{exe} --session SESSION[/#79FCD4]" '
+        '[#D4FC79]to retry with a different session location[/#D4FC79] '
+        '([#FFB579]replace SESSION with the actual path[/#FFB579]).'
+    )
+
     def __iter__(self):
         for key, value in vars(self.__class__).items():
             if not key.startswith('_') and not callable(value):  # 排除特殊方法和属性。
@@ -155,11 +182,16 @@ class WaitingKind:
 
 
 class Issues:
-    PROXY_NOT_CONFIGURED = '🛡️ [#79FCD4]代理配置方法[/#79FCD4][#FF79D4]请访问:[/#FF79D4]\n[link=https://github.com/Gentlesprite/Telegram_Restricted_Media_Downloader/wiki#问题14-error-运行出错原因0-keyerror-0]https://github.com/Gentlesprite/Telegram_Restricted_Media_Downloader/wiki#问题14-error-运行出错原因0-keyerror-0[/link]\n[#FCFF79]若[/#FCFF79][#FF4689]无法[/#FF4689][#FF7979]访问[/#FF7979][#79FCD4],[/#79FCD4][#FCFF79]可[/#FCFF79][#d4fc79]查阅[/#d4fc79][#FC79A5]软件压缩包所提供的[/#FC79A5][#79E2FC]"使用手册"[/#79E2FC][#79FCD4]文件夹下的[/#79FCD4][#FFB579]"常见问题及解决方案汇总.pdf"[/#FFB579][#79FCB5]中的[/#79FCB5][#D479FC]【问题14】[/#D479FC][#FCE679]进行操作[/#FCE679][#FC79A6]。[/#FC79A6]'  # noqa.
-    SYSTEM_TIME_NOT_SYNCHRONIZED = '🕒 [#FCFF79]检测到[/#FCFF79][#FF7979]系统时间[/#FF7979][#FC79A5]未同步[/#FC79A5][#79E2FC],[/#79E2FC][#79FCD4]解决方法[/#79FCD4][#FF79D4]请访问:[/#FF79D4]\nhttps://github.com/Gentlesprite/Telegram_Restricted_Media_Downloader/issues/5#issuecomment-2580677184\n[#FCFF79]若[/#FCFF79][#FF4689]无法[/#FF4689][#FF7979]访问[/#FF7979][#79FCD4],[/#79FCD4][#FCFF79]可[/#FCFF79][#d4fc79]查阅[/#d4fc79][#FC79A5]软件压缩包所提供的[/#FC79A5][#79E2FC]"使用手册"[/#79E2FC][#79FCB5]中的[/#79FCB5][#D479FC]【问题4】[/#D479FC][#FCE679]进行操作[/#FCE679][#FC79A6],[/#FC79A6][#79FCD4]并[/#79FCD4][#79FCB5]重启软件[/#79FCB5]。'  # noqa.
-    DOCKER_HOST_IP_TIP = '🐳 Docker环境下链接中的IP为容器IP并非宿主机IP,请使用宿主机IP加端口访问。'
-    PROXY_CONFIG_TIP = '❓ [#79FCD4]如果对代理配置有疑问[/#79FCD4][#FF79D4]请访问:[/#FF79D4]\n🌐 [link=https://github.com/Gentlesprite/Telegram_Restricted_Media_Downloader/wiki#配置代理时在代理在本机的情况下]https://github.com/Gentlesprite/Telegram_Restricted_Media_Downloader/wiki#配置代理时在代理在本机的情况下[/link]\n🛑 [#FCFF79]若[/#FCFF79][#FF4689]无法[/#FF4689][#FF7979]访问:[/#FF7979][#79FCD4]\n🔎 [/#79FCD4][#FCFF79]可[/#FCFF79][#d4fc79]查阅[/#d4fc79][#FC79A5]软件压缩包所提供的[/#FC79A5][#79E2FC]"使用手册"[/#79E2FC][#79FCD4]文件夹下的[/#79FCD4][#FFB579]"常见问题及解决方案汇总.pdf"[/#FFB579][#79FCB5]中的[/#79FCB5][#D479FC]【问题14】里的【解决方案】[/#D479FC][#FCE679]进行操作[/#FCE679][#FC79A6]。[/#FC79A6]'
-    MULTI_SESSION_TIP = '🔧 [#FF79D4]解决方法[/#FF79D4][#FCFF79](任选其一):[/#FCFF79]\n[#D4FC79]1.关闭多余实例。[/#D4FC79]\n[#D4FC79]2.使用[/#D4FC79]"[#79FCD4]{exe} --session SESSION[/#79FCD4]"[#D4FC79]指定新的SESSION位置后重试[/#D4FC79]([#FFB579]将SESSION替换为实际路径[/#FFB579])。'
+    PROXY_NOT_CONFIGURED = (
+        '🛡️ [#79FCD4]For proxy configuration instructions, visit:[/#79FCD4]\n'
+        '[link=https://github.com/Gentlesprite/Telegram_Restricted_Media_Downloader/wiki#configuring-a-proxy-running-on-the-local-machine]Open the proxy setup guide[/link]\n'
+        '[#FCFF79]If the page is unavailable, see[/#FCFF79] [#79E2FC]FAQ.pdf[/#79E2FC] '
+        '[#FCFF79]in the packaged User Guide folder for Problem 14.[/#FCFF79]'
+    )
+    SYSTEM_TIME_NOT_SYNCHRONIZED = '🕒 [#FCFF79]Detected that the[/#FCFF79][#FF7979]system clock[/#FF7979][#FC79A5]is not synchronized[/#FC79A5][#79E2FC].[/#79E2FC][#79FCD4]For help,[/#79FCD4][#FF79D4]see:[/#FF79D4]\nhttps://github.com/Gentlesprite/Telegram_Restricted_Media_Downloader/issues/5#issuecomment-2580677184\n[#FCFF79]If the page is[/#FCFF79][#FF4689]unavailable[/#FF4689][#79FCD4],[/#79FCD4][#FCFF79]see[/#FCFF79][#FC79A5]the bundled[/#FC79A5][#79E2FC]User Guide[/#79E2FC][#79FCB5]for[/#79FCB5][#D479FC]Problem 4[/#D479FC][#FCE679], then restart TRMD.[/#FCE679]'
+    DOCKER_HOST_IP_TIP = '🐳 In Docker, the IP address in the link is the container IP, not the host IP. Connect using the host IP and port.'
+    PROXY_CONFIG_TIP = '❓ [#79FCD4]Questions about proxy configuration?[/#79FCD4][#FF79D4]See:[/#FF79D4]\n🌐 [link=https://github.com/Gentlesprite/Telegram_Restricted_Media_Downloader/wiki#configuring-a-proxy-running-on-the-local-machine]https://github.com/Gentlesprite/Telegram_Restricted_Media_Downloader/wiki#configuring-a-proxy-running-on-the-local-machine[/link]\n🛑 [#FCFF79]If the page is[/#FCFF79][#FF4689]unavailable[/#FF4689][#79FCD4]:\n🔎 [/#79FCD4][#FCFF79]see[/#FCFF79][#FC79A5]the bundled[/#FC79A5][#79E2FC]User Guide[/#79E2FC][#79FCD4]folder and[/#79FCD4][#FFB579]FAQ.pdf[/#FFB579][#79FCB5]for[/#79FCB5][#D479FC]the solution to Problem 14[/#D479FC][#FCE679].[/#FCE679]'
+    MULTI_SESSION_TIP = '🔧 [#FF79D4]Try one of these solutions:[/#FF79D4]\n[#D4FC79]1. Close any extra instances.[/#D4FC79]\n[#D4FC79]2. Specify a new session location with[/#D4FC79] "[#79FCD4]{exe} --session SESSION[/#79FCD4]"[#D4FC79] and try again.[/#D4FC79] ([#FFB579]Replace SESSION with the actual path.[/#FFB579])'
 
     def __iter__(self):
         for key, value in vars(self.__class__).items():
@@ -470,7 +502,7 @@ class Validator:
     def is_contain_chinese(text: str) -> bool:
         for ch in text:
             if u'\u4e00' <= ch <= u'\u9fff':
-                log.warning('如果无法正常下载,请尝试不使用中文路径后重试。')
+                log.warning('If downloads fail, try again using a path without Chinese characters.')
                 return True
         return False
 
@@ -481,13 +513,13 @@ class Validator:
                 if api_id.isdigit():
                     return True
                 else:
-                    log.warning(f'意外的参数:"{api_id}",不是「纯数字」请重新输入!')
+                    log.warning(f'Invalid input: "{api_id}" is not numeric. Please try again.')
                     return False
             else:
-                log.warning(f'意外的参数,填写的"{api_id}"可能是「api_hash」,请填入正确的「api_id」!')
+                log.warning(f'Invalid API ID: "{api_id}" may be an API hash. Enter the correct API ID.')
                 return False
         except (AttributeError, TypeError):
-            log.error('手动编辑config.yaml时,api_id需要有引号!')
+            log.error('When editing config.yaml manually, api_id must be enclosed in quotes.')
             return False
 
     @staticmethod
@@ -516,17 +548,17 @@ class Validator:
         if not os.path.exists(save_directory):
             while True:
                 try:
-                    question = console.input(f'目录:"{save_directory}"不存在,是否创建? - 「y|n」(默认y):').strip().lower()
+                    question = console.input(f'Directory "{save_directory}" does not exist. Create it? - "y|n" (default: y):').strip().lower()
                     if question in ('y', ''):
                         os.makedirs(save_directory, exist_ok=True)
-                        console.log(f'成功创建目录:"{save_directory}"')
+                        console.log(f'Created directory: "{save_directory}"')
                         break
                     elif question == 'n':
                         break
                     else:
-                        log.warning(f'意外的参数:"{question}",支持的参数 - 「y|n」')
+                        log.warning(f'Unexpected input: "{question}". Valid options: "y|n".')
                 except Exception as e:
-                    log.error(f'意外的错误,原因:"{e}"')
+                    log.error(f'Unexpected error. Reason: "{e}"')
                     break
         return os.path.isdir(save_directory)
 
@@ -537,7 +569,7 @@ class Validator:
         except ValueError:
             return False
         except Exception as e:
-            log.error(f'意外的错误,原因:"{e}"')
+            log.error(f'Unexpected error. Reason: "{e}"')
             return False
 
     @staticmethod
@@ -563,7 +595,7 @@ class Validator:
         except TypeError:  # 处理传入非数字类型的情况
             return False
         except Exception as e:
-            log.error(f'意外的错误,原因:"{e}"')
+            log.error(f'Unexpected error. Reason: "{e}"')
             return False
 
     @staticmethod
@@ -576,12 +608,12 @@ class Validator:
                     if i in support_dtype:
                         valid_dtype.append(i)
                     else:
-                        log.warning(f'"{i}"不在支持的下载类型中,已移除。')
+                        log.warning(f'"{i}" is not a supported download type and was removed.')
                 dtype[:] = valid_dtype
                 return bool(dtype)
             return False
         except Exception as e:
-            log.error(f'意外的错误,原因:"{e}"')
+            log.error(f'Unexpected error. Reason: "{e}"')
             return False
 
 
@@ -741,16 +773,16 @@ class ProcessConfig:
                         while True:
                             try:
                                 question = console.input(
-                                    f'获取到系统代理"{ProcessConfig.format_proxy_prompt(system_proxy)}",是否自动填入? - 「y|n」(默认y):').strip().lower()
+                                    f'System proxy detected: "{ProcessConfig.format_proxy_prompt(system_proxy)}". Use it? - "y|n" (default: y):').strip().lower()
                                 if question in ('y', ''):
                                     ProcessConfig.PROXY_AUTO_FILL = True
                                     break
                                 elif question == 'n':
                                     break
                                 else:
-                                    log.warning(f'意外的参数:"{question}",支持的参数 - 「y|n」')
+                                    log.warning(f'Unexpected input: "{question}". Valid options: "y|n".')
                             except Exception as e:
-                                log.error(f'意外的错误,原因:"{e}"')
+                                log.error(f'Unexpected error. Reason: "{e}"')
                                 break
                     if question in ('y', '') or ProcessConfig.PROXY_AUTO_FILL:
                         # 提取对应参数的值。
@@ -758,7 +790,7 @@ class ProcessConfig:
                         # 根据参数类型打印相应的提示信息。
                         if param_name == 'scheme':
                             console.print(
-                                f'已从系统代理自动获取「scheme」为:「{value}」',
+                                f'Proxy type automatically obtained from system settings: "{value}"',
                                 style=ProcessConfig.stdio_style('scheme')
                             )
                             return {
@@ -767,7 +799,7 @@ class ProcessConfig:
                             }
                         elif param_name == 'hostname':
                             console.print(
-                                f'已从系统代理自动获取「hostname」为:「{value}」',
+                                f'Proxy host automatically obtained from system settings: "{value}"',
                                 style=ProcessConfig.stdio_style('hostname')
                             )
                             return {
@@ -776,7 +808,7 @@ class ProcessConfig:
                             }
                         elif param_name == 'port':
                             console.print(
-                                f'已从系统代理自动获取「port」为:「{value}」',
+                                f'Proxy port automatically obtained from system settings: "{value}"',
                                 style=ProcessConfig.stdio_style('port')
                             )
                             return {
@@ -847,25 +879,25 @@ class ProcessConfig:
             if _[0] in ['username', 'password']:
                 advance_account_truth_table.append(_[1])
         if all(basic_truth_table) is False:  # noqa.
-            console.print('请配置代理!', style=ProcessConfig.stdio_style('config_proxy'))
+            console.print('Please configure the proxy.', style=ProcessConfig.stdio_style('config_proxy'))
             console.print(Issues.PROXY_CONFIG_TIP)
             result: bool = True
         if any(advance_account_truth_table) and all(advance_account_truth_table) is False:
-            log.warning('代理账号或密码未输入!')
+            log.warning('The proxy username or password has not been entered.')
             result: bool = True
         return result
 
     @staticmethod
     def get_proxy_info(proxy_config: dict) -> dict:
         return {
-            'scheme': proxy_config.get('scheme', '未知'),
-            'hostname': proxy_config.get('hostname', '未知'),
-            'port': proxy_config.get('port', '未知')
+            'scheme': proxy_config.get('scheme', 'Unknown'),
+            'hostname': proxy_config.get('hostname', 'Unknown'),
+            'port': proxy_config.get('port', 'Unknown')
         }
 
 
 class GetStdioParams:
-    UNDEFINED: str = '无'
+    UNDEFINED: str = 'None'
 
     @staticmethod
     def __timeout_input(
@@ -877,7 +909,7 @@ class GetStdioParams:
         """跨平台的输入超时后自动设置为默认值,报错时返回默认input。"""
 
         def timeout_notice():
-            console.print('\n输入超时,已自动设置为默认值。\n', style='#FF4689')
+            console.print('\nInput timed out; the default value was selected.\n', style='#FF4689')
 
         if sys.platform == 'win32':
             try:
@@ -929,7 +961,7 @@ class GetStdioParams:
                         return default
                     time.sleep(0.1)
             except Exception as e:
-                log.exception(f'无法自动设置!请手动进行设置,{_t(KeyWord.REASON)}:"{e}"')
+                log.exception(f'Could not set this automatically. Please set it manually. {_t(KeyWord.REASON)}: "{e}"')
                 return console.input(error_prompt if error_prompt else prompt)
         else:
             import tty
@@ -1009,7 +1041,7 @@ class GetStdioParams:
                             sys.stdout.flush()
                         return default
             except Exception as e:
-                log.exception(f'无法自动设置!请手动进行设置,{_t(KeyWord.REASON)}:"{e}"')
+                log.exception(f'Could not set this automatically. Please set it manually. {_t(KeyWord.REASON)}: "{e}"')
                 return console.input(error_prompt if error_prompt else prompt)
             finally:
                 termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)  # 恢复终端设置。
@@ -1019,22 +1051,22 @@ class GetStdioParams:
     def get_is_ki_save_config(valid_format: str = 'y|n') -> dict:
         while True:
             is_save_config: str = console.input(
-                f'「退出提示」是否需要保存当前已填写的参数? - 「{valid_format}」:').strip().lower()
+                f'At exit, save the settings entered so far? - "{valid_format}":').strip().lower()
             if is_save_config == 'y':
                 return {'is_ki_save_config': True}
             elif is_save_config == 'n':
                 return {'is_ki_save_config': False}
             else:
-                log.warning(f'意外的参数:"{is_save_config}",支持的参数 - 「{valid_format}」')
+                log.warning(f'Unexpected input: "{is_save_config}". Valid options: "{valid_format}".')
 
     @staticmethod
     def get_is_re_config(valid_format: str = 'y|n') -> dict:
-        prompt: str = f'检测到已配置完成的配置文件,是否需要重新配置?(配置文件将自动备份) - 「{valid_format}」'
+        prompt: str = f'An existing configuration was found. Reconfigure it? (A backup will be created.) - "{valid_format}"'
         timeout: int = 5
         while True:
             is_re_config: str = GetStdioParams.__timeout_input(
                 prompt=f'{prompt}:',
-                error_prompt=f'{prompt}(默认n):',
+                error_prompt=f'{prompt} (default: n):',
                 default='n',
                 timeout=timeout
             ).strip().lower()
@@ -1044,41 +1076,41 @@ class GetStdioParams:
                 return {'is_re_config': False}
             else:
                 console.print('\n') if sys.platform == 'win32' else None
-                log.warning(f'意外的参数:"{is_re_config}",支持的参数 - 「{valid_format}」(默认n)')
+                log.warning(f'Unexpected input: "{is_re_config}". Valid options: "{valid_format}" (default: n).')
 
     @staticmethod
     def get_is_change_account(valid_format: str = 'y|n') -> dict:
         style: str = '#FF4689'
         while True:
             is_change_account = console.input(
-                '是否需要切换账号? - 「y|n」(默认n):').strip().lower()
+                'Switch accounts? - "y|n" (default: n):').strip().lower()
             if is_change_account in ('n', ''):
-                console.print('用户不需要切换「账号」。', style=style)
+                console.print('No account switch requested.', style=style)
                 return {'is_change_account': False}
             elif is_change_account == 'y':
-                console.print('用户需要切换「账号」。', style=style)
+                console.print('Account switch requested.', style=style)
                 return {'is_change_account': True}
             else:
-                log.warning(f'意外的参数:"{is_change_account}",支持的参数 - 「{valid_format}」!')
+                log.warning(f'Unexpected input: "{is_change_account}". Valid options: "{valid_format}".')
 
     @staticmethod
     def get_session_directory():
         style: str = '#FF4689'
         while True:
             session_directory = console.input(
-                '请输入「会话文件目录」(可为「空目录」,也可为「已登录的会话文件目录」):').strip()
-            console.print(f'「会话文件夹的路径」设置为:{session_directory}。', style=style)
+                'Enter the session directory (it may be empty or contain an existing logged-in session):').strip()
+            console.print(f'Session directory set to: {session_directory}.', style=style)
             return {'session_directory': session_directory}
 
     @staticmethod
     def get_api_id(last_record: str) -> dict:
         while True:
             api_id = console.input(
-                f'请输入「api_id」上一次的记录是:「{last_record if last_record else GetStdioParams.UNDEFINED}」:').strip()
+                f'Enter the API ID. Previous value: "{last_record if last_record else GetStdioParams.UNDEFINED}":').strip()
             if api_id == '' and last_record is not None:
                 api_id = last_record
             if Validator.is_valid_api_id(api_id):
-                console.print(f'已设置「api_id」为:「{api_id}」', style=ProcessConfig.stdio_style('api_id'))
+                console.print(f'API ID set to: "{api_id}"', style=ProcessConfig.stdio_style('api_id'))
                 return {
                     'api_id': api_id,
                     'record_flag': True
@@ -1088,46 +1120,46 @@ class GetStdioParams:
     def get_api_hash(last_record: str, valid_length: int = 32) -> dict:
         while True:
             api_hash = console.input(
-                f'请输入「api_hash」上一次的记录是:「{last_record if last_record else GetStdioParams.UNDEFINED}」:').strip().lower()
+                f'Enter the API hash. Previous value: "{last_record if last_record else GetStdioParams.UNDEFINED}":').strip().lower()
             if api_hash == '' and last_record is not None:
                 api_hash = last_record
             if Validator.is_valid_api_hash(api_hash, valid_length):
-                console.print(f'已设置「api_hash」为:「{api_hash}」', style=ProcessConfig.stdio_style('api_hash'))
+                console.print(f'API hash set to: "{api_hash}"', style=ProcessConfig.stdio_style('api_hash'))
                 return {
                     'api_hash': api_hash,
                     'record_flag': True
                 }
             else:
-                log.warning(f'意外的参数:"{api_hash}",不是一个「{valid_length}位」的「值」!请重新输入!')
+                log.warning(f'Invalid input: "{api_hash}". Enter a {valid_length}-character value. Please try again.')
 
     @staticmethod
     def get_enable_bot(valid_format: str = 'y|n') -> dict:
         while True:
-            enable_bot = console.input('是否启用「机器人」(需要提供bot_token)? - 「y|n」(默认n):').strip().lower()
+            enable_bot = console.input('Enable the bot? (A bot token is required.) - "y|n" (default: n):').strip().lower()
             if enable_bot in ('n', ''):
-                console.print(f'已设置为不启用「机器人」。', style=ProcessConfig.stdio_style('bot_token'))
+                console.print('Bot disabled.', style=ProcessConfig.stdio_style('bot_token'))
                 return {'enable_bot': False}
             elif enable_bot == 'y':
-                console.print(f'请配置「bot_token」。', style=ProcessConfig.stdio_style('bot_token'))
+                console.print('Configure the bot token.', style=ProcessConfig.stdio_style('bot_token'))
                 return {'enable_bot': True}
             else:
-                log.warning(f'意外的参数:"{enable_bot}",支持的参数 - 「{valid_format}」!')
+                log.warning(f'Unexpected input: "{enable_bot}". Valid options: "{valid_format}".')
 
     @staticmethod
     def get_bot_token(last_record: str, valid_format: str = ':') -> dict:
         while True:
             bot_token = console.input(
-                f'请输入当前账号的「bot_token」上一次的记录是:「{last_record if last_record else GetStdioParams.UNDEFINED}」:').strip()
+                f'Enter the bot token for this account. Previous value: "{last_record if last_record else GetStdioParams.UNDEFINED}":').strip()
             if bot_token == '' and last_record is not None:
                 bot_token = last_record
             if Validator.is_valid_bot_token(bot_token, valid_format):
-                console.print(f'已设置「bot_token」为:「{bot_token}」', style=ProcessConfig.stdio_style('bot_token'))
+                console.print(f'Bot token set to: "{bot_token}"', style=ProcessConfig.stdio_style('bot_token'))
                 return {
                     'bot_token': bot_token,
                     'record_flag': True
                 }
             else:
-                log.warning(f'意外的参数:"{bot_token}",「bot_token」中需要包含":",请重新输入!')
+                log.warning(f'Invalid input: "{bot_token}". The bot token must contain a colon (:). Please try again.')
 
     @staticmethod
     def get_links(last_record: str, valid_format: str = '.txt', enable_bot: bool = False) -> dict:
@@ -1135,10 +1167,10 @@ class GetStdioParams:
         links_file_path = None
         while True:
             try:
-                bot_notice = '(检测到已配置机器人,此步骤可忽略)' if enable_bot else ''
+                bot_notice = '(bot is configured; this step may be skipped)' if enable_bot else ''
                 links_file_path = console.input(
-                    f'请输入需要下载的媒体链接的「完整路径」。上一次的记录是:「{last_record if last_record else GetStdioParams.UNDEFINED}」'
-                    f'格式 - 「{valid_format}」{bot_notice}:').strip()
+                    f'Enter the full path to the media links file. Previous value: "{last_record if last_record else GetStdioParams.UNDEFINED}"'
+                    f'Format: "{valid_format}" {bot_notice}:').strip()
                 if links_file_path == '':
                     if last_record is not None:
                         links_file_path = last_record
@@ -1149,37 +1181,37 @@ class GetStdioParams:
                         with open(file=links_file_path, mode='w', encoding='UTF-8'):
                             pass
                     except Exception as e:
-                        log.warning(f'无法创建文件:"{links_file_path}"请排查权限问题,{_t(KeyWord.REASON)}:"{e}"')
+                        log.warning(f'Could not create file "{links_file_path}". Check file permissions. {_t(KeyWord.REASON)}: "{e}"')
                 if Validator.is_valid_links_file(links_file_path, valid_format):
-                    console.print(f'已设置「links」为:「{links_file_path}」', style=ProcessConfig.stdio_style('links'))
+                    console.print(f'Links file set to: "{links_file_path}"', style=ProcessConfig.stdio_style('links'))
                     Validator.is_contain_chinese(links_file_path)
                     return {
                         'links': links_file_path,
                         'record_flag': True
                     }
                 elif not os.path.normpath(links_file_path).lower().endswith('.txt'):
-                    log.warning(f'意外的参数:"{links_file_path}",文件路径必须以「{valid_format}」结尾,请重新输入!')
+                    log.warning(f'Invalid input: "{links_file_path}". The file path must end with "{valid_format}". Please try again.')
                 else:
                     log.warning(
-                        f'意外的参数:"{links_file_path}",文件「必须存在」(区分大小写),请重新输入!')
+                        f'Invalid input: "{links_file_path}". The file must exist (case-sensitive). Please try again.')
             except Exception as e:
                 log.warning(
-                    f'意外的参数:"{links_file_path}",文件路径必须以「{valid_format}」结尾,并且「必须存在」,请重新输入!{_t(KeyWord.REASON)}:"{e}"')
+                    f'Invalid input: "{links_file_path}". The file path must end with "{valid_format}" and the file must exist. Please try again. {_t(KeyWord.REASON)}: "{e}"')
 
     @staticmethod
     def get_save_directory(last_record) -> dict:
         # 输入媒体保存路径,确保是一个有效的目录路径。
         while True:
             save_directory = console.input(
-                f'请输入媒体「保存路径」。上一次的记录是:「{last_record if last_record else GetStdioParams.UNDEFINED}」:').strip()
+                f'Enter the media save directory. Previous value: "{last_record if last_record else GetStdioParams.UNDEFINED}":').strip()
             if save_directory == '':
                 if last_record is not None:
                     save_directory = last_record
                 else:
                     save_directory = os.path.join(os.getcwd(), 'downloads')
-                    log.warning('没有上一次的记录,已设置为默认目录。')
+                    log.warning('No previous value found; using the default directory.')
             if Validator.is_valid_save_directory(save_directory):
-                console.print(f'已设置「save_directory」为:「{save_directory}」',
+                console.print(f'Save directory set to: "{save_directory}"',
                               style=ProcessConfig.stdio_style('save_directory'))
                 Validator.is_contain_chinese(save_directory)
                 return {
@@ -1187,57 +1219,57 @@ class GetStdioParams:
                     'record_flag': True
                 }
             elif os.path.isfile(save_directory):
-                log.warning(f'意外的参数:"{save_directory}",指定的路径是一个文件并非目录,请重新输入!')
+                log.warning(f'Invalid input: "{save_directory}". The specified path is a file, not a directory. Please try again.')
             else:
-                log.warning(f'意外的参数:"{save_directory}",指定的路径无效或不是一个目录,请重新输入!')
+                log.warning(f'Invalid input: "{save_directory}". The path is invalid or is not a directory. Please try again.')
 
     @staticmethod
     def get_max_download_task(last_record) -> dict:
         # 输入最大下载任务数,确保是一个整数且不超过特定限制。
-        default_prompt: str = '(默认3)' if last_record is None else ''
+        default_prompt: str = '(default: 3)' if last_record is None else ''
         while True:
             try:
                 max_download_task = console.input(
-                    f'请输入「最大下载任务数」。上一次的记录是:「{last_record if last_record else GetStdioParams.UNDEFINED}」'
-                    f',值过高可能会导致网络相关问题,建议默认{default_prompt}:').strip()
+                    f'Enter the maximum number of concurrent downloads. Previous value: "{last_record if last_record else GetStdioParams.UNDEFINED}"'
+                    f'. A value that is too high may cause network issues; the recommended value is {default_prompt}:').strip()
                 if max_download_task == '' and last_record is not None:
                     max_download_task = last_record
                 if max_download_task == '':
                     max_download_task = 3
                 if Validator.is_valid_number(max_download_task):
-                    console.print(f'已设置「max_download_task」为:「{max_download_task}」',
+                    console.print(f'Maximum concurrent downloads set to: "{max_download_task}"',
                                   style=ProcessConfig.stdio_style('max_download_task'))
                     return {
                         'max_download_task': int(max_download_task),
                         'record_flag': True
                     }
                 else:
-                    log.warning(f'意外的参数:"{max_download_task}",任务数必须是「正整数」,请重新输入!')
+                    log.warning(f'Invalid input: "{max_download_task}". The task count must be a positive integer. Please try again.')
             except Exception as e:
-                log.error(f'意外的错误,{_t(KeyWord.REASON)}:"{e}"')
+                log.error(f'Unexpected error. {_t(KeyWord.REASON)}: "{e}"')
 
     @staticmethod
     def get_max_retry_count(last_record) -> dict:
-        default_prompt: str = '(默认5)' if last_record is None else ''
+        default_prompt: str = '(default: 5)' if last_record is None else ''
         while True:
             try:
                 max_retry_count = console.input(
-                    f'请输入任务失败时「最大重试次数」。上一次的记录是:「{last_record if last_record else GetStdioParams.UNDEFINED}」{default_prompt}:').strip()
+                    f'Enter the maximum number of retries after a task fails. Previous value: "{last_record if last_record else GetStdioParams.UNDEFINED}" {default_prompt}:').strip()
                 if max_retry_count == '' and last_record is not None:
                     max_retry_count = last_record
                 if max_retry_count == '':
                     max_retry_count = 5
                 if Validator.is_valid_number(max_retry_count):
-                    console.print(f'已设置「max_retry_count」为:「{max_retry_count}」',
+                    console.print(f'Maximum retry count set to: "{max_retry_count}"',
                                   style=ProcessConfig.stdio_style('max_retry_count'))
                     return {
                         'max_retry_count': int(max_retry_count),
                         'record_flag': True
                     }
                 else:
-                    log.warning(f'意外的参数:"{max_retry_count}",最大重试次数必须是「正整数」,请重新输入!')
+                    log.warning(f'Invalid input: "{max_retry_count}". The maximum retry count must be a positive integer. Please try again.')
             except Exception as e:
-                log.error(f'意外的错误,{_t(KeyWord.REASON)}:"{e}"')
+                log.error(f'Unexpected error. {_t(KeyWord.REASON)}: "{e}"')
 
     @staticmethod
     def get_download_type(last_record: Union[list, None]) -> dict:
@@ -1249,11 +1281,11 @@ class GetStdioParams:
                 if meta.get(dtype) is True:  # noqa.
                     record.append(dtype)
             last_record: str = ' '.join(record)
-        default_prompt: str = '(默认为所有已支持的下载类型)' if last_record is None else ''
+        default_prompt: str = '(defaults to all supported types)' if last_record is None else ''
         while True:
             download_type: Union[str, list] = console.input(
-                f'输入需要下载的「媒体类型」(以空格分隔可多选)。上一次的记录是:「{last_record if last_record else GetStdioParams.UNDEFINED}」'
-                f'格式 - 「video photo document audio voice animation video_note live_photo」{default_prompt}:').strip()
+                f'Enter the media types to download (separate multiple types with spaces). Previous value: "{last_record if last_record else GetStdioParams.UNDEFINED}"'
+                f'Valid types: "video photo document audio voice animation video_note live_photo" {default_prompt}:').strip()
             if download_type == '' and last_record is not None:
                 download_type = last_record
             if download_type == '':
@@ -1262,7 +1294,7 @@ class GetStdioParams:
             if Validator.is_valid_download_type(download_type):
                 dtype = ' '.join(download_type) if download_type else [_ for _ in DownloadType()]
                 console.print(
-                    f'已设置「download_type」为:「{dtype}」',
+                    f'Download types set to: "{dtype}"',
                     style=ProcessConfig.stdio_style('download_type')
                 )
                 return {
@@ -1270,8 +1302,8 @@ class GetStdioParams:
                     'record_flag': True
                 }
             else:
-                prompt: str = f'意外的参数:"{download_type}"' if download_type else '请重新输入下载类型'
-                log.warning(f'{prompt},支持的参数 - 「video photo document」(以空格分隔可多选)')
+                prompt: str = f'Invalid input: "{download_type}"' if download_type else 'Please enter the download types again'
+                log.warning(f'{prompt}. Valid types: "video photo document" (separate multiple types with spaces).')
 
     @staticmethod
     def get_is_shutdown(last_record: str, valid_format: str = 'y|n') -> dict:
@@ -1282,13 +1314,13 @@ class GetStdioParams:
             last_record: str = 'n'
         else:
             last_record = GetStdioParams.UNDEFINED
-        t = f'已设置「is_shutdown」为:「y」,下载完成后将自动关机!'  # v1.3.0 修复配置is_shutdown参数时显示错误。
-        f = f'已设置「is_shutdown」为:「n」'
-        default_prompt: str = '(默认n)' if last_record == GetStdioParams.UNDEFINED else ''
+        t = 'Automatic shutdown after downloads enabled.'  # v1.3.0 修复配置is_shutdown参数时显示错误。
+        f = 'Automatic shutdown after downloads disabled.'
+        default_prompt: str = '(default: n)' if last_record == GetStdioParams.UNDEFINED else ''
         while True:
             try:
                 is_shutdown = console.input(
-                    f'下载完成后是否「自动关机」。上一次的记录是:「{last_record}」 - 「{valid_format}」'
+                    f'Automatically shut down after downloads finish? Previous value: "{last_record}" - "{valid_format}"'
                     f'{default_prompt}:').strip().lower()
                 if is_shutdown == '' and last_record != GetStdioParams.UNDEFINED:
                     if last_record == 'y':
@@ -1305,10 +1337,10 @@ class GetStdioParams:
                     console.print(f, style=_style)
                     return {'is_shutdown': False, 'record_flag': True}
                 else:
-                    log.warning(f'意外的参数:"{is_shutdown}",支持的参数 - 「{valid_format}」')
+                    log.warning(f'Unexpected input: "{is_shutdown}". Valid options: "{valid_format}".')
 
             except Exception as e:
-                log.error(f'意外的错误,{_t(KeyWord.REASON)}:"{e}"')
+                log.error(f'Unexpected error. {_t(KeyWord.REASON)}: "{e}"')
 
     @staticmethod
     def get_enable_proxy(last_record: Union[str, bool], valid_format: str = 'y|n') -> dict:
@@ -1316,11 +1348,11 @@ class GetStdioParams:
             ep_notice: str = 'y' if last_record else 'n'
         else:
             ep_notice: str = GetStdioParams.UNDEFINED
-        default_prompt: str = '(默认n)' if ep_notice == GetStdioParams.UNDEFINED else ''
+        default_prompt: str = '(default: n)' if ep_notice == GetStdioParams.UNDEFINED else ''
         while True:  # 询问是否开启代理。
             enable_proxy = console.input(
-                f'是否需要使用「代理」。上一次的记录是:「{ep_notice}」'
-                f'格式 - 「{valid_format}」{default_prompt}:').strip().lower()
+                f'Use a proxy? Previous value: "{ep_notice}"'
+                f'Options: "{valid_format}" {default_prompt}:').strip().lower()
             if enable_proxy == '' and last_record is not None:
                 if last_record is True:
                     enable_proxy = 'y'
@@ -1330,15 +1362,15 @@ class GetStdioParams:
                 enable_proxy = 'n'
             if Validator.is_valid_enable_proxy(enable_proxy):
                 if enable_proxy == 'y':
-                    console.print(f'已设置「enable_proxy」为:「{enable_proxy}」',
+                    console.print(f'Proxy usage set to: "{enable_proxy}"',
                                   style=ProcessConfig.stdio_style('enable_proxy'))
                     return {'enable_proxy': True, 'record_flag': True}
                 elif enable_proxy == 'n':
-                    console.print(f'已设置「enable_proxy」为:「{enable_proxy}」',
+                    console.print(f'Proxy usage set to: "{enable_proxy}"',
                                   style=ProcessConfig.stdio_style('enable_proxy'))
                     return {'enable_proxy': False, 'record_flag': True}
             else:
-                log.error(f'意外的参数:"{enable_proxy}",请输入有效参数!支持的参数 - 「{valid_format}」!')
+                log.error(f'Invalid input: "{enable_proxy}". Enter a valid option: "{valid_format}".')
 
     @staticmethod
     @ProcessConfig.get_system_proxy('scheme')
@@ -1348,19 +1380,19 @@ class GetStdioParams:
         fmt_valid_format = '|'.join(valid_format)
         while True:  # v1.3.0 修复代理配置scheme参数配置抛出AttributeError。
             scheme = console.input(
-                f'请输入「代理类型」。上一次的记录是:「{last_record if last_record else GetStdioParams.UNDEFINED}」'
-                f'格式 - 「{fmt_valid_format}」:').strip().lower()
+                f'Enter the proxy type. Previous value: "{last_record if last_record else GetStdioParams.UNDEFINED}"'
+                f'Valid types: "{fmt_valid_format}":').strip().lower()
             if scheme == '' and last_record is not None:
                 scheme = last_record
             if Validator.is_valid_scheme(scheme, valid_format):
-                console.print(f'已设置「scheme」为:「{scheme}」', style=ProcessConfig.stdio_style('scheme'))
+                console.print(f'Proxy type set to: "{scheme}"', style=ProcessConfig.stdio_style('scheme'))
                 return {
                     'scheme': scheme,
                     'record_flag': True
                 }
             else:
                 log.warning(
-                    f'意外的参数:"{scheme}",请输入有效的代理类型!支持的参数 - 「{fmt_valid_format}」!')
+                    f'Invalid input: "{scheme}". Enter a valid proxy type: "{fmt_valid_format}".')
 
     @staticmethod
     @ProcessConfig.get_system_proxy('hostname')
@@ -1371,19 +1403,19 @@ class GetStdioParams:
             # 输入代理IP地址。
             try:
                 hostname = console.input(
-                    f'请输入代理类型为:"{scheme}"的「ip地址」。上一次的记录是:「{last_record if last_record else GetStdioParams.UNDEFINED}」'
-                    f'格式 - 「{valid_format}」:').strip()
+                    f'Enter the IP address for the "{scheme}" proxy. Previous value: "{last_record if last_record else GetStdioParams.UNDEFINED}"'
+                    f'Format: "{valid_format}":').strip()
                 if hostname == '' and last_record is not None:
                     hostname = last_record
                 if Validator.is_valid_hostname(hostname):
-                    console.print(f'已设置「hostname」为:「{hostname}」', style=ProcessConfig.stdio_style('hostname'))
+                    console.print(f'Proxy host set to: "{hostname}"', style=ProcessConfig.stdio_style('hostname'))
                     return {
                         'hostname': hostname,
                         'record_flag': True
                     }
             except ValueError:
                 log.warning(
-                    f'"{hostname}"不是一个「ip地址」,请输入有效的ipv4地址!支持的参数 - 「{valid_format}」!')
+                    f'"{hostname}" is not a valid IP address. Enter a valid IPv4 address: "{valid_format}".')
 
     @staticmethod
     @ProcessConfig.get_system_proxy('port')
@@ -1394,23 +1426,23 @@ class GetStdioParams:
             try:  # hostname,scheme可能出现None。
                 scheme, hostname, __ = ProcessConfig.get_proxy_info(proxy_config).values()
                 port = console.input(
-                    f'请输入ip地址为:"{hostname}",代理类型为:"{scheme}"的「代理端口」。'
-                    f'上一次的记录是:「{last_record if last_record else GetStdioParams.UNDEFINED}」'
-                    f'格式 - 「{valid_format}」:').strip()
+                    f'Enter the proxy port for IP "{hostname}" and type "{scheme}".'
+                    f' Previous value: "{last_record if last_record else GetStdioParams.UNDEFINED}"'
+                    f' Format: "{valid_format}":').strip()
                 if port == '' and last_record is not None:
                     port = last_record
                 if Validator.is_valid_port(port):
-                    console.print(f'已设置「port」为:「{port}」', style=ProcessConfig.stdio_style('port'))
+                    console.print(f'Proxy port set to: "{port}"', style=ProcessConfig.stdio_style('port'))
                     return {
                         'port': int(port),
                         'record_flag': True
                     }
                 else:
-                    log.warning(f'意外的参数:"{port}",端口号必须在「{valid_format}」之间!')
+                    log.warning(f'Invalid input: "{port}". The port must be in the range "{valid_format}".')
             except ValueError:
-                log.warning(f'意外的参数:"{port}",请输入一个有效的整数!支持的参数 - 「{valid_format}」')
+                log.warning(f'Invalid input: "{port}". Enter a valid integer in the range "{valid_format}".')
             except Exception as e:
-                log.error(f'意外的错误,{_t(KeyWord.REASON)}:"{e}"')
+                log.error(f'Unexpected error. {_t(KeyWord.REASON)}: "{e}"')
 
     @staticmethod
     def get_proxy_authentication():
@@ -1418,37 +1450,37 @@ class GetStdioParams:
         style = ProcessConfig.stdio_style('proxy_authentication')
         valid_format: str = 'y|n'
         while True:
-            is_proxy = console.input(f'代理是否需要「认证」? - 「{valid_format}」(默认n):').strip().lower()
+            is_proxy = console.input(f'Does the proxy require authentication? - "{valid_format}" (default: n):').strip().lower()
             if is_proxy == 'y':
-                username = console.input('请输入「账号」:').strip()
-                password = console.input('请输入「密码」:').strip()
-                console.print(f'已设置为:「代理需要认证」', style=style)
+                username = console.input('Enter the username:').strip()
+                password = console.input('Enter the password:').strip()
+                console.print('Proxy authentication enabled.', style=style)
                 return {'username': username, 'password': password, 'record_flag': True}
             elif is_proxy in ('n', ''):
-                console.print(f'已设置为:「代理不需要认证」', style=style)
+                console.print('Proxy authentication disabled.', style=style)
                 return {'username': None, 'password': None, 'record_flag': True}
             else:
-                log.warning(f'意外的参数:"{is_proxy}",支持的参数 - 「{valid_format}」!')
+                log.warning(f'Unexpected input: "{is_proxy}". Valid options: "{valid_format}".')
 
 
 class BotCommandText:
-    HELP: tuple = ('help', '展示可用命令。\n`/help`')
+    HELP: tuple = ('help', 'Show available commands.\n`/help`')
     DOWNLOAD: tuple = (
-        'download', '分配新的下载任务(多种使用方式见使用说明)。\n`/download https://t.me/x/x 起始ID 结束ID`')
-    TABLE: tuple = ('table', '在终端输出当前下载情况的统计信息。\n`/table`')
-    FORWARD: tuple = ('forward', '从频道A转发至频道B 起始ID 结束ID。\n`/forward https://t.me/A https://t.me/B 1 100`')
-    EXIT: tuple = ('exit', '退出软件。\n`/exit`')
+        'download', 'Create a download task. See the help menu for usage examples.\n`/download https://t.me/x/x start_id end_id`')
+    TABLE: tuple = ('table', 'Show current download statistics in the terminal.\n`/table`')
+    FORWARD: tuple = ('forward', 'Forward messages from a source channel to a destination channel within an ID range.\n`/forward https://t.me/A https://t.me/B 1 100`')
+    EXIT: tuple = ('exit', 'Exit the application.\n`/exit`')
     LISTEN_DOWNLOAD: tuple = ('listen_download',
-                              '实时监听该链接的最新消息(任意消息)进行下载。\n`/listen_download https://t.me/A https://t.me/B https://t.me/n`')
+                              'Monitor the specified links for new messages and download them as they arrive.\n`/listen_download https://t.me/A https://t.me/B https://t.me/n`')
     LISTEN_FORWARD: tuple = (
-        'listen_forward', '实时监听该链接的最新消息(任意消息)进行转发。\n`/listen_forward 监听频道 转发频道`')
-    LISTEN_INFO: tuple = ('listen_info', '查看当前已经创建的监听信息。\n`/listen_info`')
-    UPLOAD: tuple = ('upload', '上传本地的文件到指定频道。\n`/upload 本地文件 目标频道`')
-    UPLOAD_R: tuple = ('upload_r', '递归上传文件夹(包含子文件夹)到指定频道。\n`/upload_r 本地文件夹 目标频道`')
+        'listen_forward', 'Monitor a channel for new messages and forward them as they arrive.\n`/listen_forward source_channel destination_channel`')
+    LISTEN_INFO: tuple = ('listen_info', 'View the listeners currently registered.\n`/listen_info`')
+    UPLOAD: tuple = ('upload', 'Upload a local file to a specified channel.\n`/upload local_file destination_channel`')
+    UPLOAD_R: tuple = ('upload_r', 'Recursively upload a folder, including its subfolders, to a specified channel.\n`/upload_r local_folder destination_channel`')
     DOWNLOAD_CHAT: tuple = ('download_chat',
-                            '获取该频道全部内容,用户通过自定义条件进行内容筛选,最终下载该频道中用户所需内容。\n`/download_chat 频道链接`')
+                            'Download channel content that matches filters you configure.\n`/download_chat channel_link`')
     AUTH: tuple = ('auth',
-                   '添加/移除/查看授权使用机器人的用户,支持用户ID或@用户名。\n`/auth`或`/auth 1234567890`或`/auth @username`')
+                   'Add, remove, or list users authorized to use the bot. Accepts user IDs or @usernames.\n`/auth`, `/auth 1234567890`, or `/auth @username`')
 
     @staticmethod
     def with_description(text: tuple) -> str:
@@ -1596,123 +1628,123 @@ class BotStepKeyword:
 
 
 class BotStepText:
-    DOWNLOAD_LINK: tuple = (BotStepKeyword.LINK, '⬇️请直接发送需要下载的链接')
-    DOWNLOAD_CHAT_LINK: tuple = (BotStepKeyword.LINK, '💬请直接发送需要下载的频道链接')
-    UPLOAD_PATH: tuple = (BotStepKeyword.PATH, '📤请发送需要上传的本地文件路径')
-    UPLOAD_TARGET: tuple = (BotStepKeyword.TARGET, '📤请发送需要上传到的目标频道链接')
-    UPLOAD_R_PATH: tuple = (BotStepKeyword.PATH, '📁请发送需要上传的本地文件夹路径')
-    UPLOAD_R_TARGET: tuple = (BotStepKeyword.TARGET, '📁请发送需要上传到的目标频道链接')
-    FORWARD_ORIGIN: tuple = (BotStepKeyword.ORIGIN, '↗️请发送源频道链接')
-    FORWARD_TARGET: tuple = (BotStepKeyword.TARGET, '↗️请发送需要转发到的目标频道链接')
-    FORWARD_START_ID: tuple = (BotStepKeyword.START_ID, '↗️请发送起始消息ID(数字)')
-    FORWARD_END_ID: tuple = (BotStepKeyword.END_ID, '↗️请发送结束消息ID(数字)')
-    LISTEN_DOWNLOAD_ORIGIN: tuple = (BotStepKeyword.ORIGIN, '🕵️请发送需要监听下载的频道链接')
-    LISTEN_FORWARD_ORIGIN: tuple = (BotStepKeyword.ORIGIN, '📲请发送需要监听频道的链接')
-    LISTEN_FORWARD_TARGET: tuple = (BotStepKeyword.TARGET, '📲请发送需要转发到的目标频道链接')
+    DOWNLOAD_LINK: tuple = (BotStepKeyword.LINK, '⬇️ Send the link you want to download.')
+    DOWNLOAD_CHAT_LINK: tuple = (BotStepKeyword.LINK, '💬 Send the channel link you want to download.')
+    UPLOAD_PATH: tuple = (BotStepKeyword.PATH, '📤 Send the local file path to upload.')
+    UPLOAD_TARGET: tuple = (BotStepKeyword.TARGET, '📤 Send the link of the destination channel.')
+    UPLOAD_R_PATH: tuple = (BotStepKeyword.PATH, '📁 Send the local folder path to upload.')
+    UPLOAD_R_TARGET: tuple = (BotStepKeyword.TARGET, '📁 Send the link of the destination channel.')
+    FORWARD_ORIGIN: tuple = (BotStepKeyword.ORIGIN, '↗️ Send the source channel link.')
+    FORWARD_TARGET: tuple = (BotStepKeyword.TARGET, '↗️ Send the link of the destination channel.')
+    FORWARD_START_ID: tuple = (BotStepKeyword.START_ID, '↗️ Send the starting message ID (a number).')
+    FORWARD_END_ID: tuple = (BotStepKeyword.END_ID, '↗️ Send the ending message ID (a number).')
+    LISTEN_DOWNLOAD_ORIGIN: tuple = (BotStepKeyword.ORIGIN, '🕵️ Send the link of the channel to monitor for downloads.')
+    LISTEN_FORWARD_ORIGIN: tuple = (BotStepKeyword.ORIGIN, '📲 Send the link of the channel to monitor.')
+    LISTEN_FORWARD_TARGET: tuple = (BotStepKeyword.TARGET, '📲 Send the link of the destination channel.')
 
 
 class BotMessage:
-    RIGHT: str = '✅以下链接已创建下载任务:\n'
-    INVALID: str = '🚫以下链接不合法已被移除:\n'
-    TASK_ASSIGN: str = '🌟任务已分配。'
-    TOO_MANY_MESSAGE: str = '⚠️消息过长,本次操作不再逐条展示。'
-    TOO_MANY_INVALID_DOWNLOAD_MESSAGE: str = '⚠️{count}条消息因不合法已跳过下载,数量过多不再逐条列出。'
-    TOO_MANY_INVALID_FORWARD_MESSAGE: str = '⚠️{count}条消息因不存在已跳过转发,数量过多不再逐条列出。'
+    RIGHT: str = '✅ Download tasks created for the following links:\n'
+    INVALID: str = '🚫 The following invalid links were removed:\n'
+    TASK_ASSIGN: str = '🌟 Task assigned.'
+    TOO_MANY_MESSAGE: str = '⚠️ Message is too long; individual items will not be shown.'
+    TOO_MANY_INVALID_DOWNLOAD_MESSAGE: str = '⚠️ {count} messages were skipped because they are invalid. Too many to list individually.'
+    TOO_MANY_INVALID_FORWARD_MESSAGE: str = '⚠️ {count} messages were skipped because they do not exist. Too many to list individually.'
 
 
 class BotButton:
     GITHUB: str = '📦GitHub'
-    SUBSCRIBE_CHANNEL: str = '📌订阅频道'
-    VIDEO_TUTORIAL: str = '🎬视频教程'
-    PROXY_SELLER: str = '🛒购买代理'
-    PAY: str = '💰支持作者'
-    OPEN_NOTICE: str = '💬启动提示|已关闭 ❌'
-    CLOSE_NOTICE: str = '💬启动提示|已开启 ✅'
-    LINK_TABLE: str = '🔗链接统计表'
-    COUNT_TABLE: str = '➕计数统计表'
-    UPLOAD_TABLE: str = '📤上传统计表'
-    HELP_PAGE: str = '🛎️帮助页面'
-    CLICK_VIEW: str = '🖱点击查看'
-    CLICK_DOWNLOAD: str = '🖱点击下载'
-    DOWNLOAD: str = '⬇️下载'
-    DOWNLOAD_UPLOAD: str = '↕️下载后上传'
-    TASK_ASSIGN: str = '🌟任务已分配'
-    RETRIEVE_MESSAGE: str = '🔎检索消息中'
-    RETRIEVE_COMMENT: str = '🔎检索评论区中'
-    ASSIGNING_TASK: str = '🚛分配任务中'
-    DOWNLOAD_TASK_DOING: str = '⬇️下载任务进行中'
-    DOWNLOAD_TASK_DONE: str = '✅下载任务已完成'
-    TASK_CANCEL: str = '🗑️任务已取消'
-    EXECUTE_TASK: str = '▶️执行任务'
-    CANCEL_TASK: str = '⏹️取消任务'
-    OK: str = '✅确定'
-    CANCEL: str = '❌取消'
-    DROP: str = '🗑️移除'
-    REMOVE_AUTH: str = '🗑️移除授权'
-    IGNORE: str = '👁️‍🗨️忽略'
-    RETURN: str = '🔙返回'
-    CONFIRM_AND_RETURN: str = '↩️确定并返回'
-    LOOKUP_LISTEN_INFO: str = '🔍查看监听信息'
-    LOOKUP_AUTH_INFO: str = '🔍查看授权用户'
-    AUTH: str = '🔑添加/移除授权用户'
-    VIEW_AUTH_LIST: str = '👥查看授权列表'
-    EXPORT_TABLE: str = '📊导出表格设置'
-    RESELECT: str = '🔄重新选择'
-    SETTING: str = '⚙️设置'
-    MENU_DOWNLOAD: str = '📁下载'
-    MENU_LISTEN: str = '🕵️监听'
-    MENU_UPLOAD: str = '📤上传'
-    DOWNLOAD_MENU_TITLE: str = '⬇️创建「下载」任务:'
-    LISTEN_MENU_TITLE: str = '🕵️创建「监听」任务:'
-    UPLOAD_MENU_TITLE: str = '📤创建「上传」任务:'
-    AUTH_MENU: str = '🔐授权用户'
-    LISTEN_DOWNLOAD_BTN: str = '🕵️监听下载'
-    LISTEN_FORWARD_BTN: str = '📲监听转发'
-    OPEN_LINK_TABLE: str = '📊导出链接表格|已禁用 ❌'
-    CLOSE_LINK_TABLE: str = '📊导出链接表格|已启用 ✅'
-    OPEN_COUNT_TABLE: str = '📊导出计数表格|已禁用 ❌'
-    CLOSE_COUNT_TABLE: str = '📊导出计数表格|已启用 ✅'
-    OPEN_UPLOAD_TABLE: str = '📊导出上传表格|已禁用 ❌'
-    CLOSE_UPLOAD_TABLE: str = '📊导出上传表格|已启用 ✅'
-    OPEN_EXIT_SHUTDOWN: str = '⏻退出后关机|已禁用 ❌'
-    CLOSE_EXIT_SHUTDOWN: str = '⏻退出后关机|已启用 ✅'
-    ALREADY_REMOVE: str = '✅已移除'
-    UPLOAD_SETTING: str = '📤上传行为设置'
-    DOWNLOAD_SETTING: str = '📥下载类型设置'
-    FORWARD_SETTING: str = '↗️转发类型设置'
-    OPEN_UPLOAD_DOWNLOAD: str = '下载后上传|已禁用 ❌'
-    CLOSE_UPLOAD_DOWNLOAD: str = '下载后上传|已启用 ✅'
-    OPEN_UPLOAD_DOWNLOAD_DELETE: str = '当前|本地文件保留 📚'
-    CLOSE_UPLOAD_DOWNLOAD_DELETE: str = '当前|本地文件删除 🗑'
-    VIDEO_ON: str = '🎬视频 ✅'
-    PHOTO_ON: str = '🖼️图片 ✅'
-    AUDIO_ON: str = '🎵音频 ✅'
-    VOICE_ON: str = '🎤语音 ✅'
-    ANIMATION_ON: str = '🎨GIF ✅'
-    DOCUMENT_ON: str = '📄文档 ✅'
-    TEXT_ON: str = '💬文本消息 ✅'
-    VIDEO_NOTE_ON: str = '📹视频笔记 ✅'
-    LIVE_PHOTO_ON: str = '📸实况图片 ✅'
-    VIDEO_OFF: str = '🎬视频 ❌'
-    PHOTO_OFF: str = '🖼️图片 ❌'
-    AUDIO_OFF: str = '🎵音频 ❌'
-    VOICE_OFF: str = '🎤语音 ❌'
-    ANIMATION_OFF: str = '🎨GIF ❌'
-    DOCUMENT_OFF: str = '📄文档 ❌'
-    TEXT_OFF: str = '💬文本消息 ❌'
-    VIDEO_NOTE_OFF: str = '📹视频笔记 ❌'
-    LIVE_PHOTO_OFF: str = '📸实况图片 ❌'
-    DATE_RANGE_SETTING: str = '📅设置日期范围'
-    SELECT_START_DATE: str = '⏮️选择起始日期'
-    SELECT_END_DATE: str = '⏭️选择结束日期'
-    INPUT_KEYWORD: str = '⌨️请向我发送关键词'
-    DOWNLOAD_DTYPE_SETTING: str = '📝设置下载类型'
-    KEYWORD_FILTER_SETTING: str = '🔑设置匹配关键词'
-    CONFIRM_KEYWORD: str = '✅确认关键词'
-    INCLUDE_COMMENT: str = '✅包含评论区'
-    IGNORE_COMMENT: str = '❌包含评论区'
-    CMD_DOWNLOAD: str = '⬇️下载'
-    CMD_UPLOAD: str = '📤上传'
-    CMD_UPLOAD_R: str = '📁递归上传'
-    CMD_DOWNLOAD_CHAT: str = '💬下载频道'
-    CMD_FORWARD: str = '↗️转发'
+    SUBSCRIBE_CHANNEL: str = '📌 Subscribe to channel'
+    VIDEO_TUTORIAL: str = '🎬 Video tutorial'
+    PROXY_SELLER: str = '🛒 Buy proxy'
+    PAY: str = '💰 Support the developer'
+    OPEN_NOTICE: str = '💬 Startup notice | Off ❌'
+    CLOSE_NOTICE: str = '💬 Startup notice | On ✅'
+    LINK_TABLE: str = '🔗 Link statistics'
+    COUNT_TABLE: str = '➕ Count statistics'
+    UPLOAD_TABLE: str = '📤 Upload statistics'
+    HELP_PAGE: str = '🛎️ Help page'
+    CLICK_VIEW: str = '🖱 Click to view'
+    CLICK_DOWNLOAD: str = '🖱 Click to download'
+    DOWNLOAD: str = '⬇️ Download'
+    DOWNLOAD_UPLOAD: str = '↕️ Download and upload'
+    TASK_ASSIGN: str = '🌟 Task assigned'
+    RETRIEVE_MESSAGE: str = '🔎 Searching messages'
+    RETRIEVE_COMMENT: str = '🔎 Searching comments'
+    ASSIGNING_TASK: str = '🚛 Assigning task'
+    DOWNLOAD_TASK_DOING: str = '⬇️ Download in progress'
+    DOWNLOAD_TASK_DONE: str = '✅ Download complete'
+    TASK_CANCEL: str = '🗑️ Task canceled'
+    EXECUTE_TASK: str = '▶️ Run task'
+    CANCEL_TASK: str = '⏹️ Cancel task'
+    OK: str = '✅ Confirm'
+    CANCEL: str = '❌ Cancel'
+    DROP: str = '🗑️ Remove'
+    REMOVE_AUTH: str = '🗑️ Remove authorization'
+    IGNORE: str = '👁️‍🗨️ Ignore'
+    RETURN: str = '🔙 Back'
+    CONFIRM_AND_RETURN: str = '↩️ Confirm and go back'
+    LOOKUP_LISTEN_INFO: str = '🔍 View listener details'
+    LOOKUP_AUTH_INFO: str = '🔍 View authorized users'
+    AUTH: str = '🔑 Add/remove authorized users'
+    VIEW_AUTH_LIST: str = '👥 View authorized users'
+    EXPORT_TABLE: str = '📊 Export table settings'
+    RESELECT: str = '🔄 Select again'
+    SETTING: str = '⚙️ Settings'
+    MENU_DOWNLOAD: str = '📁 Download'
+    MENU_LISTEN: str = '🕵️ Monitor'
+    MENU_UPLOAD: str = '📤 Upload'
+    DOWNLOAD_MENU_TITLE: str = '⬇️ Create a download task:'
+    LISTEN_MENU_TITLE: str = '🕵️ Create a monitoring task:'
+    UPLOAD_MENU_TITLE: str = '📤 Create an upload task:'
+    AUTH_MENU: str = '🔐 Authorized users'
+    LISTEN_DOWNLOAD_BTN: str = '🕵️ Monitor and download'
+    LISTEN_FORWARD_BTN: str = '📲 Monitor and forward'
+    OPEN_LINK_TABLE: str = '📊 Export link table | Off ❌'
+    CLOSE_LINK_TABLE: str = '📊 Export link table | On ✅'
+    OPEN_COUNT_TABLE: str = '📊 Export count table | Off ❌'
+    CLOSE_COUNT_TABLE: str = '📊 Export count table | On ✅'
+    OPEN_UPLOAD_TABLE: str = '📊 Export upload table | Off ❌'
+    CLOSE_UPLOAD_TABLE: str = '📊 Export upload table | On ✅'
+    OPEN_EXIT_SHUTDOWN: str = '⏻ Shut down after exit | Off ❌'
+    CLOSE_EXIT_SHUTDOWN: str = '⏻ Shut down after exit | On ✅'
+    ALREADY_REMOVE: str = '✅ Removed'
+    UPLOAD_SETTING: str = '📤 Upload behavior settings'
+    DOWNLOAD_SETTING: str = '📥 Download type settings'
+    FORWARD_SETTING: str = '↗️ Forwarding type settings'
+    OPEN_UPLOAD_DOWNLOAD: str = 'Upload after download | Off ❌'
+    CLOSE_UPLOAD_DOWNLOAD: str = 'Upload after download | On ✅'
+    OPEN_UPLOAD_DOWNLOAD_DELETE: str = 'Current | Keep local files 📚'
+    CLOSE_UPLOAD_DOWNLOAD_DELETE: str = 'Current | Delete local files 🗑'
+    VIDEO_ON: str = '🎬 Video ✅'
+    PHOTO_ON: str = '🖼️ Photo ✅'
+    AUDIO_ON: str = '🎵 Audio ✅'
+    VOICE_ON: str = '🎤 Voice ✅'
+    ANIMATION_ON: str = '🎨 GIF ✅'
+    DOCUMENT_ON: str = '📄 Document ✅'
+    TEXT_ON: str = '💬 Text messages ✅'
+    VIDEO_NOTE_ON: str = '📹 Video notes ✅'
+    LIVE_PHOTO_ON: str = '📸 Live photos ✅'
+    VIDEO_OFF: str = '🎬 Video ❌'
+    PHOTO_OFF: str = '🖼️ Photo ❌'
+    AUDIO_OFF: str = '🎵 Audio ❌'
+    VOICE_OFF: str = '🎤 Voice ❌'
+    ANIMATION_OFF: str = '🎨 GIF ❌'
+    DOCUMENT_OFF: str = '📄 Document ❌'
+    TEXT_OFF: str = '💬 Text messages ❌'
+    VIDEO_NOTE_OFF: str = '📹 Video notes ❌'
+    LIVE_PHOTO_OFF: str = '📸 Live photos ❌'
+    DATE_RANGE_SETTING: str = '📅 Set date range'
+    SELECT_START_DATE: str = '⏮️ Select start date'
+    SELECT_END_DATE: str = '⏭️ Select end date'
+    INPUT_KEYWORD: str = '⌨️ Send me a keyword'
+    DOWNLOAD_DTYPE_SETTING: str = '📝 Set download types'
+    KEYWORD_FILTER_SETTING: str = '🔑 Set keyword filters'
+    CONFIRM_KEYWORD: str = '✅ Confirm keywords'
+    INCLUDE_COMMENT: str = '✅ Include comments'
+    IGNORE_COMMENT: str = '❌ Exclude comments'
+    CMD_DOWNLOAD: str = '⬇️ Download'
+    CMD_UPLOAD: str = '📤 Upload'
+    CMD_UPLOAD_R: str = '📁 Upload recursively'
+    CMD_DOWNLOAD_CHAT: str = '💬 Download channel'
+    CMD_FORWARD: str = '↗️ Forward'

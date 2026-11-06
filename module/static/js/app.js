@@ -27,11 +27,11 @@ var LISTEN_TABS = ['forward', 'download'];  // 监听页的选项卡:转发、�
 var NOTICE_TABS = ['download', 'upload', 'forward'];  // 通知页的选项卡:下载、上传、转发。
 
 var STATE_TEXT = {
-    pending: '队列中',  // 排队中,尚未开始处理(对应后端 DownloadStatus.PENDING)。
-    downloading: '下载中',
-    success: '已完成',
-    skip: '已跳过',
-    failure: '失败'
+    pending: 'Queued',
+    downloading: 'Downloading',
+    success: 'Completed',
+    skip: 'Skipped',
+    failure: 'Failed'
 };
 var STATE_CLASS = {
     pending: 'status-pending',
@@ -48,16 +48,16 @@ var STATE_ICON = {
     failure: '❌'
 };
 
-var HEAD_LABELS = ['频道', '频道 / 链接', '频道 / 链接 / 名称'];  // 表头首列随当前展开的层级变化。
-var SIZE_LABELS = ['完成 / 总数', '完成 / 总数', '数量 / 大小'];  // 第三列同理,分组行是数量,成员行才是字节大小。
-var UPLOAD_HEAD_NAME = ['频道', '频道 / 文件路径'];  // 上传页只有频道与文件两级。
-var UPLOAD_HEAD_SIZE = ['完成 / 总数', '大小'];
+var HEAD_LABELS = ['Channel', 'Channel / Link', 'Channel / Link / Name'];
+var SIZE_LABELS = ['Completed / Total', 'Completed / Total', 'Count / Size'];
+var UPLOAD_HEAD_NAME = ['Channel', 'Channel / File Path'];
+var UPLOAD_HEAD_SIZE = ['Completed / Total', 'Size'];
 var UPLOAD_TEXT = {
-    pending: '队列中',
-    uploading: '上传中',
-    success: '已完成',
-    sent: '已完成',
-    failure: '失败'
+    pending: 'Queued',
+    uploading: 'Uploading',
+    success: 'Completed',
+    sent: 'Completed',
+    failure: 'Failed'
 };
 var UPLOAD_CLASS = {
     pending: 'status-pending',
@@ -78,11 +78,11 @@ var allCollapsed = false;
 var uploadAllCollapsed = false;
 var lastLinkCollapsed = true;  // 下载页链接层最后的手动选择,缺省折叠以保持原有默认。
 var lastUploadCollapsed = false;  // 上传页频道层最后的手动选择,缺省展开以保持原有默认。
-var UNGROUPED_NAME = '未分组';
+var UNGROUPED_NAME = 'Ungrouped';
 var NOTICE_EMPTY_TEXT = {
-    download: '暂无下载通知。',
-    upload: '暂无上传通知。',
-    forward: '暂无转发通知。'
+    download: 'No download notifications yet.',
+    upload: 'No upload notifications yet.',
+    forward: 'No forwarding notifications yet.'
 };
 var currentSection = 'download';
 var currentListen = 'forward';
@@ -130,12 +130,12 @@ function sizeText(bytes) {
 function secondsText(seconds) {
     var total = Math.floor(Number(seconds) || 0);
     if (total < 60) {
-        return total + '秒';
+        return total + ' sec';
     }
     if (total < 3600) {
-        return Math.floor(total / 60) + '分' + (total % 60) + '秒';
+        return Math.floor(total / 60) + ' min ' + (total % 60) + ' sec';
     }
-    return Math.floor(total / 3600) + '时' + Math.floor(total % 3600 / 60) + '分' + (total % 60) + '秒';
+    return Math.floor(total / 3600) + ' hr ' + Math.floor(total % 3600 / 60) + ' min ' + (total % 60) + ' sec';
 }
 
 function groupStat(members, live) {
@@ -173,13 +173,13 @@ function taskRow(task) {
         '<span class="cell-speed">' + dash(task.speed) + '</span>' +
         '<span class="cell-remain">' + dash(task.remaining) + '</span>' +
         '<span class="cell-status ' + (done ? 'status-done' : 'status-running') + '">' +
-        (done ? '已完成' : '下载中') + '</span>' +
+        (done ? 'Completed' : 'Downloading') + '</span>' +
         '</div>';
 }
 
 function memberRow(item) {
     var state = item.state || 'pending';
-    var text = STATE_TEXT[state] || '队列中';
+    var text = STATE_TEXT[state] || 'Queued';
     var cls = STATE_CLASS[state] || 'status-pending';
     var pending = state === 'pending';
     var progress;
@@ -208,12 +208,12 @@ function linkStatusCell(link) {
     var remaining = link.remaining || 0;
     var failed = link.failed || 0;
     if (remaining) {
-        return '<span class="cell-status status-pending">剩 ' + remaining + ' 条</span>';
+        return '<span class="cell-status status-pending">' + remaining + ' remaining</span>';
     }
     if (failed) {
-        return '<span class="cell-status status-failed">失败 ' + failed + ' 条</span>';
+        return '<span class="cell-status status-failed">' + failed + ' failed</span>';
     }
-    return '<span class="cell-status status-done">已完成</span>';
+    return '<span class="cell-status status-done">Completed</span>';
 }
 
 function getChannelGroups(links) {
@@ -267,7 +267,7 @@ function channelBlock(group, live) {
         '<span class="ficon">📺</span>' +
         '<span class="gname" title="' + escAttr(group.name || group.channel) + '">' +
         esc(group.name || group.channel) + '</span>' +
-        '<span class="gcount">' + group.count + ' 个链接</span></span>' +
+        '<span class="gcount">' + group.count + ' links</span></span>' +
         progressCell(group.percent) +
         '<span class="cell-size">' + group.complete + '/' + group.member + '</span>' +
         groupStatCells(stat) +
@@ -308,7 +308,7 @@ function linkBlock(link, live) {
         '<span class="cell-name"><span class="arrow"></span>' +
         '<span class="ficon">🔗</span>' +
         '<span class="fname" title="' + escAttr(link.link) + '">' + esc(link.link) + '</span>' +
-        '<span class="gcount">' + (link.queue_total || 0) + ' 条未完成 / 共 ' + (link.total || 0) + ' 条</span></span>' +
+        '<span class="gcount">' + (link.queue_total || 0) + ' remaining / ' + (link.total || 0) + ' total</span></span>' +
         progressCell(link.percent) +
         '<span class="cell-size">' + link.complete + '/' + link.member + '</span>' +
         groupStatCells(stat) +
@@ -321,7 +321,7 @@ function linkBlock(link, live) {
         html += task ? taskRow(task) : memberRow(member);  // 下载中的成员直接复用进度条任务行。
     }
     if (members.length === 0) {
-        html += '<div class="more">该链接暂无消息。</div>';
+        html += '<div class="more">No messages for this link.</div>';
     }
     return html + '</div></div>';
 }
@@ -375,11 +375,11 @@ function bindGroups() {
 }
 
 function syncToggleAll() {
-    document.getElementById('toggleAll').textContent = allCollapsed ? '全部展开' : '全部折叠';
+    document.getElementById('toggleAll').textContent = allCollapsed ? 'Expand All' : 'Collapse All';
 }
 
 function syncToggleUpload() {
-    document.getElementById('toggleUpload').textContent = uploadAllCollapsed ? '全部展开' : '全部折叠';
+    document.getElementById('toggleUpload').textContent = uploadAllCollapsed ? 'Expand All' : 'Collapse All';
 }
 
 function setAllGroups(selector, hide) {
@@ -521,7 +521,7 @@ function extraText(item) {
         extra += item.speed;
     }
     if (item.remaining) {
-        extra += (extra ? ' • 剩余' : '剩余') + item.remaining;
+        extra += (extra ? ' • ' : '') + 'Remaining: ' + item.remaining;
     }
     return extra;
 }
@@ -532,7 +532,7 @@ function renderOverall(summary, taskCount, ids) {
     document.getElementById(ids.percent).textContent = data.percent + '%';
     document.getElementById(ids.info).textContent = data.info;
     document.getElementById(ids.extra).textContent =
-        extraText(data) ? extraText(data) : (taskCount ? '正在测速' : '暂无速度');
+        extraText(data) ? extraText(data) : (taskCount ? 'Measuring speed…' : 'Speed unavailable');
     document.getElementById(ids.status).textContent = connectionStatus;
 }
 
@@ -541,17 +541,17 @@ var statFilter = {download: '', upload: ''};
 
 // 筛选后无匹配项时的空态文案,与统计卡片的筛选口径保持一致。
 var DOWNLOAD_EMPTY_TEXT = {
-    success: '暂无成功的下载任务。',
-    failure: '暂无失败的下载任务。',
-    skip: '暂无跳过的下载任务。',
-    active: '暂无下载中的任务。',
-    queue: '暂无队列中的下载任务。'
+    success: 'No completed downloads.',
+    failure: 'No failed downloads.',
+    skip: 'No skipped downloads.',
+    active: 'No downloads in progress.',
+    queue: 'No queued downloads.'
 };
 var UPLOAD_EMPTY_TEXT = {
-    success: '暂无上传成功的任务。',
-    failure: '暂无上传失败的任务。',
-    uploading: '暂无上传中的任务。',
-    pending: '暂无队列中的上传任务。'
+    success: 'No completed uploads.',
+    failure: 'No failed uploads.',
+    uploading: 'No uploads in progress.',
+    pending: 'No queued uploads.'
 };
 
 function statCell(label, value, cls, filter, scope) {
@@ -562,7 +562,7 @@ function statCell(label, value, cls, filter, scope) {
     var active = statFilter[scope] === filter;
     return '<div class="' + (active ? 'active ' : '') + '"' +
         ' data-filter="' + filter + '" data-scope="' + scope + '"' +
-        ' title="点击' + (active ? '取消筛选' : '只查看' + label) + '">' +
+        ' title="' + (active ? 'Click to clear filter' : 'Show only ' + label) + '">' +
         '<span>' + label + '</span><b' + (cls ? ' class="' + cls + '"' : '') + '>' +
         value + '</b></div>';
 }
@@ -650,20 +650,20 @@ function renderStatus() {
     // 下载、上传、监听三个板块的活跃情况统一显示在顶栏左侧,不再跟随当前板块切换。
     var parts = [];
     if (lastPaused) {
-        parts.push('已暂停');
+        parts.push('Paused');
     }
     if (lastDownloadActive) {
-        parts.push('下载 ' + lastDownloadActive);
+        parts.push('Downloads ' + lastDownloadActive);
     }
     if (lastUploadActive) {
-        parts.push('上传 ' + lastUploadActive);
+        parts.push('Uploads ' + lastUploadActive);
     }
     if (lastListenCount) {
-        parts.push('监听 ' + lastListenCount);
+        parts.push('Listeners ' + lastListenCount);
     }
     var active = parts.length > 0;
     document.getElementById('dot').className = active ? 'dot active' : 'dot';
-    document.getElementById('statusText').textContent = active ? parts.join(' · ') : '空闲 · 等待任务';
+    document.getElementById('statusText').textContent = active ? parts.join(' · ') : 'Idle · Waiting for tasks';
 }
 
 function renderList(data) {
@@ -681,7 +681,7 @@ function renderList(data) {
        否则全部下载完成后 data.tasks 为空,已完成的成员会被空态整块隐藏,
        需新建任务才重新出现。 */
     // 处于筛选状态时,无匹配项应提示具体的筛选条件,而非笼统的"暂无下载任务。"。
-    var emptyText = '暂无下载任务。';
+    var emptyText = 'No download tasks yet.';
     if (statFilter.download) {
         emptyText = DOWNLOAD_EMPTY_TEXT[statFilter.download] || emptyText;
     }
@@ -700,7 +700,7 @@ function listenRow(kind, source, target) {
         html += '<span class="cell-name"><span class="ficon">➡️</span>' +
             '<span class="fname" title="' + escAttr(target) + '">' + esc(target) + '</span></span>';
     }
-    html += '<span class="cell-action"><button class="btn-del" type="button" title="移除该监听"' +
+    html += '<span class="cell-action"><button class="btn-del" type="button" title="Remove listener"' +
         ' data-kind="' + kind + '" data-link="' + escAttr(link) + '">✖</button></span>';
     return html + '</div>';
 }
@@ -714,12 +714,12 @@ function renderListeners(listeners) {
     for (i = 0; i < forward.length; i++) {
         html += listenRow('forward', forward[i].source, forward[i].target);
     }
-    document.getElementById('listenForward').innerHTML = html ? html : '<div class="empty">暂无监听转发。</div>';
+    document.getElementById('listenForward').innerHTML = html ? html : '<div class="empty">No forwarding listeners yet.</div>';
     html = '';
     for (i = 0; i < download.length; i++) {
         html += listenRow('download', download[i]);
     }
-    document.getElementById('listenDownload').innerHTML = html ? html : '<div class="empty">暂无监听下载。</div>';
+    document.getElementById('listenDownload').innerHTML = html ? html : '<div class="empty">No download listeners yet.</div>';
     return forward.length + download.length;
 }
 
@@ -804,14 +804,14 @@ var STORAGE_KEY = 'trmd_storage';  // 记录页选项卡的本地存储键。
 var STORAGE_POLL_INTERVAL_MS = 3000;  // 记录页的轮询间隔,比进度页稀疏,避免频繁查询数据库。
 
 var STORAGE_EMPTY_TEXT = {
-    download: '暂无下载存储。',
-    upload: '暂无上传存储。'
+    download: 'No download records yet.',
+    upload: 'No upload records yet.'
 };
 var currentStorage = 'download';
 var STORAGE_TEXT = {
-    success: '成功',
-    skip: '已跳过',
-    failure: '失败'
+    success: 'Completed',
+    skip: 'Skipped',
+    failure: 'Failed'
 };
 var STORAGE_CLASS = {
     success: 'status-done',
@@ -822,10 +822,10 @@ var STORAGE_ICON = {
     download: '📥',
     upload: '📤'
 };
-var STORAGE_UPLOAD_LINK = '本地上传';  // 上传存储没有下载链接,链接列统一显示该文案。
+var STORAGE_UPLOAD_LINK = 'Local upload';
 var STORAGE_HEADERS = {
-    download: ['频道 / 消息', '文件', '链接', '大小', '消息ID', '类型', '状态', '时间'],
-    upload:   ['频道', '文件路径', '大小', '类型', '状态', '时间']
+    download: ['Channel / Message', 'File', 'Link', 'Size', 'Message ID', 'Type', 'Status', 'Time'],
+    upload:   ['Channel', 'File Path', 'Size', 'Type', 'Status', 'Time']
 };
 var STORAGE_COLS = {
     download: '150px minmax(200px, 1fr) 200px 100px 90px 90px 90px 150px',
@@ -839,7 +839,7 @@ var STORAGE_FILTER_COLS = {
         {key: 'chat', kind: 'text'},
         {key: 'file', kind: 'text'},
         {key: 'link', kind: 'text'},
-        {key: 'size', kind: 'number', unit: 'MB', arg: '输入大小(MB)'},
+        {key: 'size', kind: 'number', unit: 'MB', arg: 'Enter size (MB)'},
         {key: 'mid', kind: 'number'},
         {key: 'type', kind: 'text'},
         {key: 'state', kind: 'text'},
@@ -848,7 +848,7 @@ var STORAGE_FILTER_COLS = {
     upload: [
         {key: 'chat', kind: 'text'},
         {key: 'path', kind: 'text'},
-        {key: 'size', kind: 'number', unit: 'MB', arg: '输入大小(MB)'},
+        {key: 'size', kind: 'number', unit: 'MB', arg: 'Enter size (MB)'},
         {key: 'type', kind: 'text'},
         {key: 'state', kind: 'text'},
         {key: 'time', kind: 'date'}
@@ -856,38 +856,38 @@ var STORAGE_FILTER_COLS = {
 };
 var STORAGE_FILTER_OPS = {  // 自定义条件的运算符,按列类型分组。
     text: [
-        {op: 'contains', label: '包含'},
-        {op: 'equals', label: '等于'},
-        {op: 'notEquals', label: '不等于'},
-        {op: 'begins', label: '开头是'},
-        {op: 'ends', label: '结尾是'}
+        {op: 'contains', label: 'Contains'},
+        {op: 'equals', label: 'Equals'},
+        {op: 'notEquals', label: 'Does not equal'},
+        {op: 'begins', label: 'Starts with'},
+        {op: 'ends', label: 'Ends with'}
     ],
     number: [
-        {op: 'greater', label: '大于'},
-        {op: 'less', label: '小于'},
-        {op: 'equals', label: '等于'},
-        {op: 'between', label: '介于'}
+        {op: 'greater', label: 'Greater than'},
+        {op: 'less', label: 'Less than'},
+        {op: 'equals', label: 'Equals'},
+        {op: 'between', label: 'Between'}
     ],
     date: [
-        {op: 'equals', label: '等于'},
-        {op: 'after', label: '晚于'},
-        {op: 'before', label: '早于'},
-        {op: 'between', label: '介于'}
+        {op: 'equals', label: 'On'},
+        {op: 'after', label: 'After'},
+        {op: 'before', label: 'Before'},
+        {op: 'between', label: 'Between'}
     ]
 };
 var STORAGE_FILTER_CUSTOM_LABEL = {  // 面板里切换自定义条件的入口文案。
-    text: '文本筛选',
-    number: '数字筛选',
-    date: '日期筛选'
+    text: 'Filter text',
+    number: 'Filter numbers',
+    date: 'Filter dates'
 };
 var STORAGE_FILTER_ARG_LABEL = {  // 自定义条件输入框的占位符。
-    text: '输入关键字',
-    number: '输入数值',
-    date: '输入日期(YYYY-MM-DD)'
+    text: 'Enter a keyword',
+    number: 'Enter a value',
+    date: 'Enter a date (YYYY-MM-DD)'
 };
 var STORAGE_FILTER_EMPTY = {  // 筛选后无结果时的空态文案。
-    download: '没有符合筛选条件的下载记录。',
-    upload: '没有符合筛选条件的上传记录。'
+    download: 'No download records match the current filters.',
+    upload: 'No upload records match the current filters.'
 };
 var STORAGE_FILTER_KEY = 'trmd_storage_filters';  // 筛选条件的本地存储键,刷新后仍生效。
 var FILTER_MB = 1024 * 1024;  // 大小列自定义条件按MB输入,保存时换算为字节与size_byte比较。
@@ -921,7 +921,7 @@ function applyStorageLayout() {
     for (var i = 0; i < headers.length; i++) {
         var active = cols[i] && storageFilters[currentStorage][cols[i].key] ? ' active' : '';
         html += '<span><span class="htext">' + esc(headers[i]) + '</span>' +
-            '<button type="button" class="hfilter' + active + '" data-filter="' + cols[i].key + '" title="筛选">' +
+            '<button type="button" class="hfilter' + active + '" data-filter="' + cols[i].key + '" title="Filter">' +
             STORAGE_FILTER_ICONS + '</button></span>';
     }
     head.innerHTML = html;
@@ -998,7 +998,7 @@ function storageCell(column, row, cls, inner, title) {
 function storageGroupCell(group, startRow, len) {
     var first = group[0];
     var chat = first.chat || UNGROUPED_NAME;
-    var badge = len > 1 ? '<span class="storage-msg-count">' + len + ' 个文件</span>' : '';
+    var badge = len > 1 ? '<span class="storage-msg-count">' + len + ' files</span>' : '';
     var linkHtml = '';
     if (currentStorage !== 'upload') {
         var link = first.link || STORAGE_UPLOAD_LINK;  // 下载才有真实消息链接;上传无链接,显示"本地上传"。
@@ -1279,8 +1279,8 @@ function updateStoragePager(count, index, shown, messages, start, end, total) {
         next.disabled = (index >= count - 1);
     }
     if (meta) {
-        meta.textContent = (hasStorageFilter() ? '筛选后 ' + shown + ' 条 · 共 ' + total + ' 条' : '共 ' + total + ' 条') +
-            ' · ' + messages + ' 个消息' + (count ? (' · 本页第 ' + start + '-' + end + ' 条') : '');
+        meta.textContent = (hasStorageFilter() ? 'Filtered: ' + shown + ' of ' + total : total + ' records') +
+            ' · ' + messages + ' messages' + (count ? (' · This page: ' + start + '–' + end) : '');
     }
 }
 
@@ -1293,7 +1293,7 @@ function goStoragePage(delta) {
 function applyPageSizeLabel(size) {
     var valEl = document.getElementById('storagePageSizeVal');
     if (valEl) {
-        valEl.textContent = size === 0 ? '全部' : String(size);
+        valEl.textContent = size === 0 ? 'All' : String(size);
     }
     var pop = document.getElementById('storagePageSizePop');
     if (pop) {
@@ -1717,12 +1717,12 @@ function buildStorageFilterPop() {
     var pop = document.createElement('div');
     pop.className = 'hfilter-pop';
     var html = '';
-    html += '<div class="hfilter-search"><input type="text" class="hfilter-search-input trmd-input" placeholder="搜索"></div>';
+    html += '<div class="hfilter-search"><input type="text" class="hfilter-search-input trmd-input" placeholder="Search"></div>';
     html += '<div class="hfilter-list">';
     html += '<label class="hfilter-item hfilter-all-item"><input type="checkbox" class="hfilter-all-box">' +
-        '<span class="hfilter-label">(全选)</span></label>';
+        '<span class="hfilter-label">(Select all)</span></label>';
     html += '<div class="hfilter-values"></div>';
-    html += '<div class="hfilter-none" hidden>无匹配值</div>';
+    html += '<div class="hfilter-none" hidden>No matching values</div>';
     html += '</div>';
     html += '<div class="hfilter-custom" hidden>';
     // 运算符下拉复用每页条数的自定义下拉结构(.pager-select),不用浏览器原生select。
@@ -1738,14 +1738,14 @@ function buildStorageFilterPop() {
     html += '</div></div>';
     html += '<div class="hfilter-args">' +
         '<input type="text" class="hfilter-arg trmd-input" placeholder="' + escAttr(argLabel) + '">' +
-        '<input type="text" class="hfilter-arg hfilter-arg2 trmd-input" placeholder="至" hidden>' +
+        '<input type="text" class="hfilter-arg hfilter-arg2 trmd-input" placeholder="To" hidden>' +
         '</div>';
     html += '</div>';
     html += '<div class="hfilter-switch">' +
         '<button type="button" class="hfilter-custom-btn">' + esc(STORAGE_FILTER_CUSTOM_LABEL[kind]) + '</button></div>';
     html += '<div class="hfilter-foot">' +
-        '<button type="button" class="hfilter-ok">确定</button>' +
-        '<button type="button" class="hfilter-cancel">取消</button></div>';
+        '<button type="button" class="hfilter-ok">Apply</button>' +
+        '<button type="button" class="hfilter-cancel">Cancel</button></div>';
     pop.innerHTML = html;
     return pop;
 }
@@ -1919,7 +1919,7 @@ function bindStorageFilterPop(pop) {
         }
         if (allBox) allBox.disabled = true;
         var tip = document.createElement('div');
-        tip.textContent = '以下勾选的为当前条件匹配项（只读）';
+        tip.textContent = 'Checked items match the current filter (read-only).';
         tip.style.cssText = 'font-size:11px;color:#999;padding:2px 0 4px;';
         valuesBox.insertBefore(tip, valuesBox.firstChild);
     }
@@ -2015,7 +2015,7 @@ function bindStorageFilterPop(pop) {
         if (customView.hidden) {
             // 值列表视图:进入自定义视图(保留设置自定义条件的入口)。
             customView.hidden = false;
-            customBtn.textContent = '重置';
+            customBtn.textContent = 'Reset';
             syncFilterOpDisplay(pop, panel.custom.op);
             // 大小列按MB输入,回填时把存储的字节换算回MB显示,与输入框占位符单位一致。
             argInput.value = (col && col.unit === 'MB' && panel.custom.value !== '')
@@ -2055,7 +2055,7 @@ function bindStorageFilterPop(pop) {
     var cond = storageFilters[currentStorage][storageFilterCol];
     if (cond && cond.mode === 'custom') {
         customView.hidden = false;
-        customBtn.textContent = '重置';  // 当前已在自定义视图,按钮语义为放弃自定义条件回到值列表。
+        customBtn.textContent = 'Reset';
         syncFilterOpDisplay(pop, panel.custom.op);
         // 大小列按MB输入,回填时把存储的字节换算回MB显示,与输入框占位符单位一致。
         argInput.value = (col && col.unit === 'MB' && panel.custom.value !== '')
@@ -2199,7 +2199,7 @@ var confirmResolve = null;
 
 function askConfirm(text, title) {
     return new Promise(function (resolve) {
-        document.getElementById('confirmTitle').textContent = title || '确认操作';
+        document.getElementById('confirmTitle').textContent = title || 'Confirm Action';
         document.getElementById('confirmText').textContent = text || '';
         confirmResolve = resolve;
         document.getElementById('confirmModal').hidden = false;
@@ -2298,7 +2298,7 @@ async function logout() {
     if (dropdown) {
         dropdown.hidden = true;  // 先收起菜单,避免与询问框叠加。
     }
-    var ok = await askConfirm('退出后需要重新输入账号密码。', '退出登录');
+    var ok = await askConfirm('You will need to enter your username and password again.', 'Log Out');
     if (!ok) {
         return;
     }
@@ -2364,7 +2364,7 @@ async function submitLogin() {
         });
         var data = await res.json();
         if (!data.status) {
-            await askAlert('账号或密码不正确，请重新输入。', '登录失败');
+            await askAlert('Incorrect username or password. Please try again.', 'Login Failed');
             return;
         }
         // 勾选"30天内免登录"时服务端已下发Cookie;未勾选则把令牌留在本标签页。
@@ -2379,7 +2379,7 @@ async function submitLogin() {
         }
         refresh();
     } catch (e) {
-        await askAlert('无法连接程序,请稍后重试。', '登录失败');
+        await askAlert('Unable to connect to TRMD. Please try again later.', 'Login Failed');
     }
 }
 
@@ -2415,7 +2415,7 @@ async function removeListener(kind, link) {
         return;  // 同一监听已在确认或处理中,忽略重复点击。
     }
     removingListener[link] = true;
-    var ok = await askConfirm('确定移除该监听?\n' + link, '移除监听');
+    var ok = await askConfirm('Remove this listener?\n' + link, 'Remove Listener');
     if (!ok) {
         delete removingListener[link];
         return;
@@ -2428,10 +2428,10 @@ async function removeListener(kind, link) {
         });
         var data = await res.json();
         if (!data.status) {
-            window.alert('移除失败:' + (data.e_code || '未知错误。'));
+            window.alert('Failed to remove listener: ' + (data.e_code || 'Unknown error.'));
         }
     } catch (e) {
-        window.alert('移除失败:无法连接程序。');
+        window.alert('Failed to remove listener: Unable to connect to TRMD.');
     }
     delete removingListener[link];
     refresh();  // 移除后立即刷新,无需等待下一次轮询。
@@ -2446,10 +2446,10 @@ async function setPause(paused) {
         });
         var data = await res.json();
         if (!data.status) {
-            window.alert('操作失败:' + (data.e_code || '未知错误。'));
+            window.alert('Action failed: ' + (data.e_code || 'Unknown error.'));
         }
     } catch (e) {
-        window.alert('操作失败:无法连接程序。');
+        window.alert('Action failed: Unable to connect to TRMD.');
     }
     // 乐观更新:服务端通过事件循环异步切换标志,立即刷新拿到的快照可能仍是旧值,
     // 会导致按钮文字与 lastPaused 滞后约一个轮询周期、期间无法反向切换。
@@ -2466,7 +2466,7 @@ function renderPauseState(isPaused) {
     }
     // 图标用 U+FE0F 以 emoji 彩色字形呈现(⏸️ / ▶️),两种 emoji 字形高度一致,
     // 不会造成顶栏高度抖动、下方卡片下移。
-    btn.textContent = isPaused ? '▶\uFE0F恢复' : '⏸\uFE0F暂停';
+    btn.textContent = isPaused ? '▶\uFE0F Resume' : '⏸\uFE0F Pause';
     btn.classList.toggle('paused', !!isPaused);
 }
 
@@ -2579,7 +2579,7 @@ function uploadCount(tasks) {
 
 function uploadRow(file) {
     var state = file.state || 'pending';
-    var text = UPLOAD_TEXT[state] || '队列中';
+    var text = UPLOAD_TEXT[state] || 'Queued';
     var cls = UPLOAD_CLASS[state] || 'status-pending';
     var progress;
     if (uploadDone(file)) {
@@ -2605,12 +2605,12 @@ function uploadRow(file) {
 
 function uploadStatusCell(group) {
     if (group.failed) {
-        return '<span class="cell-status status-failed">失败 ' + group.failed + ' 个</span>';
+        return '<span class="cell-status status-failed">' + group.failed + ' failed</span>';
     }
     if (group.complete === group.count) {
-        return '<span class="cell-status status-done">已完成</span>';
+        return '<span class="cell-status status-done">Complete</span>';
     }
-    return '<span class="cell-status status-running">上传中</span>';
+    return '<span class="cell-status status-running">Uploading</span>';
 }
 
 function uploadBlock(group) {
@@ -2637,7 +2637,7 @@ function uploadBlock(group) {
         '<span class="cell-name"><span class="arrow"></span>' +
         '<span class="ficon">📺</span>' +
         '<span class="gname" title="' + escAttr(group.name) + '">' + esc(group.name) + '</span>' +
-        '<span class="gcount">' + group.count + ' 个文件</span></span>' +
+        '<span class="gcount">' + group.count + ' files</span></span>' +
         progressCell(group.percent) +
         '<span class="cell-size">' + group.complete + '/' + group.count + '</span>' +
         groupStatCells(group.stat) +
@@ -2652,7 +2652,7 @@ function uploadBlock(group) {
 
 function uploadList(tasks) {
     if (tasks.length === 0) {
-        return '<div class="empty">暂无上传任务。</div>';
+        return '<div class="empty">No upload tasks yet.</div>';
     }
     var html = '';
     var groups = getUploadGroups(tasks);  // 频道 > 文件完整路径,一级可折叠。
@@ -2660,7 +2660,7 @@ function uploadList(tasks) {
         html += uploadBlock(groups[i]);
     }
     if (statFilter.upload && !html) {
-        return '<div class="empty">' + (UPLOAD_EMPTY_TEXT[statFilter.upload] || '没有符合条件的文件。') + '</div>';
+        return '<div class="empty">' + (UPLOAD_EMPTY_TEXT[statFilter.upload] || 'No files match the current filter.') + '</div>';
     }
     return html;
 }
@@ -2694,7 +2694,7 @@ function renderUpload(uploads) {
            否则全部上传结束后 count.active 为 0,已完成的文件会被空态整块隐藏,
            需新建任务才重新出现。 */
         // 处于筛选状态时,无匹配项应提示具体的筛选条件,而非笼统的"暂无上传任务。"。
-        var uploadEmpty = '暂无上传任务。';
+        var uploadEmpty = 'No upload tasks yet.';
         if (statFilter.upload) {
             uploadEmpty = UPLOAD_EMPTY_TEXT[statFilter.upload] || uploadEmpty;
         }
@@ -2708,10 +2708,10 @@ function renderUpload(uploads) {
     renderOverall(uploadSummary(uploads), count.active, SUMMARY_IDS.upload);
     lastUploadFinished = count.success + count.failure;
     renderStat('uploadStat', [
-        statCell('成功', count.success, 'ok', 'success', 'upload'),
-        statCell('失败', count.failure, 'bad', 'failure', 'upload'),
-        statCell('上传中', count.uploading, '', 'uploading', 'upload'),
-        statCell('队列', count.pending, 'skip', 'pending', 'upload')
+        statCell('Completed', count.success, 'ok', 'success', 'upload'),
+        statCell('Failed', count.failure, 'bad', 'failure', 'upload'),
+        statCell('Uploading', count.uploading, '', 'uploading', 'upload'),
+        statCell('Queued', count.pending, 'skip', 'pending', 'upload')
     ]);
     return count.active;
 }
@@ -2850,11 +2850,11 @@ function render(data, force) {
     if (currentSection === 'download') {
         renderOverall(data.summary, downloads, SUMMARY_IDS.download);
         renderStat('stat', [
-            statCell('成功', data.count.success, 'ok', 'success', 'download'),
-            statCell('失败', data.count.failure, 'bad', 'failure', 'download'),
-            statCell('跳过', data.count.skip, 'skip', 'skip', 'download'),
-            statCell('下载中', downloads, '', 'active', 'download'),
-            statCell('队列', countQueueMembers(data.links), 'queue', 'queue', 'download')
+            statCell('Completed', data.count.success, 'ok', 'success', 'download'),
+            statCell('Failed', data.count.failure, 'bad', 'failure', 'download'),
+            statCell('Skipped', data.count.skip, 'skip', 'skip', 'download'),
+            statCell('Downloading', downloads, '', 'active', 'download'),
+            statCell('Queued', countQueueMembers(data.links), 'queue', 'queue', 'download')
         ]);
     }
     lastUploadActive = renderUpload(data.uploads || []);
@@ -3058,17 +3058,17 @@ function checkConfigConflict(dirChanged, tasksChanged, retriesChanged, lastSnaps
     var conflictParts = [];
     if (dirChanged && lastSnapshot && settingsOriginal
         && (lastSnapshot.save_directory || '') !== settingsOriginal.save_directory) {
-        conflictParts.push('保存目录');
+        conflictParts.push('save directory');
     }
     if (tasksChanged && lastSnapshot && lastSnapshot.max_tasks && settingsOriginal
         && (lastSnapshot.max_tasks.download !== settingsOriginal.max_tasks.download
             || lastSnapshot.max_tasks.upload !== settingsOriginal.max_tasks.upload)) {
-        conflictParts.push('并发数');
+        conflictParts.push('concurrency');
     }
     if (retriesChanged && lastSnapshot && lastSnapshot.max_retries && settingsOriginal
         && (lastSnapshot.max_retries.download !== settingsOriginal.max_retries.download
             || lastSnapshot.max_retries.upload !== settingsOriginal.max_retries.upload)) {
-        conflictParts.push('重试次数');
+        conflictParts.push('retry count');
     }
     return conflictParts;
 }
@@ -3108,7 +3108,7 @@ async function applyConfig() {
     var dirInput = document.getElementById('saveDirInput');
     var path = (dirInput.value || '').trim();
     if (!path) {
-        await askAlert('保存目录不能为空。', '修改配置');
+        await askAlert('The save directory cannot be empty.', 'Edit Settings');
         return;
     }
     var maxTasks = {download: numVal('maxDownload'), upload: numVal('maxUpload')};
@@ -3116,19 +3116,19 @@ async function applyConfig() {
     /* 字段级校验:用户改了哪个就只提示哪个;多个都有问题时再一起提示。 */
     var _errParts = [];
     if (maxTasks.download === null || maxTasks.download < 1 || maxTasks.download > 10) {
-        _errParts.push('下载并发数必须是1到10之间的整数');
+        _errParts.push('The maximum number of concurrent downloads must be an integer from 1 to 10');
     }
     if (maxTasks.upload === null || maxTasks.upload < 1 || maxTasks.upload > 10) {
-        _errParts.push('上传并发数必须是1到10之间的整数');
+        _errParts.push('The maximum number of concurrent uploads must be an integer from 1 to 10');
     }
     if (maxRetries.download === null || maxRetries.download < 1) {
-        _errParts.push('下载重试次数必须大于0');
+        _errParts.push('The maximum number of download retries must be greater than 0');
     }
     if (maxRetries.upload === null || maxRetries.upload < 1) {
-        _errParts.push('上传重试次数必须大于0');
+        _errParts.push('The maximum number of upload retries must be greater than 0');
     }
     if (_errParts.length) {
-        await askAlert(_errParts.join('，') + '。', '修改配置');
+        await askAlert(_errParts.join('. ') + '.', 'Edit Settings');
         return;
     }
     /* 只提交真正改动的项:未改动的接口不再请求(后端就不会重复写配置),
@@ -3141,7 +3141,7 @@ async function applyConfig() {
         || settingsOriginal.max_retries.download !== maxRetries.download
         || settingsOriginal.max_retries.upload !== maxRetries.upload;
     if (!dirChanged && !tasksChanged && !retriesChanged) {
-        await askAlert('未做任何修改。', '修改配置');
+        await askAlert('No changes were made.', 'Edit Settings');
         return;
     }
     try {
@@ -3150,7 +3150,7 @@ async function applyConfig() {
         var conflictParts = checkConfigConflict(dirChanged, tasksChanged, retriesChanged, lastSnapshot, settingsOriginal);
         if (conflictParts.length) {
             var goon = await askConfirm(
-                conflictParts.join('、') + '已在别处被修改，应用将覆盖该改动，是否继续？', '修改配置');
+                conflictParts.join(', ') + ' changed elsewhere. Applying will overwrite those changes. Continue?', 'Edit Settings');
             if (!goon) {
                 syncSettingsFromSnapshot();
                 return;
@@ -3178,7 +3178,7 @@ async function applyConfig() {
         /* 保存目录不存在时后端不创建、不落盘,先回来请求二次确认:
            取消则什么都不改;确定则带confirm_directory重新提交,由后端创建目录再保存。 */
         if (data.need_confirm) {
-            var ok = await askConfirm((data.e_code || '目录不存在，是否创建') + '。', '修改配置');
+            var ok = await askConfirm(data.e_code || 'The directory does not exist. Create it?', 'Edit Settings');
             if (!ok) {
                 return;
             }
@@ -3186,7 +3186,7 @@ async function applyConfig() {
             conflictParts = checkConfigConflict(dirChanged, tasksChanged, retriesChanged, lastSnapshot, settingsOriginal);
             if (conflictParts.length) {
                 var goon2 = await askConfirm(
-                    conflictParts.join('、') + '已在别处被修改，应用将覆盖该改动，是否继续？', '修改配置');
+                    conflictParts.join(', ') + ' changed elsewhere. Applying will overwrite those changes. Continue?', 'Edit Settings');
                 if (!goon2) {
                     syncSettingsFromSnapshot();
                     return;
@@ -3201,7 +3201,7 @@ async function applyConfig() {
             data = await res.json();
         }
         if (!data.status) {
-            await askAlert((data.e_code || '配置更新失败') + '。', '修改配置');
+            await askAlert((data.e_code || 'Failed to update settings.') + '.', 'Edit Settings');
             return;
         }
         if (dirChanged && lastSnapshot) {
@@ -3220,9 +3220,9 @@ async function applyConfig() {
             max_tasks: {download: maxTasks.download, upload: maxTasks.upload},
             max_retries: {download: maxRetries.download, upload: maxRetries.upload}
         };
-        await askAlert('配置已生效。', '修改配置');
+        await askAlert('Settings have been applied.', 'Edit Settings');
     } catch (e) {
-        await askAlert('请求失败：' + e + '。', '修改配置');
+        await askAlert('Request failed: ' + e + '.', 'Edit Settings');
     }
 }
 

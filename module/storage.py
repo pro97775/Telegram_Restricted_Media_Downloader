@@ -200,7 +200,7 @@ class SqliteStorageDatabase(StorageDatabase):
         try:
             os.makedirs(self.work_directory, exist_ok=True)
         except Exception as e:
-            log.error(f'创建会话目录"{self.work_directory}"失败,{_t(KeyWord.REASON)}:"{e}"')
+            log.error(f'Failed to create the session directory "{self.work_directory}", {_t(KeyWord.REASON)}: "{e}"')
             return False
         recreated: bool = False
         while True:
@@ -212,17 +212,17 @@ class SqliteStorageDatabase(StorageDatabase):
             except sqlite3.DatabaseError as e:
                 await self.close()
                 if recreated:
-                    log.error(f'打开数据库"{self.storage_path}"失败,{_t(KeyWord.REASON)}:"{e}"')
+                    log.error(f'Failed to open database "{self.storage_path}", {_t(KeyWord.REASON)}: "{e}"')
                     return False
                 # 记录库文件损坏(如被其它工具改动)时删除重建,重建后仍失败则放弃记录功能。
                 recreated = True
-                log.warning(f'数据库"{self.storage_path}"损坏,即将删除重建,{_t(KeyWord.REASON)}:"{e}"')
+                log.warning(f'Database "{self.storage_path}" is corrupted and will be deleted and recreated. {_t(KeyWord.REASON)}: "{e}"')
                 safe_delete(self.storage_path)
             except Exception as e:
-                log.error(f'打开数据库失败,{_t(KeyWord.REASON)}:"{e}"')
+                log.error(f'Failed to open database, {_t(KeyWord.REASON)}: "{e}"')
                 await self.close()
                 return False
-        log.info(f'数据库路径:"{self.storage_path}"。')
+        log.info(f'Database path: "{self.storage_path}".')
         return True
 
     async def close(self) -> None:
@@ -234,7 +234,7 @@ class SqliteStorageDatabase(StorageDatabase):
         try:
             conn.close()
         except Exception as e:
-            log.warning(f'关闭数据库失败,{_t(KeyWord.REASON)}:"{e}"')
+            log.warning(f'Failed to close database, {_t(KeyWord.REASON)}: "{e}"')
 
     async def create(self) -> None:
         """建表,表已存在时无副作用,重复打开安全。"""
@@ -248,7 +248,7 @@ class SqliteStorageDatabase(StorageDatabase):
         更新原记录而不是再插一行,避免记录表出现同一文件多条重复条目。
         """
         if not storage.file_path:
-            log.warning(f'数据库缺少文件路径,已拒绝写入:"{storage.file_name}"。')
+            log.warning(f'Database record has no file path; refusing to write "{storage.file_name}".')
             return False
         now: int = int(time.time())
         storage.create_time = storage.create_time or now
@@ -306,7 +306,7 @@ class SqliteStorageDatabase(StorageDatabase):
                 storage.storage_id = cursor.lastrowid
             return True
         except Exception as e:
-            log.warning(f'写入数据库失败,{_t(KeyWord.REASON)}:"{e}"')
+            log.warning(f'Failed to write to database, {_t(KeyWord.REASON)}: "{e}"')
             return False
 
     async def get_storages(
@@ -327,7 +327,7 @@ class SqliteStorageDatabase(StorageDatabase):
             query += ' ORDER BY storage_id DESC'
             rows: list = self.conn.execute(query, params).fetchall()
         except Exception as e:
-            log.warning(f'读取数据库失败,{_t(KeyWord.REASON)}:"{e}"')
+            log.warning(f'Failed to read database, {_t(KeyWord.REASON)}: "{e}"')
             return []
         return [self.__build_storage(row) for row in rows]
 
@@ -345,7 +345,7 @@ class SqliteStorageDatabase(StorageDatabase):
                 f'SELECT storage_id, file_path FROM {self.TABLE_NAME}'
             ).fetchall()
         except Exception as e:
-            log.warning(f'读取数据库失败,{_t(KeyWord.REASON)}:"{e}"')
+            log.warning(f'Failed to read database, {_t(KeyWord.REASON)}: "{e}"')
             return 0
         dirs: Dict[str, List[tuple]] = {}  # 父目录 -> [(storage_id, file_path), ...]
         missing_ids: List[int] = []  # 直接判定失效的记录ID(没有路径的记录本就不该存在)。
@@ -388,7 +388,7 @@ class SqliteStorageDatabase(StorageDatabase):
                 )
         if missing_ids:
             self.__remove_storages(storage_ids=missing_ids)
-            log.info(f'已丢弃{len(missing_ids)}条文件已不存在的数据记录。')
+            log.info(f'Discarded {len(missing_ids)} database record(s) whose files no longer exist.')
         return len(missing_ids)
 
     def __stat_dir(self, parent: str) -> Union[Tuple[float, bool], None]:
@@ -419,7 +419,7 @@ class SqliteStorageDatabase(StorageDatabase):
                 )
             return True
         except Exception as e:
-            log.warning(f'在数据库中补全频道标题失败,{_t(KeyWord.REASON)}:"{e}"')
+            log.warning(f'Failed to backfill channel titles in the database, {_t(KeyWord.REASON)}: "{e}"')
             return False
 
     def __remove_storages(self, storage_ids: List[int]) -> bool:
@@ -435,7 +435,7 @@ class SqliteStorageDatabase(StorageDatabase):
                     )
             return True
         except Exception as e:
-            log.warning(f'删除数据库记录失败,{_t(KeyWord.REASON)}:"{e}"')
+            log.warning(f'Failed to delete database records, {_t(KeyWord.REASON)}: "{e}"')
             return False
 
     @staticmethod

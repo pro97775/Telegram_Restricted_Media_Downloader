@@ -27,41 +27,41 @@ class TelegramRestrictedMediaDownloaderArgumentParser(ArgumentParser):
             '-h', '--help',
             action='help',
             default=SUPPRESS,
-            help='展示帮助'
+            help='Show this help message'
         )
         self.add_argument(
             '-v', '--version',
             action='version',
             version=f'{SOFTWARE_SHORT_NAME} {VERSION_SEMVER}',
             default=SUPPRESS,
-            help='展示版本信息'
+            help='Show version information'
         )
         self.add_argument(
             '-q', '--quiet',
             action='store_true',
             default=False,
-            help='跳过重新配置文件的确认提示'
+            help='Skip the confirmation prompt to reconfigure settings'
         )
         self.add_argument(
             '-c', '--config',
             type=str,
             required=False,
             default='',
-            help='设置用户配置文件的路径'
+            help='Set the user configuration file path'
         )
         self.add_argument(
             '-s', '--session',
             type=str,
             required=False,
             default='',
-            help='设置会话文件的路径'
+            help='Set the session file path'
         )
         self.add_argument(
             '-t', '--temp',
             type=str,
             required=False,
             default='',
-            help='设置运行缓存的路径'
+            help='Set the runtime cache path'
         )
         self.add_argument(
             '-p', '--port',
@@ -70,7 +70,7 @@ class TelegramRestrictedMediaDownloaderArgumentParser(ArgumentParser):
             metavar='PORT',
             const=WebMeta.DEFAULT_PORT,
             default=WebMeta.DEFAULT_PORT,
-            help='设置网页面板的端口'
+            help='Set the web dashboard port'
         )
         if '__compiled__' not in globals():
             self.add_argument(
