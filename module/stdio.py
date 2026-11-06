@@ -79,7 +79,7 @@ class StatisticalTable:
                 'CountForm'
             )
     ) -> Union[bool, None, List[str]]:
-        """打印统计的下载信息的表格。"""
+        """Print a table of download statistics."""
         success_video: int = len(self.success_video)  # noqa.
         failure_video: int = len(self.failure_video)
         skip_video: int = len(self.skip_video)
@@ -191,7 +191,7 @@ class StatisticalTable:
                 'LinkForm'
             )
     ) -> Union[bool, None, List[str]]:
-        """打印统计的下载链接信息的表格。"""
+        """Print a table of download link statistics."""
         try:
             data: list = []
             for index, (link, task) in enumerate(link_tasks.items(), start=1):
@@ -265,7 +265,7 @@ class StatisticalTable:
                 'Normal'
             )
     ) -> Union[bool, None, List[str]]:
-        """打印统计的上传信息的表格。"""
+        """Print a table of upload statistics."""
         tasks = list(upload_tasks)
         if not tasks:
             log.debug(f'Unable to generate upload statistics, {_t(KeyWord.REASON)}: "No uploads"')
@@ -299,7 +299,7 @@ class StatisticalTable:
             ]
             meta_table_data.append(row)
 
-        # 检查数据有效性。
+        # Check that the data is valid.
         if len(meta_table_data) < 1:
             return False
         count_table_title = 'Media Upload Statistics'
@@ -378,11 +378,12 @@ class StatisticalTable:
                     data=count_table_data,
                     show_lines=False
                 )
-                # 终端与消息均按"媒体上传统计在上、上传任务统计在下"的顺序展示。
+                # In both the terminal and messages, show media upload statistics above upload task statistics.
                 count_panel.print_meta()
                 meta_panel.print_meta()
-                # 两张表合并为一条消息发送:计数表很短,直接拼在元信息表首个分片之前,
-                # 这样首片即含两表,不会再多出一条无键盘的消息(元信息表超长时后续分片仍逐条追加)。
+                # Send both tables in one message: the count table is short, so prepend it to the
+                # first metadata-table chunk. The first chunk then contains both tables without
+                # creating an extra message without a keyboard (later chunks are still appended individually).
                 meta_chunks = meta_panel.to_markdown_chunks()
                 meta_chunks[0] = f'{count_panel.to_markdown()}\n\n{meta_chunks[0]}'
                 result = meta_chunks
@@ -394,7 +395,7 @@ class StatisticalTable:
 
     @staticmethod
     def print_config_table(app) -> None:
-        """打印用户所填写配置文件的表格。"""
+        """Print a table of the user-provided configuration."""
         try:
             if app.enable_proxy:
                 proxy_key: list = []
@@ -426,12 +427,12 @@ class StatisticalTable:
                     link_table.print_meta()
         except FileNotFoundError:
             log.warning('Unable to read the media links file; it may have been deleted.')
-        except (PermissionError, AttributeError) as e:  # v1.1.3 用户错误填写路径提示。
+        except (PermissionError, AttributeError) as e:  # v1.1.3: hint for an incorrectly specified path.
             log.error(f'Failed to read "{app.links}", {_t(KeyWord.REASON)}:"{e}"')
         except Exception as e:
             log.error(f'Failed to print links table, {_t(KeyWord.REASON)}:"{e}"')
         try:
-            _dtype: list = app.download_type.copy()  # 浅拷贝赋值给_dtype,避免传入函数后改变原数据。
+            _dtype: list = app.download_type.copy()  # Make a shallow copy to prevent called functions from changing the original data.
             data: list = [
                 [_t(DownloadType.VIDEO),
                  ProcessConfig.get_dtype(_dtype).get('video', False)
@@ -505,32 +506,33 @@ class PanelTable:
         self.data: list = data
         self.table = Table(title=title, highlight=True, show_lines=show_lines)
         self.table.title_style = Style(color='white', bold=True)
-        # 添加列。
+        # Add columns.
         for _, col in enumerate(header):
             style = styles.get(col, {}) if styles else {}
             self.table.add_column(col, **style)
 
-        # 添加数据行。
+        # Add data rows.
         for row in data:
-            self.table.add_row(*map(str, row))  # 确保数据项是字符串类型，防止类型错误。
+            self.table.add_row(*map(str, row))  # Ensure each item is a string to prevent type errors.
 
     def print_meta(self):
         console.print(self.table, justify='center')
 
     def to_markdown(self) -> str:
-        """将表格转换为 GitHub 风格的 Markdown 表格字符串(不分片)。"""
+        """Convert the table to a GitHub-style Markdown table string without chunking."""
         return '\n'.join(self.to_markdown_chunks(max_len=1 << 30))
 
     def to_markdown_chunks(self, max_len: int = 30000) -> List[str]:
-        """将表格转换为若干 GitHub 风格 Markdown 表格字符串。
+        """Convert the table into multiple GitHub-style Markdown table strings.
 
-        每个分片长度不超过 ``max_len``,且各自带有表头,以便单独发送时仍可阅读。
-        用于规避 Telegram 富文本消息的长度上限(约 32768 字符)。
+        Each chunk is at most ``max_len`` characters and includes its own header so it
+        remains readable when sent separately. This avoids Telegram's rich-text message
+        length limit (about 32768 characters).
         """
 
         def _cell(value) -> str:
             text: str = str(value)
-            # 去除换行,避免破坏 Markdown 表格结构,并转义管道符。
+            # Remove newlines to preserve the Markdown table structure, and escape pipe characters.
             text = text.replace('\n', ' ').replace('\r', ' ').replace('|', '\\|')
             return text
 
@@ -539,9 +541,9 @@ class PanelTable:
         sep_line: str = '| ' + ' | '.join(['---'] * len(header_cells)) + ' |'
         title_lines: list = [f'## {self.title}', ''] if self.title else []
 
-        # 每个分片都要额外承载:标题 + 表头 + 分隔行,预留这部分开销。
+        # Each chunk also needs space for the title, header, and separator; reserve that overhead.
         overhead: int = len('\n'.join(title_lines + [header_line, sep_line])) + 2
-        budget: int = max(max_len - overhead, 200)  # 至少保证能放入一行数据。
+        budget: int = max(max_len - overhead, 200)  # Ensure there is room for at least one data row.
 
         chunks: List[str] = []
         current_rows: List[str] = []
@@ -557,13 +559,13 @@ class PanelTable:
 
         for row in self.data:
             row_line: str = '| ' + ' | '.join(_cell(c) for c in row) + ' |'
-            row_len: int = len(row_line) + 1  # +1 代表行尾换行符。
-            # 已有数据且追加本行会超预算,则先将已有行成片。
+            row_len: int = len(row_line) + 1  # +1 accounts for the trailing newline.
+            # If this row would exceed the budget and the chunk already has data, flush it first.
             if current_rows and current_len + row_len > budget:
                 _flush()
             current_rows.append(row_line)
             current_len += row_len
-            # 本片已达预算(含单行超限的情况),立即成片,避免后续行挤爆。
+            # Flush immediately if this chunk has reached its budget (including an oversized single row).
             if current_len >= budget:
                 _flush()
         _flush()
@@ -635,18 +637,18 @@ class MetaData:
         console.log(f'{prompt}:{num}。', justify='right', style='#B1DB74')
 
     @staticmethod
-    def check_run_env() -> bool:  # 检测是windows平台下控制台运行还是IDE运行。
+    def check_run_env() -> bool:  # Detect whether this is running in a Windows console or an IDE.
         try:
-            from ctypes import windll  # v1.2.9 避免非Windows平台运行时报错。
+            from ctypes import windll  # v1.2.9: avoid errors on non-Windows platforms.
             return windll.kernel32.SetConsoleTextAttribute(windll.kernel32.GetStdHandle(-0xb), 0x7)  # noqa.
-        except ImportError:  # v1.2.9 抛出错误代表非Windows平台。
+        except ImportError:  # v1.2.9: an import error indicates a non-Windows platform.
             return True
         except Exception:  # noqa.
             return True
 
     @staticmethod
     def pay():
-        if MetaData.check_run_env():  # 是终端才打印,生产环境会报错。
+        if MetaData.check_run_env():  # Print only in a terminal; this causes errors in production environments.
             try:
                 console.print(
                     MetaData.__qr_terminal_str(
@@ -698,18 +700,18 @@ class MetaData:
     @staticmethod
     def __determine_suitable_units(number, unit=None, mebibyte=False) -> dict:
         if mebibyte:
-            units = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB']  # 二进制单位。
+            units = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB']  # Binary units.
             base = 1024
         else:
-            units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB']  # 十进制单位。
+            units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB']  # Decimal units.
             base = 1000
 
-        if unit in units:  # 如果指定了单位,直接计算。
+        if unit in units:  # If a unit is specified, calculate it directly.
             index = units.index(unit)
             value = number / (base ** index)
             return {'number': '{:.2f}'.format(value), 'unit': unit}
 
-        else:  # 否则自动计算最合适的单位。
+        else:  # Otherwise, automatically determine the most suitable unit.
             values = [number]
             for i in range(len(units) - 1):
                 if values[i] >= base:
@@ -800,7 +802,7 @@ class ProgressBar:
 
 
 class ConnectionStatus:
-    """网络连接状态常驻提示器,以单一Live在进度条下方显示当前连接状态,与Progress的Live嵌套共存。"""
+    """Persistent network-status indicator; displays the current connection state below the progress bar with one Live instance, coexisting with Progress's Live instance."""
 
     _lock = threading.Lock()
     _live: Union[Live, None] = None
@@ -825,7 +827,7 @@ class ConnectionStatus:
 
     @classmethod
     def install_logger(cls) -> None:
-        """安装日志处理器以捕获pyrogram连接层失败/恢复事件,仅安装一次。"""
+        """Install a log handler to capture pyrogram connection-layer failure/recovery events; install it only once."""
         with cls._lock:
             if cls._logger_installed:
                 return
@@ -836,7 +838,7 @@ class ConnectionStatus:
 
     @classmethod
     def start(cls) -> None:
-        """启动常驻连接状态提示,初始为已连接(静态图标,不旋转)。"""
+        """Start the persistent connection-status indicator, initially connected (static icon, no rotation)."""
         cls.install_logger()
         with cls._lock:
             if cls._live is None:
@@ -848,7 +850,7 @@ class ConnectionStatus:
 
     @classmethod
     def _health_prefix(cls) -> Text:
-        """根据当前连接健康状态生成常驻前缀(纯符号+颜色),配色对齐程序 console.log。"""
+        """Build a persistent prefix from the current connection health (symbol and color only), matching the colors used by the program's console.log."""
         if cls._log_failure:
             glyph, style, text = cls.HEALTH_FAILURE
         elif cls._connecting > 0:
@@ -861,7 +863,7 @@ class ConnectionStatus:
 
     @classmethod
     def get_status(cls) -> str:
-        """返回当前连接状态的纯文本(供网页等非终端展示复用),不改变终端 Live 显示。"""
+        """Return the current connection status as plain text for reuse in web and other non-terminal displays, without changing the terminal Live display."""
         with cls._lock:
             if cls._log_failure:
                 glyph, style, text = cls.HEALTH_FAILURE
@@ -884,17 +886,17 @@ class ConnectionStatus:
 
     @classmethod
     def _set_connected(cls) -> None:
-        """切换为已连接状态,显示常驻健康前缀(静态,不旋转)。"""
+        """Switch to the connected state and display the persistent health prefix (static, no rotation)."""
         if cls._live is None:
             return
         try:
             cls._live.update(cls._health_prefix(), refresh=True)
         except Exception:  # noqa.
-            pass  # 状态提示为辅助显示,刷新失败不应波及业务调用流。
+            pass  # The status indicator is auxiliary; a refresh failure must not affect the main workflow.
 
     @classmethod
     def _show_connecting(cls, message: str) -> None:
-        """切换为连接中/在途状态,显示健康前缀+分隔符+活动文案(静态,旋转由进度条spinner承担)。"""
+        """Switch to the connecting/in-progress state and show the health prefix, separator, and activity message (static; the progress spinner handles rotation)."""
         if cls._live is None:
             return
         try:
@@ -903,11 +905,11 @@ class ConnectionStatus:
                 refresh=True,
             )
         except Exception:  # noqa.
-            pass  # 状态提示为辅助显示,刷新失败不应波及业务调用流。
+            pass  # The status indicator is auxiliary; a refresh failure must not affect the main workflow.
 
     @classmethod
     def _do_refresh(cls) -> None:
-        """在已持锁时根据各状态标记决定目标显示(不直接绘制,交由_render去抖/宽限处理)。"""
+        """While holding the lock, choose what to display from the state flags; do not render directly, leaving debounce/grace handling to _render."""
         if cls._live is None:
             return
         if cls._connecting > 0 or cls._log_failure:
@@ -917,25 +919,26 @@ class ConnectionStatus:
         elif cls._active > 0:
             cls._render(ConnectionState.CONNECTING, cls._busy_message or 'Transferring data...')
         else:
-            # 期望回到已连接:若当前正显示连接中,延迟一小段宽限,避免分块请求间隙反复闪烁。
+            # To return to connected, briefly delay if connecting is currently displayed,
+            # avoiding repeated flicker between chunked requests.
             if cls._state != ConnectionState.CONNECTED:
                 cls._render_token += 1
                 token = cls._render_token
                 timer = threading.Timer(cls.CONNECTED_GRACE, cls._maybe_show_connected, args=(token,))
                 timer.daemon = True
                 timer.start()
-            # 已是已连接则无需任何操作(去抖)。
+            # If already connected, no action is needed (debounced).
 
     @classmethod
     def _render(cls, category: str, message: str) -> None:
-        """实际绘制,带去抖:状态与文本均未变化时跳过重绘,避免刷新过快。"""
+        """Render with debouncing: skip redraws when neither the state nor text has changed, avoiding excessive refreshes."""
         if category == ConnectionState.CONNECTING:
             if cls._state == ConnectionState.CONNECTING and cls._displayed_message == message:
                 return
         else:
             if cls._state == ConnectionState.CONNECTED:
                 return
-        # 切换显示,并使任何待执行的已连接宽限定时器失效。
+        # Switch the display and invalidate any pending connected-state grace timer.
         cls._render_token += 1
         cls._state = category
         cls._displayed_message = message
@@ -946,7 +949,7 @@ class ConnectionStatus:
 
     @classmethod
     def _maybe_show_connected(cls, token: int) -> None:
-        """已连接宽限到期回调:仍确为已连接才绘制,否则放弃(说明期间又有请求)。"""
+        """Callback when the connected-state grace period expires: render only if still connected; otherwise abort because another request occurred in the meantime."""
         with cls._lock:
             if token != cls._render_token or cls._live is None:
                 return
@@ -956,19 +959,20 @@ class ConnectionStatus:
 
     @classmethod
     def _refresh_state(cls) -> None:
-        """加锁后刷新显示(供外部/定时器调用)。"""
+        """Lock and refresh the display (called by external code or timers)."""
         with cls._lock:
             cls._do_refresh()
 
     @classmethod
     def enter_busy(cls, message: str, delay: float = BUSY_DELAY) -> None:
-        """标记一次请求在途(去抖:仅当超过delay秒仍未完成时显示旋转图标,避免快速小请求闪烁)。"""
+        """Mark a request as in progress (debounced: show a rotating icon only if it remains unfinished after delay seconds, avoiding flicker for quick requests)."""
         with cls._lock:
             was_active = cls._active > 0
             cls._active += 1
             cls._busy_message = message
             if was_active:
-                # 已有在途请求,去抖定时器已由首次进入启动,无需为每个请求重复创建线程。
+                # An in-progress request already started the debounce timer; do not create
+                # another thread for every additional request.
                 return
             token = cls._busy_token + 1
             cls._busy_token = token
@@ -978,7 +982,7 @@ class ConnectionStatus:
 
     @classmethod
     def _maybe_show_busy(cls, token: int) -> None:
-        """定时器回调:仅当token仍有效且仍有在途请求时才切换到旋转图标。"""
+        """Timer callback: switch to the rotating icon only if the token is still valid and a request remains in progress."""
         with cls._lock:
             if token != cls._busy_token or cls._active <= 0 or cls._live is None:
                 return
@@ -990,14 +994,15 @@ class ConnectionStatus:
             cls._active -= 1
             if cls._active < 0:
                 cls._active = 0
-            # 仅当已无在途请求时才作废去抖定时器;否则会把仍在进行中的其它请求的定时器一并取消。
+            # Invalidate the debounce timer only when no requests remain; otherwise this
+            # would also cancel the timer for another request still in progress.
             if cls._active == 0:
                 cls._busy_token += 1
             cls._do_refresh()
 
     @classmethod
     def enter(cls, message: str) -> None:
-        """标记一次重连开始(按调用方计数),并显示重连提示。"""
+        """Mark the start of a reconnect (counted per caller) and display the reconnect message."""
         with cls._lock:
             cls._connecting += 1
             cls._current_message = message
@@ -1005,14 +1010,14 @@ class ConnectionStatus:
 
     @classmethod
     def update(cls, message: str) -> None:
-        """刷新重连提示文本(不改动引用计数)。"""
+        """Refresh the reconnect message without changing the reference count."""
         with cls._lock:
             cls._current_message = message
             cls._do_refresh()
 
     @classmethod
     def leave(cls) -> None:
-        """标记一次重连结束,仅当所有调用方与日志失败都清除后才显示已连接。"""
+        """Mark the end of a reconnect; show connected only after all callers and logged failures have cleared."""
         with cls._lock:
             cls._connecting -= 1
             if cls._connecting < 0:
@@ -1021,7 +1026,7 @@ class ConnectionStatus:
 
     @classmethod
     def enter_flood(cls, message: str) -> None:
-        """标记一次限流(FloodWait)等待开始,显示限流提示(配色对齐程序 flood 配色 #FF4689)。"""
+        """Mark the start of a rate-limit (FloodWait) wait and display its message (matching the program's flood color, #FF4689)."""
         with cls._lock:
             cls._flood_waiting += 1
             cls._flood_message = message
@@ -1029,14 +1034,14 @@ class ConnectionStatus:
 
     @classmethod
     def update_flood(cls, message: str) -> None:
-        """刷新限流提示文本(不改动引用计数)。"""
+        """Refresh the rate-limit message without changing the reference count."""
         with cls._lock:
             cls._flood_message = message
             cls._do_refresh()
 
     @classmethod
     def leave_flood(cls) -> None:
-        """标记一次限流等待结束,仅当所有等待都结束后才可能回到已连接。"""
+        """Mark the end of a rate-limit wait; return to connected only after all waits have ended."""
         with cls._lock:
             cls._flood_waiting -= 1
             if cls._flood_waiting < 0:
@@ -1047,7 +1052,7 @@ class ConnectionStatus:
 
     @classmethod
     def mark_failure(cls, message: str) -> None:
-        """由日志处理器调用,标记连接层(网络/代理)发生失败。"""
+        """Called by the log handler to mark a connection-layer (network/proxy) failure."""
         with cls._lock:
             cls._log_failure = True
             cls._current_message = message
@@ -1063,7 +1068,7 @@ class ConnectionStatus:
 
     @classmethod
     def stop(cls) -> None:
-        """关闭常驻连接状态提示。"""
+        """Stop the persistent connection-status indicator."""
         with cls._lock:
             if cls._live is not None:
                 cls._live.stop()
@@ -1080,7 +1085,7 @@ class ConnectionStatus:
 
 
 class ConnectionStatusLogHandler(logging.Handler):
-    """捕获pyrogram连接层(网络/代理)日志,驱动ConnectionStatus在重连时显示转圈。"""
+    """Capture pyrogram connection-layer (network/proxy) logs and make ConnectionStatus show a spinner during reconnection."""
 
     def emit(self, record: logging.LogRecord) -> None:
         name = record.name

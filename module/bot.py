@@ -148,7 +148,7 @@ class Bot:
         BotCommandText.commands_with_prefix()
     ) + ('/start',)
     LINK_PREVIEW_OPTIONS = LinkPreviewOptions(is_disabled=True)
-    MAX_BOT_NOTICE_ITEMS = 20  # 机器人通知条目上限,单次命令链接数超过该值时不再通过机器人通知,避免消息过长编辑频繁触发风控。
+    MAX_BOT_NOTICE_ITEMS = 20  # Maximum number of bot notice items. If a command has more links than this, stop sending notices through the bot to avoid overly long messages and frequent edits triggering rate limits.
 
     def __init__(self):
         self.application = None
@@ -163,37 +163,37 @@ class Bot:
         self.last_message: Union[pyrogram.types.Message, None] = None
         self.listen_download_chat: dict = {}
         self.listen_forward_chat: dict = {}
-        # 监听的创建者(谁创建就通知谁):链接/规则 -> 创建者用户ID。
+        # Creator to notify (the user who created it): link/rule -> creator user ID.
         self.listen_download_owner: dict = {}
         self.listen_forward_owner: dict = {}
-        # 被监听频道ID -> 创建者用户ID,供监听回调按频道反查归属。
+        # Monitored channel ID -> creator user ID, so listener callbacks can look up ownership by channel.
         self.listen_download_chat_owner: dict = {}
         self.handle_media_groups: dict = {}
         self.download_chat_filter: dict = {}
-        self.download_chat_active: dict = {}  # 记录正在引导download_chat的用户与其目标频道id的映射,按用户隔离,支持多用户并发。
-        self.adding_keywords: dict = {}  # 按用户id隔离的"正在添加的关键词列表",支持多用户并发引导。
-        self.command_handlers: dict = {}  # 命令输入模式的handler,按chat_id隔离,支持多用户并发引导。
-        self.command_processed: set = set()  # 已通过命令输入模式处理的消息ID,避免与既有handler重复触发。
-        self.pending_tasks: dict = {}  # 多步引导的待收集任务状态。
-        self.keyword_handlers: dict = {}  # 关键词输入模式的handler,按chat_id隔离。
-        self.auth_handlers: dict = {}  # 添加授权用户输入模式的handler,按chat_id隔离。
+        self.download_chat_active: dict = {}  # Map users in the download_chat setup flow to their target channel IDs; isolate by user for concurrent use.
+        self.adding_keywords: dict = {}  # Per-user list of keywords currently being added, supporting concurrent prompts.
+        self.command_handlers: dict = {}  # Command-input handlers isolated by chat_id, supporting concurrent prompts.
+        self.command_processed: set = set()  # Message IDs already handled in command-input mode, preventing duplicate handling by existing handlers.
+        self.pending_tasks: dict = {}  # Pending task state for multi-step prompts.
+        self.keyword_handlers: dict = {}  # Keyword-input handlers isolated by chat_id.
+        self.auth_handlers: dict = {}  # Add-authorized-user input handlers isolated by chat_id.
 
     @staticmethod
     async def authorized_filter(flt, _client, update) -> bool:
-        """自定义授权过滤器,实时读取授权用户列表(flt.authorized_ids),支持热更新。"""
+        """Custom authorization filter that reads the authorized-user list (flt.authorized_ids) in real time to support hot updates."""
         user = getattr(update, 'from_user', None)
         uid = getattr(user, 'id', None)
         return uid is not None and uid in flt.authorized_ids
 
     def add_handler(self, handler, group: int = 0):
-        """添加handler到指定的group。直接操作dispatcher.groups以确保正确添加。"""
+        """Add a handler to the specified group by modifying dispatcher.groups directly to ensure it is added correctly."""
         if group not in self.bot.dispatcher.groups:
             self.bot.dispatcher.groups[group] = []
         self.bot.dispatcher.groups[group].append(handler)
         log.info(f'Added handler to group={group}; current handler count: {len(self.bot.dispatcher.groups[group])}.')
 
     def remove_handler(self, handler, group: int = 0):
-        """从指定的group中移除handler。直接操作dispatcher.groups以确保正确移除。"""
+        """Remove a handler from the specified group by modifying dispatcher.groups directly to ensure it is removed correctly."""
         if group in self.bot.dispatcher.groups and handler in self.bot.dispatcher.groups[group]:
             self.bot.dispatcher.groups[group].remove(handler)
             log.info(f'Removed handler from group={group}; remaining handler count: {len(self.bot.dispatcher.groups[group])}.')
@@ -206,16 +206,16 @@ class Bot:
             enable: bool,
             task_chat_id=None
     ):
-        """添加或移除关键词输入模式的handler。
+        """Add or remove the keyword-input-mode handler.
 
-        chat_id为接收文本输入的会话(用户),以它为key保证同一用户同时只有一个输入模式;
-        task_chat_id为该输入模式绑定的下载任务(频道),使同一用户的多个任务各写各的配置。
-        字典值为(任务频道id, handler),便于切换输入模式时判断上一个归属的任务。
+        chat_id is the session (user) receiving text input. Using it as the key ensures that each user has only one input mode at a time;
+        task_chat_id is the download task (channel) associated with the input mode, so each of a user's tasks updates its own configuration.
+        Each dictionary value is (task channel ID, handler), allowing the previous task association to be identified when switching input modes.
         """
         if task_chat_id is None:
             task_chat_id = chat_id
         if enable:
-            # 同一用户若已有输入模式,先清退其旧handler,避免堆积。
+            # Remove this user's previous handler first, if any, to prevent stale handlers from accumulating.
             old = self.keyword_handlers.pop(chat_id, None)
             if old:
                 self.remove_handler(old[1], group=-1)
@@ -245,9 +245,9 @@ class Bot:
             command: str,
             enable: bool
     ):
-        """添加或移除命令输入模式的handler,按chat_id隔离以避免多用户互相串扰。"""
+        """Add or remove the command-input-mode handler, isolated by chat_id to prevent interference between users."""
         if enable:
-            # 同一用户若已有输入模式,先清退其旧handler,避免堆积。
+            # Remove this user's previous handler first, if any, to prevent stale handlers from accumulating.
             old = self.command_handlers.pop(chat_id, None)
             if old:
                 self.remove_handler(old, group=-1)
@@ -277,13 +277,13 @@ class Bot:
             command: str,
             callback_query: CallbackQuery = None
     ) -> None:
-        """启动命令多步引导,与点击蓝色菜单按钮等价。
+        """Start a multi-step command prompt, equivalent to clicking a blue menu button.
 
-        用于用户直接发送无参命令(如`/download`)时,替代原有的语法提示文本,
-        改为发送首步提示并以ForceReply逐步收集参数,最终组装命令交给既有流程。
+        When a user sends a command without arguments (such as `/download`), this replaces the syntax hint
+        with the first-step prompt, then collects arguments using ForceReply and assembles the command for the existing flow.
 
-        注意:回调场景下message是bot发出的菜单消息,其from_user为bot自身,
-        必须用点击者(callback_query.from_user)的id作为chat_id,否则会向bot自身发消息报错。
+        Note: In a callback, message is the menu message sent by the bot, so its from_user is the bot itself.
+        Use the clicker's (callback_query.from_user) ID as chat_id, or sending a message to the bot itself will fail.
         """
         chat_id = callback_query.from_user.id if callback_query is not None else message.from_user.id
         steps = Bot.COMMAND_STEPS.get(command)
@@ -311,13 +311,13 @@ class Bot:
             _client: pyrogram.Client,
             message: pyrogram.types.Message
     ) -> None:
-        """多步引导:按命令定义的步骤收集用户输入,收集完成后组装命令交给既有流程。"""
+        """Collect user input for each command-defined step, then assemble the command for the existing flow."""
         pending = self.pending_tasks.get(chat_id)
         if not pending:
             self.add_command_mode_handler(
                 chat_id=chat_id, callback_query=callback_query, command=command, enable=False)
             return None
-        # 以pending中记录的最新命令为准进行路由,而非handler绑定时的旧命令参数,防止残留handler误创建任务。
+        # Route using the latest command recorded in pending, not the stale argument bound to the handler, to prevent an old handler from creating a task.
         command = pending['command']
         steps = self.COMMAND_STEPS.get(command, ())
         if not steps:
@@ -327,10 +327,10 @@ class Bot:
         step_idx = pending['step']
         field = steps[step_idx][0]
         text: str = message.text.strip()
-        # 按字段类型校验用户输入,不合法则要求重新输入当前步骤。
+        # Validate user input according to the field type; if invalid, ask for the current step again.
         if field in (BotStepKeyword.LINK, BotStepKeyword.ORIGIN, BotStepKeyword.TARGET):
             valid_http = text.startswith('http')
-            # download_chat的链接字段,以及forward/listen_forward/upload/upload_r的目标字段,额外支持me/self,指代已登录账号本身(收藏等)。
+            # The download_chat link field and target fields for forward/listen_forward/upload/upload_r also accept me/self, referring to the logged-in account itself (such as Saved Messages).
             valid_me = (text in ('me', 'self') and (
                     (field == BotStepKeyword.LINK and command == BotCommandText.DOWNLOAD_CHAT[0])
                     or (field == BotStepKeyword.TARGET and command in (
@@ -358,7 +358,7 @@ class Bot:
                 return None
         pending['data'][field] = str(text)
         pending['step'] += 1
-        # 还有后续步骤,防group=0的链接/错误handler干扰后,发送下一步提示并继续等待。
+        # More steps remain. Prevent group=0 links or incorrect handlers from interfering, then send the next prompt and continue waiting.
         if pending['step'] < len(steps):
             self.command_processed.add(message.id)
             next_hint = steps[pending['step']][1]
@@ -370,7 +370,7 @@ class Bot:
                 link_preview_options=Bot.LINK_PREVIEW_OPTIONS
             )
             return None
-        # 所有步骤收集完成,组装命令交给既有流程,并防group=0重复触发。
+        # All steps are complete. Assemble the command for the existing flow and prevent duplicate triggers in group=0.
         data = pending['data']
         if command == BotCommandText.DOWNLOAD[0]:
             await self.get_download_link_from_bot(client=_client, message=message)
@@ -424,21 +424,21 @@ class Bot:
             _client: pyrogram.Client,
             message: pyrogram.types.Message
     ) -> None:
-        """处理用户输入的关键词。chat_id为输入模式绑定的下载任务(频道)id。"""
+        """Handle user-entered keywords. chat_id is the ID of the download task (channel) associated with this input mode."""
 
         text: str = message.text.strip()
 
         if not text:
             return None
-        # 该任务若已执行或取消(配置已移除),则忽略输入,避免写回已失效的配置。
+        # Ignore input if this task has already run or been canceled (its configuration was removed), so obsolete configuration is not updated.
         if chat_id not in self.download_chat_filter:
             return None
 
-        # 以空格分隔关键词。
+        # Split keywords on whitespace.
         keywords = [kw.strip() for kw in text.split() if kw.strip()]
         for keyword in keywords:
             if keyword in self.adding_keywords.get(chat_id, []):
-                # 回调数据只携带关键词在列表中的下标,避免超长关键词把callback_data撑破64字节限制。
+                # Include only the keyword's list index in callback data to avoid exceeding the 64-byte limit with long keywords.
                 keyword_index: int = self.adding_keywords[chat_id].index(keyword)
                 try:
                     await callback_query.message.edit_text(
@@ -465,7 +465,7 @@ class Bot:
                     pass
             else:
                 self.download_chat_filter[chat_id]['keyword'][keyword] = True
-                self.adding_keywords.setdefault(chat_id, []).append(keyword)  # 添加到正在添加的关键词列表。
+                self.adding_keywords.setdefault(chat_id, []).append(keyword)  # Add to the list of keywords currently being added.
                 try:
                     await callback_query.message.edit_text(
                         text=callback_prompt(),
@@ -552,7 +552,7 @@ class Bot:
             requester: Union[int, None] = None,
             with_upload: Union[dict, None] = None
     ) -> Union[Dict[str, Union[set, pyrogram.types.Message, None]], None]:
-        """解析/download命令(含裸链规整后的),返回链接信息。"""
+        """Parse the /download command (including after normalizing a bare link) and return link information."""
         link: list = text.split()
         link.remove('/download') if '/download' in link else None
         link = [_.rstrip('/') for _ in link]
@@ -561,7 +561,7 @@ class Bot:
                 not safe_index(link, 1, 'https://t.me/').startswith('https://t.me/') and
                 len(link) == 3
         ):
-            # v1.5.1 支持范围下载。
+            # Range downloads supported since v1.5.1.
             start_id: int = int(safe_index(link, 1, -1))
             end_id: int = int(safe_index(link, 2, -1))
             if not await self.check_download_range(
@@ -574,20 +574,20 @@ class Bot:
             right_link: set = set()
             invalid_link: set = set()
             for i in range(start_id, end_id + 1):
-                right_link.add(f'{link[0]}/{i}?single')  # v1.6.7 修复范围下载链接为组时,重复下载问题。
+                right_link.add(f'{link[0]}/{i}?single')  # v1.6.7: Fix duplicate downloads when range links resolve to a group.
         else:
             right_link: set = set([_ for _ in link if _.startswith('https://t.me/')])
             invalid_link: set = set([_ for _ in link if not _.startswith('https://t.me/')])
         if right_link:
             if with_upload:
-                # 下载后上传场景下,下载环节的通知由后续上传结果统一反馈,这里不再单独发送,避免重复刷屏。
-                # 直接静默返回,绝不走到下方的 TOO_MANY_MESSAGE 等通知分支。
+                # When downloading and then uploading, the upload result reports the download status, so do not send a separate notice here and duplicate notifications.
+                # Return silently; never reach the TOO_MANY_MESSAGE or other notification branches below.
                 return {
                     'right_link': right_link,
                     'invalid_link': invalid_link,
                     'last_bot_message': None
                 }
-            # 非下载后上传路径:正常发送下载创建通知(链接过多时改为提示通知已禁用)。
+            # For downloads without a subsequent upload, send the usual task-created notice (or indicate that notices are disabled when there are too many links).
             link_count: int = len(right_link) + len(invalid_link)
             if link_count <= Bot.MAX_BOT_NOTICE_ITEMS:
                 notify_text: list = self.update_text(
@@ -732,7 +732,7 @@ class Bot:
 
     @staticmethod
     def menu_keyboard(level: str = 'main', is_root: bool = False) -> InlineKeyboardMarkup:
-        """按层级返回内联键盘:main为分组主菜单,download/listen/upload/auth为二级子菜单。"""
+        """Return the inline keyboard for a menu level: main is the grouped main menu; download/listen/upload/auth are second-level submenus."""
         config: dict = rc.cached_config()
         if level == 'download':
             return InlineKeyboardMarkup([
@@ -896,8 +896,8 @@ class Bot:
             client: Union[pyrogram.Client, None] = None,
             message: Union[pyrogram.types.Message, None] = None,
             user_id: Union[int, None] = None
-    ) -> Union[None, dict]:  # client与message都为None时,返回keyboard与text。
-        web = getattr(self, 'web', None)  # 网页面板实例,用于展示认证信息。
+    ) -> Union[None, dict]:  # Return the keyboard and text when both client and message are None.
+        web = getattr(self, 'web', None)  # Web panel instance, used to display authentication information.
         web_auth: str = ''
         docker_host_ip_tip: str = ''
         more_feature: bool = False
@@ -921,7 +921,7 @@ class Bot:
             web_panel = PanelTable(title='🌐 Web settings', header=('Property', 'Value'), data=web_rows)
             web_auth = web_panel.to_markdown_chunks()[0]
         config: dict = rc.cached_config()
-        update_version: str = check_update(  # 远程版本更高时返回该版本号,用于提示可更新。
+        update_version: str = check_update(  # Return the remote version if it is newer, so the user can be notified of an available update.
             remote_version=config.get('version', __version__),
             local_version=__version__
         )
@@ -931,7 +931,7 @@ class Bot:
             is_root=(uid is None) or (not self.root) or (uid == self.root[0])
         )
 
-        # 按原顺序组装命令列表,授权命令仅对管理员(more_feature)展示。
+        # Assemble the command list in its original order; show the authorization command only to admins (more_feature).
         command_items = [
             BotCommandText.HELP,
             BotCommandText.DOWNLOAD,
@@ -949,15 +949,15 @@ class Bot:
             command_items.append(BotCommandText.AUTH)
         command_rows = []
         for item in command_items:
-            # 按首个\n拆分:前半为说明,后半为语法示例(无\n则语法列为空)。
+            # Split at the first \n: the first part is the description and the second is the syntax example (empty if there is no \n).
             _parts = item[1].split('\n', 1)
             _desc = _parts[0]
             _syntax = _parts[1] if len(_parts) > 1 else '&ndash;'
             command_rows.append([f'/{item[0]}', _desc, _syntax])
-        # 复用PanelTable渲染与/table同款的GitHub风格富文本表格,说明与语法分列。
+        # Reuse PanelTable to render a GitHub-style rich-text table like /table, with separate description and syntax columns.
         panel = PanelTable(title='🎮️ Available commands', header=('Command', 'Description', 'Syntax'), data=command_rows)
         table_markdown: str = panel.to_markdown_chunks()[0]
-        # 复用PanelTable渲染与/table同款的GitHub风格富文本表格,版本/版权/许可分列。
+        # Reuse PanelTable to render a GitHub-style rich-text table like /table, with separate version, copyright, and license columns.
         info_rows = [
             ['Version', f'`{version}`'],
             ['Copyright', f'`{__copyright__.replace(" <https://github.com/Gentlesprite>", ".")}`'],
@@ -1128,8 +1128,8 @@ class Bot:
         parts = remaining_text.rsplit(maxsplit=1)
 
         if len(parts) == 2:
-            file_path = parts[0]  # 文件名部分（可能包含空格）。
-            target_link = parts[1]  # URL部分。
+            file_path = parts[0]  # Filename portion (may contain spaces).
+            target_link = parts[1]  # URL portion.
             if not recursion:
                 if target_link not in valid_link_cache:
                     valid_link_cache[target_link] = await get_valid_chat_id(
@@ -1213,9 +1213,9 @@ class Bot:
                     link_preview_options=Bot.LINK_PREVIEW_OPTIONS
                 )
             log.info(f'Uploading file "{file_path}" to channel "{target_link}".')
-            # 登记上传任务创建者,上传完成或失败的通知在网页面板显示"谁创建的任务"。
+            # Record the upload task creator so the web panel can show who created the task in completion or failure notices.
             NoticeHub.add_owner(owner=message.from_user.id, user=message.from_user)
-            if target_link.startswith('https://t.me/') or target_link in ('me', 'self'):  # 验证目标链接格式。
+            if target_link.startswith('https://t.me/') or target_link in ('me', 'self'):  # Validate the target link format.
                 return {
                     'target_link': target_link,
                     'valid_link_cache': valid_link_cache,
@@ -1399,7 +1399,7 @@ class Bot:
     ):
         async def __listen_info(_listen_chat: dict, _text: str):
             if edit_message is not None:
-                # 按钮点击:就地编辑当前消息,避免向(可能为机器人的)会话发送新消息。
+                # On a button click, edit the current message in place instead of sending a new message to a possibly bot-owned chat.
                 text = _text
                 for link in _listen_chat:
                     args: list = link.split()
@@ -1470,8 +1470,8 @@ class Bot:
             client: pyrogram.Client,
             message: pyrogram.types.Message
     ) -> None:
-        """热添加或热移除授权用户,支持用户ID或@用户名。"""
-        # /auth仅root可用:管理员(由root创建)使用直接提示不可用。
+        """Hot-add or hot-remove an authorized user by user ID or @username."""
+        # /auth is for root only; admins (created by root) are told directly that the command is unavailable.
         if not self.root or message.from_user.id != self.root[0]:
             await client.send_message(
                 chat_id=message.from_user.id,
@@ -1482,7 +1482,7 @@ class Bot:
         text: str = message.text
         args: list = text.split()
         if len(args) == 1:
-            # 无参数时展示授权管理选项面板(先给按钮,点'查看授权列表'才展示列表)。
+            # With no arguments, show the authorization-management menu; display the list only after clicking 'View authorized users'.
             await self.show_auth_menu(client=client, message=message)
             return None
         await self.add_authorized_user(client=client, message=message, target=args[1])
@@ -1494,12 +1494,12 @@ class Bot:
             target: str,
             edit_message: Union[pyrogram.types.Message, None] = None
     ) -> None:
-        """解析用户ID或@用户名并热添加为授权用户(仅root可调用,此处不校验root)。
+        """Resolve a user ID or @username and hot-add the user to the authorized list (root-only; root is not checked here).
 
-        edit_message 非空时(输入模式),结果直接编辑该消息而非另发一条,避免重复提示。
+        When edit_message is provided (input mode), edit that message with the result instead of sending another one, avoiding duplicate prompts.
         """
         auth_kb = self.menu_keyboard('auth')
-        # 统一通过 pyrogram 校验用户是否存在,支持用户ID或@用户名。
+        # Use pyrogram to consistently verify that the user exists; accept a user ID or @username.
         target = target.lstrip('@')
 
         async def _respond(text: str, reply_markup=None):
@@ -1528,14 +1528,14 @@ class Bot:
             return None
         if uid is None:
             return None
-        # root用户本身就拥有全部权限,无需重复授权。
+        # The root user already has all permissions and does not need to be authorized again.
         if self.root and uid == self.root[0]:
             await _respond(
                 text='👑 This user is `root` and already has all permissions; no authorization is needed.',
                 reply_markup=auth_kb if edit_message is not None else None
             )
             return None
-        # 已存在则展示移除按钮,不再重复添加。
+        # If the user is already authorized, show a remove button instead of adding them again.
         if uid in self.gc.authorized_users:
             await _respond(
                 text=f'👥 User `{uid}` is already authorized. Remove them?',
@@ -1553,7 +1553,7 @@ class Bot:
                 ])
             )
             return None
-        # 热添加授权用户:实时写入过滤器并持久化到全局配置。
+        # Hot-add the authorized user: update the filter immediately and persist the change in the global configuration.
         self.gc.authorized_users.append(uid)
         self.root.append(uid)
         self.gc.config['authorized_users'] = self.gc.authorized_users
@@ -1570,9 +1570,9 @@ class Bot:
             callback_query: CallbackQuery,
             enable: bool
     ):
-        """添加或移除"添加授权用户"输入模式的handler,按chat_id隔离以避免多用户互相串扰。"""
+        """Add or remove the "add authorized user" input-mode handler, isolated by chat_id to prevent interference between users."""
         if enable:
-            # 同一用户若已有输入模式,先清退其旧handler,避免堆积。
+            # Remove this user's previous handler first, if any, to prevent stale handlers from accumulating.
             old = self.auth_handlers.pop(chat_id, None)
             if old:
                 self.remove_handler(old, group=-1)
@@ -1601,19 +1601,19 @@ class Bot:
             _client: pyrogram.Client,
             message: pyrogram.types.Message
     ) -> None:
-        """处理root在输入模式下发送的待授权用户ID或@用户名。"""
-        # 仅root可授权,且只接收发起者自己的输入。
+        """Handle the user ID or @username that root submits for authorization in input mode."""
+        # Only root can authorize users, and accept input only from the user who initiated the flow.
         if not self.root or message.from_user.id != self.root[0] or message.from_user.id != chat_id:
             self.add_auth_mode_handler(chat_id=chat_id, callback_query=callback_query, enable=False)
             return None
-        # 处理结果直接编辑"🔐授权用户管理"这条消息(由 add_authorized_user 完成),避免重复提示。
+        # Have add_authorized_user edit the "🔐Authorized User Management" message with the result, avoiding a duplicate prompt.
         await self.add_authorized_user(
             client=self.bot,
             message=message,
             target=message.text.strip(),
             edit_message=callback_query.message
         )
-        # 处理完毕关闭输入模式。
+        # Close input mode when processing is complete.
         self.add_auth_mode_handler(chat_id=chat_id, callback_query=callback_query, enable=False)
 
     @staticmethod
@@ -1622,7 +1622,7 @@ class Bot:
             message: pyrogram.types.Message,
             edit_message: Union[pyrogram.types.Message, None] = None
     ) -> None:
-        """/auth 入口选项面板:先给一排按钮,点'查看授权列表'才展示用户列表。"""
+        """The /auth entry menu: show a row of buttons first, and display the user list only after 'View authorized users' is clicked."""
         auth_menu_kb = InlineKeyboardMarkup([
             [
                 InlineKeyboardButton(
@@ -1661,7 +1661,7 @@ class Bot:
             target: Union[int, None] = None,
             edit_message: Union[pyrogram.types.Message, None] = None
     ) -> None:
-        """展示当前已授权的额外用户列表。edit_message 非空时(按钮点击)直接编辑该消息。"""
+        """Display the current list of additional authorized users. When edit_message is provided (button click), edit that message directly."""
         users = self.gc.authorized_users
         chat_id = target if target is not None else message.from_user.id
         auth_kb = self.menu_keyboard('auth')
@@ -1698,9 +1698,9 @@ class Bot:
             requester: Union[int, None] = None,
             notice_type: str = NoticeType.DOWNLOAD
     ):
-        # 通知不再由机器人发送消息,改为登记到通知中心,由网页面板的「通知」板块展示。
-        # 谁创建的任务就归属给谁;未指定requester时回退到最近一条消息(兼容旧行为)。
-        # 回退仅作兼容:一旦触发即打warning,避免「静默通知错人」难以察觉。
+        # The bot no longer sends these notices directly; register them with the notice center for display in the web panel's Notifications section.
+        # Attribute each task to its creator; if requester is unspecified, fall back to the latest message for backward compatibility.
+        # This fallback is compatibility-only: log a warning whenever it is used so a notice sent to the wrong person is not silent.
         owner: Union[int, None] = requester
         if owner is None:
             if self.last_message is not None:
@@ -1718,19 +1718,19 @@ class Bot:
             user_client_obj: pyrogram.Client,
             bot_client_obj: pyrogram.Client,
     ) -> str:
-        """启动机器人。"""
+        """Start the bot."""
         try:
             self.application = application
             self.bot = bot_client_obj
             self.user = user_client_obj
             root = await self.user.get_me()
             self.root.append(root.id)
-            # 将全局配置中的授权用户一并纳入,使其也能操作机器人。
+            # Include authorized users from the global configuration so they can also operate the bot.
             self.root.extend(
                 uid for uid in self.gc.authorized_users
                 if isinstance(uid, int) and uid != root.id
             )
-            # 基于授权列表(self.root)构建自定义过滤器,实时读取以支持热添加/热移除。
+            # Build a custom filter from the authorized-user list (self.root), reading it in real time to support hot additions and removals.
             self.auth_filter = pyrogram.filters.create(
                 self.authorized_filter,
                 name='AuthorizedUser',
@@ -1817,7 +1817,7 @@ class Bot:
             self.bot.add_handler(
                 MessageHandler(
                     self.get_download_link_from_bot,
-                    # 命令输入模式期间,该chat的链接只交给command_handler引导,避免与下载handler重复触发。
+                    # During command-input mode, route this chat's links only to command_handler to avoid also triggering the download handler.
                     filters=pyrogram.filters.regex(r'^https://t.me.*') & self.auth_filter & (
                         lambda client, m: m.chat.id not in self.pending_tasks
                     )
@@ -1935,10 +1935,10 @@ class Bot:
                 raise
 
     async def send_rich_table(self, message: pyrogram.types.Message, chunks: list) -> None:
-        """通过机器人将统计表的 Markdown 分片以富文本消息发送给用户。
+        """Send Markdown chunks of a statistics table to the user as rich-text messages through the bot.
 
-        ``chunks`` 为 Markdown 字符串列表:首片编辑原消息(以便键盘挂接),
-        其余分片作为新消息发送,规避单条富文本消息的长度上限。
+        ``chunks`` is a list of Markdown strings: edit the original message with the first chunk (so a keyboard can be attached),
+        then send the remaining chunks as new messages to avoid the rich-text message length limit.
         """
         if self.bot is None or not chunks:
             return None
@@ -2512,7 +2512,7 @@ class KeyboardButton:
             return None
         nav_row = [
             InlineKeyboardButton('◀️', callback_data=f'time_dec_month_{_dtype}_{prev_year}_{prev_month}'),
-            # 中间的「年-月」按钮可点击,用于打开年份选择键盘;打开时选中年份即日历当前年。
+            # The clickable year-month button in the middle opens the year-selection keyboard, initially selecting the calendar's current year.
             InlineKeyboardButton(
                 f'{year}-{month:02d}',
                 callback_data=f'select_year_{_dtype}_{year}_{month}_{year}'
@@ -2526,7 +2526,7 @@ class KeyboardButton:
         keyboard.append(week_row)
 
         cal = calendar.monthcalendar(year, month)
-        # 已选日期与当前展示的年月一致时,用绿色按钮标记那一天。
+        # If the selected date is in the displayed year and month, mark that day with a green button.
         selected_day: Optional[int] = None
         if selected_date:
             selected_dt = datetime.datetime.strptime(selected_date, '%Y-%m-%d %H:%M:%S')
@@ -2560,7 +2560,7 @@ class KeyboardButton:
             ]
         )
         markup = InlineKeyboardMarkup(keyboard)
-        # 传入chat_id时才挂载任务身份,避免影响其他复用此日历的场合。
+        # Attach the task identity only when chat_id is provided, so other uses of this calendar are unaffected.
         if chat_id is not None:
             markup = attach_task(markup, chat_id)
         try:
@@ -2576,7 +2576,7 @@ class KeyboardButton:
             selected_year: int,
             chat_id=None
     ):
-        # 年份键盘以year为中心展示12个年份(前6年、后5年),◀️▶️按12年整页翻动;
+        # Center the year keyboard on year and show 12 years (six earlier and five later); the arrow buttons page through 12 years at a time.
         # selected_year为当前选中的年份,翻页只改变展示窗口,不改变选中年份。
         keyboard: list = []
         start_year: int = year - 6
@@ -2596,7 +2596,7 @@ class KeyboardButton:
         for row_start in range(start_year, end_year + 1, 4):
             row = []
             for _year in range(row_start, row_start + 4):
-                # 选中的年份用绿色按钮标记,与其余年份区分。
+                # Mark the selected year with a green button to distinguish it from the others.
                 year_style = pyrogram.enums.ButtonStyle.SUCCESS if _year == selected_year else pyrogram.enums.ButtonStyle.DEFAULT
                 row.append(InlineKeyboardButton(
                     text=str(_year),
@@ -2608,7 +2608,7 @@ class KeyboardButton:
             [
                 InlineKeyboardButton(
                     text=BotButton.RETURN,
-                    # 返回始终回到选中的年份,翻页不会改变它。
+                    # Return to the selected year; paging does not change the selection.
                     callback_data=f'set_year_{_dtype}_{selected_year}_{month}'
                 ),
                 InlineKeyboardButton(
@@ -2618,7 +2618,7 @@ class KeyboardButton:
             ]
         )
         markup = InlineKeyboardMarkup(keyboard)
-        # 传入chat_id时才挂载任务身份,避免影响其他复用此日历的场合。
+        # Attach the task identity only when chat_id is provided, so other uses of this calendar are unaffected.
         if chat_id is not None:
             markup = attach_task(markup, chat_id)
         try:
@@ -2708,7 +2708,7 @@ class KeyboardButton:
     def keyword_filter_button(
             adding_keywords: Optional[list] = None
     ):
-        """关键词过滤设置按钮。"""
+        """Keyword-filter settings button."""
         if adding_keywords:
             keyword_buttons = [
                 [
@@ -2753,7 +2753,7 @@ class CallbackData:
 
 @dataclass
 class CallbackContext:
-    """回调处理上下文,聚合handler需要访问的对象,避免闭包捕获。"""
+    """Callback-processing context that groups objects needed by handlers, avoiding closure capture."""
     downloader: 'TelegramRestrictedMediaDownloader'  # noqa.
     client: pyrogram.Client
     query: CallbackQuery
@@ -2762,7 +2762,7 @@ class CallbackContext:
 
 
 class CallbackHandler(ABC):
-    """回调处理器基类,子类声明exact/prefixes匹配集合并实handle。"""
+    """Base class for callback handlers; subclasses declare exact/prefixes match sets and implement handle."""
     exact: tuple = ()
     prefixes: tuple = ()
 
@@ -2850,7 +2850,7 @@ class TaskAssignHandler(CallbackHandler):
         target_link = meta.get('target_link')
         start_id = meta.get('start_id')
         end_id = meta.get('end_id')
-        # 谁点击(创建)任务就反馈给谁:以点击者所在的那条消息作为反馈载体。
+        # Send feedback to the user who clicked (created) the task, using the message they clicked as the response carrier.
         feedback = query.message
         feedback.from_user = query.from_user
         feedback.text = f'/download {origin_link} {start_id} {end_id}'
@@ -2877,7 +2877,7 @@ class ListenInfoHandler(CallbackHandler):
     async def handle(self, ctx: CallbackContext) -> None:
         downloader = ctx.downloader
         query = ctx.query
-        # 直接编辑当前消息展示监听信息,不再另发一条(也规避向机器人会话发送消息的限制)。
+        # Edit the current message to show listener information instead of sending another message (also avoiding restrictions on messaging bot chats).
         try:
             await downloader.listen_info(
                 client=downloader.bot,
@@ -2896,7 +2896,7 @@ class LookupAuthInfoHandler(CallbackHandler):
     async def handle(self, ctx: CallbackContext) -> None:
         downloader = ctx.downloader
         query = ctx.query
-        # 直接编辑当前消息展示授权用户列表,不再另发一条。
+        # Edit the current message to show the authorized-user list instead of sending another one.
         try:
             await downloader.show_authorized_users(
                 client=downloader.bot,
@@ -2915,7 +2915,7 @@ class ViewAuthListHandler(CallbackHandler):
     async def handle(self, ctx: CallbackContext) -> None:
         downloader = ctx.downloader
         query = ctx.query
-        # 直接编辑当前消息展示授权用户列表,不再另发一条。
+        # Edit the current message to show the authorized-user list instead of sending another one.
         try:
             await downloader.show_authorized_users(
                 client=downloader.bot,
@@ -2934,11 +2934,11 @@ class AddAuthHandler(CallbackHandler):
     async def handle(self, ctx: CallbackContext) -> None:
         downloader = ctx.downloader
         query = ctx.query
-        # 仅root可发起授权,非root直接拒绝。
+        # Only root can initiate authorization; reject other users immediately.
         if not downloader.root or query.from_user.id != downloader.root[0]:
             await query.answer('⛔ Only `root` can use this action.', show_alert=True)
             return None
-        # 打开输入模式,提示root发送待授权用户ID或@用户名,并支持取消。
+        # Open input mode and prompt root for the user ID or @username to authorize, with an option to cancel.
         await query.message.edit_text(
             text='➕ Enter the user `ID` or `@username` to authorize:',
             reply_markup=KeyboardButton.single_button(
@@ -2959,7 +2959,7 @@ class CancelAuthInputHandler(CallbackHandler):
     async def handle(self, ctx: CallbackContext) -> None:
         downloader = ctx.downloader
         query = ctx.query
-        # 关闭添加授权用户输入模式,无论是否root都安全(无该用户handler时为空操作)。
+        # Close add-authorized-user input mode; safe for any user because it is a no-op if no handler exists for them.
         downloader.add_auth_mode_handler(
             chat_id=query.from_user.id,
             callback_query=query,
@@ -3290,7 +3290,7 @@ class AuthUserHandler(CallbackHandler):
                 text=f'User `{uid}` is no longer in the authorization list.',
                 reply_markup=bot.menu_keyboard('auth'))
             return None
-        # 热移除:实时从过滤器与配置中剔除,并持久化。
+        # Hot-remove the user from the filter and configuration immediately, then persist the change.
         bot.gc.authorized_users.remove(uid)
         root_id = bot.root[0] if bot.root else None
         if uid != root_id and uid in bot.root:
@@ -3298,7 +3298,7 @@ class AuthUserHandler(CallbackHandler):
         bot.gc.config['authorized_users'] = bot.gc.authorized_users
         bot.gc.save_config(bot.gc.config)
         p = f'Removed authorized user: {uid}.'
-        # 移除结果直接显示在text中,并复位为授权用户菜单(添加/移除、查看、返回)。
+        # Show the removal result in text and return to the authorized-user menu (add/remove, view, return).
         await query.message.edit_text(
             text=f'✅ Authorization removed for user `{uid}`.',
             reply_markup=bot.menu_keyboard('auth'))
@@ -3379,7 +3379,7 @@ class DownloadChatHandler(CallbackHandler):
     )
 
     def match(self, data: str) -> bool:
-        # 回调数据形如"{压缩后的回调数据}|{频道id}",先剥离任务身份再匹配。
+        # Callback data has the form "{compressed callback data}|{channel ID}"; strip the task identity before matching.
         payload, _task = parse_task_callback(data)
         return (
                 payload in self.exact
@@ -3391,10 +3391,10 @@ class DownloadChatHandler(CallbackHandler):
         downloader = ctx.downloader
         query = ctx.query
         kb = ctx.kb
-        # 剥离挂载的任务身份:回调数据形如"{压缩后的回调数据}|{频道id}"。
+        # Strip the attached task identity; callback data has the form "{compressed callback data}|{channel ID}".
         data, task = parse_task_callback(ctx.data)
         user_id = query.from_user.id
-        # 回调数据必带任务身份,取不到的只可能是升级前的历史按钮,其任务已随重启清空,直接忽略。
+        # Callback data must include a task identity. If it is missing, this can only be an old button from before the upgrade; its task was cleared on restart, so ignore it.
         chat_id = resolve_chat_id(downloader.download_chat_filter, task)
         if chat_id is None or chat_id not in downloader.download_chat_filter:
             return None

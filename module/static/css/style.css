@@ -1,21 +1,21 @@
 :root {
-    color-scheme: dark;  /* 提示浏览器/Dark Reader 本页面已是暗色主题,避免被强制反色。 */
-    --bg: #000;  /* 官方 night 带图案时底层是纯黑(tweb 的 .Slot.IsPattern 背景色),渐变只在涂鸦线条里透出。 */
-    --panel: rgba(26, 26, 30, .6);  /* 暗色玻璃:深色半透,不是白色叠加层(白层在黑底上会变灰膜)。 */
-    --panel2: rgba(34, 34, 39, .72);  /* 表头与分组条:比卡片略实一档。 */
-    --glass-edge: rgba(255, 255, 255, .09);  /* 发丝级分隔线。 */
-    /* 注:原 --glass-blur / --glass-saturate / --glass-brightness / --liquid-blur
-       四个变量是为 backdrop-filter 服务的,真液态玻璃(liquid-glass.js)移除后
-       已无任何规则引用它们,故删除。如将来恢复毛玻璃,在此重新定义即可。 */
-    /* 静态磨砂噪点:128×128 灰度颗粒,用于模拟毛玻璃的漫反射质感。
-       与 backdrop-filter 的本质区别:它不采样真实背景、也不做模糊,
-       仅在首次渲染时光栅化一次,此后背景渐变每帧推进都无需重算,GPU 开销几乎为零。
-       页面背景本身是平滑渐变、没有细节需要模糊,所以观感与真毛玻璃非常接近。
-       颗粒强度由 SVG 里的 opacity 控制(默认 0.05),想更明显可调到 0.08~0.1。 */
+    color-scheme: dark;  /* Tell the browser/Dark Reader this page already uses a dark theme to prevent forced inversion. */
+    --bg: #000;  /* The official patterned night theme uses pure black underneath (tweb's .Slot.IsPattern background); the gradient shows through only in the doodle lines. */
+    --panel: rgba(26, 26, 30, .6);  /* Dark glass: dark and translucent, not a white overlay (a white layer over black looks gray). */
+    --panel2: rgba(34, 34, 39, .72);  /* Header and group bars: slightly more opaque than the cards. */
+    --glass-edge: rgba(255, 255, 255, .09);  /* Hairline divider. */
+    /* Note: the original --glass-blur / --glass-saturate / --glass-brightness / --liquid-blur
+       variables served backdrop-filter. After the real liquid glass (liquid-glass.js) was removed,
+       no rules referenced them, so they were deleted. If frosted glass is restored later, redefine them here. */
+    /* Static frosted noise: 128×128 grayscale grain that simulates the diffuse reflection of frosted glass.
+       Unlike backdrop-filter, it does not sample the real background or blur it;
+       it is rasterized only once on initial render, so advancing the background gradient each frame requires no recalculation and has almost no GPU cost.
+       The page background is already a smooth gradient with no details to blur, so it looks very similar to real frosted glass.
+       Grain strength is controlled by opacity in the SVG (default 0.05); increase it to 0.08–0.1 for a stronger effect. */
     --frost-noise: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='128' height='128'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='128' height='128' filter='url(%23n)' opacity='0.01'/></svg>");
     --border: #242b39;
-    --pattern-intensity: .375;  /* 涂鸦浓度,取官方 --pattern-intensity 的值(画布不透明度)。 */
-    --p: 0%;  /* 圆环进度百分比默认值(带 %),实际由 JS 通过内联 style 按元素覆盖。 */
+    --pattern-intensity: .375;  /* Doodle intensity, using the official --pattern-intensity value (canvas opacity). */
+    --p: 0%;  /* Default ring progress percentage (including %); JS overrides it per element through inline styles. */
     --text: #e7eaf0;
     --muted: #8a93a6;
     --accent: #38f9d7;
@@ -23,7 +23,7 @@
     --danger: #ff5c7a;
     --warn: #ffc857;
     --cols: minmax(0, 1fr) 210px 148px 92px 84px 64px;
-    --page-max: 100%;  /* 内容区最大宽度,默认跟随视口铺满;想恢复居中留白可改成一个像素值。 */
+    --page-max: 100%;  /* Maximum content width; fills the viewport by default. Set a pixel value to restore centered margins. */
 }
 
 * {
@@ -37,7 +37,7 @@
 }
 
 html {
-    background: var(--bg);  /* 底色放在根元素上,避免自身背景遮住负层级的画布与图案层。 */
+    background: var(--bg);  /* Put the base color on the root element so it does not cover the negative-z-index canvas and pattern layers. */
 }
 
 body {
@@ -48,21 +48,21 @@ body {
 }
 
 /*
- * 渐变背景与涂鸦遮罩样式
- * 对应 telegram-tt(web.telegram.org/a)的官方背景实现,经改写适配本项目。
- * 原始代码以 GNU GPL-3.0 授权,版权归相应原作者所有。
- * 移植并修改: Gentlesprite, 2026-09
+ * Gradient background and doodle mask styles
+ * Based on the official background implementation in telegram-tt (web.telegram.org/a), adapted for this project.
+ * The original code is licensed under GNU GPL-3.0; copyright belongs to the respective original authors.
+ * Ported and modified by: Gentlesprite, 2026-09
  * SPDX-License-Identifier: GPL-3.0-only
  */
-/* Telegram 风格的动画渐变背景:50×50 低分辨率画布由脚本逐帧绘制,CSS 拉伸铺满视口。
-   高度 150%、上移 25% 与 Telegram Web 的 GradientCanvas 样式一致,避免边缘露底。 */
-/* 官方 web.telegram.org/a 的背景:黑底 + 渐变画布被涂鸦图案遮罩,画布不透明度取 --pattern-intensity。
-   逐条对应官方 CSS(.hrXj504d.WOInNdza ._4fgy3GBs):
-   inset:0 铺满、mask-image 用 pattern.svg、mask-position:50%、mask-size:26.875rem、mask-repeat:repeat。 */
-/* Telegram 风格的动画渐变背景:画布由脚本按视口设备分辨率绘制并逐帧补间,涂鸦图案改由 JS 用
-   destination-in 烘焙进画布像素(不再用 CSS mask-image)。原因:Chrome 对「带 CSS mask 的 canvas
-   每帧重绘」会在重合成时先画出一帧未遮罩的渐变(左半边闪一下),Edge 的合成器不触发此 bug;
-   去掉 CSS mask 后只剩 canvas 自身绘制,跨浏览器都不闪,且动画/涂鸦样式与原来完全一致。 */
+/* Telegram-style animated gradient background: the script draws a 50×50 low-resolution canvas frame by frame, and CSS stretches it to fill the viewport.
+   The 150% height and 25% upward offset match Telegram Web's GradientCanvas style and prevent uncovered edges. */
+/* Official web.telegram.org/a background: black base + gradient canvas masked by the doodle pattern; canvas opacity uses --pattern-intensity.
+   Matches the official CSS (.hrXj504d.WOInNdza ._4fgy3GBs) property by property:
+   inset:0 fills the area; mask-image uses pattern.svg; mask-position:50%; mask-size:26.875rem; mask-repeat:repeat. */
+/* Telegram-style animated gradient background: the script draws the canvas at the viewport's device resolution and interpolates frame by frame; JS bakes the doodle pattern into
+   the canvas pixels with destination-in (instead of using CSS mask-image). Reason: in Chrome, redrawing a canvas with a CSS mask each frame
+   can briefly composite an unmasked gradient frame first (a flash on the left half); Edge's compositor does not trigger this bug.
+   Removing the CSS mask leaves only canvas drawing, eliminating the flash across browsers while keeping the animation and doodle appearance unchanged. */
 .bg-gradient {
     position: fixed;
     inset: 0;
@@ -75,7 +75,7 @@ body {
 }
 
 .bg-gradient.on {
-    opacity: var(--pattern-intensity);  /* 官方 [data-ready] 的 opacity:var(--pattern-intensity,.5)。 */
+    opacity: var(--pattern-intensity);  /* Matches the official [data-ready] opacity:var(--pattern-intensity,.5). */
 }
 
 .wrap {
@@ -92,7 +92,7 @@ body {
     align-items: start;
 }
 
-/* 未配置机器人时隐藏侧边栏,布局退化为单栏,主内容占满整行。 */
+/* When no bot is configured, hide the sidebar, switch to a single-column layout, and let the main content fill the row. */
 .layout-single {
     grid-template-columns: minmax(0, 1fr);
 }
@@ -116,7 +116,7 @@ body {
     font-size: 14px;
     font-weight: 600;
     text-align: left;
-    white-space: nowrap;  /* 短中文标签不折行,避免火狐里竖排。 */
+    white-space: nowrap;  /* Keep short labels on one line to prevent vertical wrapping in Firefox. */
     cursor: pointer;
     transition: border-color .15s ease, color .15s ease, background .15s ease;
 }
@@ -153,9 +153,9 @@ body {
     order: 1;
 }
 
-/* 顶栏元素统一用 order 控制排列:宽屏品牌区居左、操作按钮居右;窄屏媒体查询再重排。 */
+/* Use order to arrange top-bar elements consistently: branding on the left and action buttons on the right on wide screens; media queries reorder them on narrow screens. */
 #btnPause { order: 2; margin-left: auto; }
-#linkProxySeller { order: 3; text-decoration: none; }  /* <a>标签需清除默认下划线,与相邻按钮视觉一致。 */
+#linkProxySeller { order: 3; text-decoration: none; }  /* Remove the default underline from the <a> tag to match adjacent buttons. */
 #supportBtn { order: 4; }
 #menuWrap { order: 5; }
 
@@ -172,12 +172,12 @@ body {
     transition: box-shadow .25s ease;
 }
 
-/* 悬停时 TRMD 呈现静态青色辉光(纯高亮,无扫光等动效)。 */
+/* On hover, TRMD gets a static cyan glow (highlight only, with no sweep or other animation). */
 .logo:hover {
     box-shadow: 0 0 16px rgba(56, 249, 215, .55);
 }
 
-/* 鼠标悬停在logo上时滑出版本信息,纯CSS实现,无需点击。 */
+/* Hovering over the logo reveals version information; implemented entirely in CSS, with no click required. */
 .logo-tip {
     position: absolute;
     top: calc(100% + 8px);
@@ -208,11 +208,11 @@ body {
     transform: translateY(0);
 }
 
-/* 文件名悬停提示(完整名称):与 TRMD 版本提示同一套玻璃质感。
-   不用 .fname 的子元素实现的原因:.fname 为了折行省略设了 overflow:hidden,
-   且是 -webkit-box,子元素提示会被裁掉;故改为独立的 fixed 元素由 JS 定位。
-   用 opacity/visibility 而非 hidden 属性:元素保留尺寸,液态玻璃的
-   ResizeObserver 才能在内容变化时重算滤镜。 */
+/* Filename hover tooltip (full name): uses the same glass appearance as the TRMD version tooltip.
+   It is not implemented as a child of .fname because .fname uses overflow:hidden for multiline truncation
+   and -webkit-box, which would clip a child tooltip; instead, JS positions a separate fixed element.
+   Use opacity/visibility instead of the hidden attribute so the element retains its dimensions and the liquid-glass
+   ResizeObserver can recalculate the filter when its content changes. */
 .name-tip {
     position: fixed;
     z-index: 60;
@@ -226,7 +226,7 @@ body {
     font-size: 12px;
     font-weight: 500;
     line-height: 1.5;
-    white-space: normal;  /* 长文件名换行,不像版本提示那样单行。 */
+    white-space: normal;  /* Wrap long filenames, unlike the single-line version tooltip. */
     word-break: break-all;
     pointer-events: none;
     opacity: 0;
@@ -257,8 +257,8 @@ body {
     font-variant-numeric: tabular-nums;
 }
 
-/* 悬停提示统一由 app.js 的 .name-tip 接管:任何带 data-tip 或 title 的元素都显示同一套玻璃提示,
-   这里不要再给 [data-tip] 加伪元素提示,否则会与 JS 提示重复弹出两个。 */
+/* Hover tooltips are handled uniformly by app.js via .name-tip: any element with data-tip or title gets the same glass tooltip.
+   Do not add a pseudo-element tooltip to [data-tip] here, or it will appear alongside the JS tooltip. */
 
 h1 {
     font-size: 18px;
@@ -266,7 +266,7 @@ h1 {
     letter-spacing: .5px;
 }
 
-/* 顶栏左侧:统一下载、上传、监听三个板块的运行状态。 */
+/* Left side of the top bar: show the running status of downloads, uploads, and listeners together. */
 .status {
     display: inline-flex;
     align-items: center;
@@ -276,7 +276,7 @@ h1 {
     white-space: nowrap;
 }
 
-/* (按钮已提升为 .topbar 直接子元素,原 .top-actions 包裹已移除。) */
+/* (The button has been moved up to be a direct child of .topbar; the former .top-actions wrapper was removed.) */
 
 .support-btn {
     display: inline-flex;
@@ -292,7 +292,7 @@ h1 {
     font-weight: 700;
     letter-spacing: .5px;
     cursor: pointer;
-    white-space: nowrap;  /* 禁止中文标签折行,避免窄屏下被压成竖排(显示不全)。 */
+    white-space: nowrap;  /* Keep labels from wrapping into vertical text on narrow screens (which would make them incomplete). */
     box-shadow: 0 4px 14px rgba(56, 249, 215, .25);
     transition: filter .18s ease, box-shadow .28s ease;
 }
@@ -306,7 +306,7 @@ h1 {
     filter: brightness(.96);
 }
 
-/* 全局暂停激活态:转为橙色高亮,明确提示"已暂停"(纯静态,不带动画)。 */
+/* Global paused state: switch to an orange highlight to clearly indicate "Paused" (static, with no animation). */
 .support-btn.paused {
     background: linear-gradient(135deg, #ffb347, #ff7b54);
     color: #2a1402;
@@ -317,10 +317,10 @@ h1 {
     box-shadow: 0 8px 24px rgba(255, 123, 84, .5);
 }
 
-/* 暂停/恢复两态标签等长(图标+两字),固定宽度并居中可杜绝切换时
-   相邻按钮横向位移;font-variant-emoji 作为 CSS 层面的文字字形兜底。
-   关键:把按钮盒子高度锁成恒定值,避免 ⏸/▶ 在不同字体回退下
-   行盒高度差 1px、进而撑动顶栏高度、把下方卡片顶下去。 */
+/* Pause/resume labels have equal width (icon + two characters); fixed width and centering prevent adjacent buttons from shifting
+   horizontally when toggling. font-variant-emoji provides a CSS-level fallback for text glyphs.
+   Crucially, lock the button box to a constant height so ⏸/▶ do not produce different 1px line-box heights across font fallbacks,
+   which would increase the top-bar height and push the cards below it down. */
 #btnPause {
     min-width: 90px;
     height: 32px;
@@ -335,12 +335,12 @@ h1 {
     line-height: 1;
 }
 
-/* 支持作者按钮:与爱心同色的粉色光晕,与暂停橙光、常规青光协调呼应(纯静态,不带动画)。 */
+/* Support-author button: a pink glow matching the heart, coordinating with the orange pause glow and the usual cyan glow (static, with no animation). */
 #supportBtn:hover {
     box-shadow: 0 8px 22px rgba(255, 51, 85, .38);
 }
 
-/* 顶栏更多菜单:按钮保持低调,展开的下拉面板浮在内容之上。 */
+/* Top-bar more menu: keep the button understated and float the expanded dropdown above the content. */
 .menu-wrap {
     position: relative;
 }
@@ -378,26 +378,26 @@ h1 {
     box-shadow: 0 16px 40px rgba(0, 0, 0, .5);
 }
 
-/* ☰菜单底色加实:与筛选面板、每页下拉统一为.92档(全局磨砂规则为.72,浮层上内容透出看不清)。
-   仅覆盖background-color,噪点与玻璃边缘仍由全局磨砂规则提供。 */
+/* Make the ☰ menu background more opaque: match filter panels and per-page dropdowns at .92 (the global frosted rule is .72, allowing content behind overlays to show through too much).
+   Override only background-color; the global frosted rule still provides the noise and glass edge. */
 .menu-wrap .menu-dropdown {
     background-color: rgba(26, 26, 30, .92);
 }
 
 .menu-item {
     display: block;
-    box-sizing: border-box;  /* 避免 width:100% 叠加 padding 超出下拉框导致水平错位。 */
+    box-sizing: border-box;  /* Prevent width:100% plus padding from exceeding the dropdown and causing horizontal misalignment. */
     width: 100%;
-    margin: 0;  /* 清除 <button> 的默认外边距,否则与 <a> 菜单项垂直间距不一致导致不对齐。 */
+    margin: 0;  /* Clear the default <button> margin; otherwise its vertical spacing differs from <a> items and they do not align. */
     padding: 8px 10px;
-    line-height: 1.5;  /* 统一 <a> 与 <button> 的行高,避免文字垂直基线错位。 */
-    border: none;  /* 清除 <button> 的默认边框(菜单里也用 button 元素)。 */
+    line-height: 1.5;  /* Match the line height of <a> and <button> to prevent text baselines from misaligning. */
+    border: none;  /* Clear the default <button> border (the menu also uses button elements). */
     border-radius: 8px;
-    background: transparent;  /* 清除 <button> 的默认底色,否则在深色菜单里出现反色。 */
+    background: transparent;  /* Clear the default <button> background, which would otherwise appear inverted in the dark menu. */
     color: var(--text);
-    font-family: inherit;  /* button 不继承字体,需显式继承。 */
+    font-family: inherit;  /* Buttons do not inherit the font, so set it explicitly. */
     font-size: 13px;
-    text-align: left;  /* button 默认居中,与链接保持一致。 */
+    text-align: left;  /* Buttons are centered by default; align them with the links. */
     text-decoration: none;
     white-space: nowrap;
     cursor: pointer;
@@ -408,7 +408,7 @@ h1 {
     color: var(--accent);
 }
 
-/* 收款码弹窗 */
+/* Payment QR code dialog */
 .modal-mask {
     position: fixed;
     inset: 0;
@@ -417,9 +417,9 @@ h1 {
     align-items: center;
     justify-content: center;
     padding: 20px;
-    /* 不要用 backdrop-filter:带它的元素会成为 backdrop root,
-       导致内部 .modal-card 的液态玻璃只能采样到这层纯平底色,折射完全看不出来。
-       改为只用半透明底色压暗,且浓度不宜过高,否则背景细节被压没、卡片折射无从体现。 */
+    /* Do not use backdrop-filter: an element with it becomes a backdrop root,
+       causing the inner .modal-card liquid glass to sample only this flat background, making refraction invisible.
+       Instead, dim the background with a translucent color only, and keep its opacity moderate; otherwise background details disappear and the card's refraction cannot show. */
     background: rgba(5, 7, 11, .45);
 }
 
@@ -429,11 +429,11 @@ h1 {
     overflow: auto;
     border: 1px solid var(--border);
     border-radius: 14px;
-    background: rgba(26, 26, 30, .42);  /* 比 --panel(.6)更透,让折射出的背景细节透出来。 */
+    background: rgba(26, 26, 30, .42);  /* More transparent than --panel(.6), letting refracted background details show through. */
     box-shadow: 0 20px 60px rgba(0, 0, 0, .55);
 }
 
-/* 修改配置弹窗底色加实:与筛选面板、每页下拉统一为.92档;噪点与玻璃边缘仍由全局磨砂规则提供。 */
+/* Make the settings dialog background more opaque: match filter panels and per-page dropdowns at .92; the global frosted rule still provides noise and the glass edge. */
 #settingsModal .modal-card {
     background-color: rgba(26, 26, 30, .92);
 }
@@ -451,7 +451,7 @@ h1 {
 .modal-title {
     font-size: 14px;
     font-weight: 600;
-    white-space: nowrap;  /* 同上:短中文标题不折行。 */
+    white-space: nowrap;  /* As above: keep short titles on one line. */
 }
 
 .modal-close {
@@ -478,7 +478,7 @@ h1 {
 .modal-pay {
     display: block;
     width: 100%;
-    box-sizing: border-box;  /* border 不额外撑宽,二维码保持原始尺寸、不被缩小。 */
+    box-sizing: border-box;  /* Keep the border from adding to the width so the QR code retains its original size instead of shrinking. */
     margin: 14px 0 6px;
     border: 1px solid var(--border);
 }
@@ -490,13 +490,13 @@ h1 {
     text-align: center;
 }
 
-/* 确认弹窗的正文与按钮,沿用弹窗的玻璃卡片。 */
+/* Confirmation dialog body and buttons, using the dialog's glass card. */
 .modal-body {
     padding: 16px;
     color: var(--text);
     font-size: 13px;
     line-height: 1.6;
-    white-space: pre-line;  /* 保留提示文案里的换行。 */
+    white-space: pre-line;  /* Preserve line breaks in the prompt text. */
     word-break: break-all;
 }
 
@@ -530,21 +530,21 @@ h1 {
     color: var(--danger);
 }
 
-/* 登录卡片:替代浏览器原生的 Basic 认证弹窗,沿用弹窗的玻璃卡片。 */
-/* 登录弹窗层级低于通用弹窗(.modal-mask 为 50),
-   保证登录失败时弹出的提示框能盖在登录卡片之上。 */
+/* Login card: replaces the browser's native Basic authentication dialog and uses the dialog's glass card. */
+/* The login dialog has a lower stacking level than the generic dialog (.modal-mask is 50),
+   ensuring an alert shown after a failed login appears above the login card. */
 #loginModal {
     z-index: 40;
 }
 
 .login-card {
-    width: min(300px, 100%);  /* 收窄卡片,输入框不必过长。 */
+    width: min(300px, 100%);  /* Narrow the card so the input fields do not need to be overly long. */
 }
 
-/* 询问框/提示框宽度由文字自身决定:先按文字撑开,达到上限后换行,不再留大片空白。
-   遮罩本身是 flex 居中,所以卡片自然保持居中。 */
+/* Let confirmation/alert dialogs size to their text: expand to fit first, then wrap at the maximum width instead of leaving large blank areas.
+   The overlay itself is flex-centered, so the card remains centered. */
 #confirmModal {
-    z-index: 60;  /* 提示/确认弹窗始终盖在其它弹窗(如修改配置)之上,否则会被同 z-index 且 DOM 在后的 settingsModal 遮住。 */
+    z-index: 60;  /* Keep alerts/confirmation dialogs above other dialogs (such as settings); otherwise settingsModal later in the DOM would cover them at the same z-index. */
 }
 #confirmModal .modal-card {
     width: fit-content;
@@ -555,7 +555,7 @@ h1 {
     padding: 14px;
 }
 
-/* 账号/密码:标签与输入框同行,标签定宽保证两行对齐。 */
+/* Username/password: place labels beside the inputs and give labels a consistent width to align both rows. */
 .login-row {
     display: flex;
     align-items: center;
@@ -565,8 +565,8 @@ h1 {
 
 .login-label {
     flex: none;
-    min-width: 44px;  /* 用最小宽度而非定宽:定宽 44px 在火狐里会把"账号："逐字折行成竖排,
-                         最小宽度既保证两行标签对齐,也允许盒子随文字撑开。 */
+    min-width: 44px;  /* Use a minimum width instead of a fixed width: Firefox wraps "Account:" character by character at a fixed 44px,
+                         while a minimum width aligns both labels and still lets the box expand to fit the text. */
     white-space: nowrap;
     color: var(--muted);
     font-size: 13px;
@@ -580,7 +580,7 @@ h1 {
     padding: 6px 10px;
     border: 1px solid var(--border);
     border-radius: 8px;
-    background: rgba(34, 34, 39, .85);  /* 与筛选输入框一致,在面板/弹窗底上更清晰。 */
+    background: rgba(34, 34, 39, .85);  /* Match the filter input for better contrast on panels and dialog backgrounds. */
     color: var(--text);
     font-family: inherit;
     font-size: 13px;
@@ -589,20 +589,20 @@ h1 {
 }
 
 .trmd-input:hover {
-    background: rgba(0, 0, 0, .25);  /* 鼠标悬停时背景加深。 */
+    background: rgba(0, 0, 0, .25);  /* Darken the background on hover. */
 }
 
 .trmd-input:focus {
     outline: none;
     border-color: var(--accent);
-    background: rgba(0, 0, 0, .32);  /* 聚焦时背景加深。 */
-    box-shadow: 0 0 0 3px rgba(10, 132, 255, .25);  /* accent 蓝环,所有输入框统一。 */
+    background: rgba(0, 0, 0, .32);  /* Darken the background on focus. */
+    box-shadow: 0 0 0 3px rgba(10, 132, 255, .25);  /* Blue accent ring, consistent across all inputs. */
 }
 
-/* 修改配置弹窗:按"保存目录 / 并发与重试"分为两个区块,每个区块带左侧竖条小标题,
-   与页面 h2 分组标题风格一致,结构更清晰、不再平铺。 */
+/* Settings dialog: split into "Save directory / Concurrency and retries" blocks, each with a left accent-bar heading,
+   matching the page h2 group-heading style for a clearer structure instead of a flat layout. */
 #settingsModal .cfg-block {
-    margin-bottom: 16px;  /* 区块之间留舒适间隙(最后一个区块靠 :last-of-type 归零)。 */
+    margin-bottom: 16px;  /* Leave comfortable spacing between blocks (reset the last one with :last-of-type). */
 }
 #settingsModal .cfg-block:last-of-type {
     margin-bottom: 0;
@@ -610,66 +610,66 @@ h1 {
 #settingsModal .cfg-block-title {
     padding-left: 9px;
     border-left: 3px solid var(--accent);
-    margin-bottom: 8px;  /* 标题到下方内容的间距,放松到舒适。 */
+    margin-bottom: 8px;  /* Comfortable spacing between the heading and the content below. */
     font-size: 13px;
     font-weight: 600;
     color: var(--muted);
-    line-height: 1;  /* 消除标题文字上下行距,避免区块间视觉留缝。 */
+    line-height: 1;  /* Remove extra vertical line spacing from the heading to avoid visual gaps between blocks. */
 }
-/* 区块内标签独占一行,柔和灰字更像表单标签;输入框占满宽度便于填写长路径。 */
+/* Give each block label its own line; muted gray looks more like a form label, and full-width inputs make long paths easier to enter. */
 #settingsModal .login-label {
     display: block;
     margin-bottom: 0;
     font-size: 13px;
-    line-height: 1;  /* 消除标签文字上下行距。 */
+    line-height: 1;  /* Remove extra vertical line spacing from labels. */
 }
 
-/* 保存目录输入框也对齐标题文字(左缩进 9px),与下方任务数/重试数区块的输入框保持等宽一致。 */
+/* Align the save-directory input with the heading text (9px left indent), matching the input widths in the task/retry settings below. */
 #settingsModal #saveDirInput {
     margin-left: 9px;
     width: calc(100% - 9px);
 }
-/* 四个数字配置项用两列网格排列;每个 cfg-item 内标签在上、输入框在下,间距统一交给 flex gap。 */
+/* Arrange the four numeric settings in a two-column grid; each cfg-item has a label above its input, with spacing handled uniformly by flex gap. */
 #settingsModal .cfg-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 0 14px;
-    padding-left: 9px;  /* 与标题文字左边缘对齐,使"下载/上传"标签及输入框与"最大任务数"标题等宽。 */
+    padding-left: 9px;  /* Align with the heading's left edge so the "Download/Upload" labels and inputs match the width of the "Maximum tasks" heading. */
     box-sizing: border-box;
 }
 #settingsModal .cfg-item {
     display: flex;
     flex-direction: column;
-    gap: 8px;  /* 标签与输入框之间的间距,放松到舒适。 */
+    gap: 8px;  /* Comfortable spacing between labels and inputs. */
 }
 #settingsModal .cfg-item .login-label {
-    margin-bottom: 0;  /* 间距由 flex gap 控制,避免与上方 4px 叠加成双重间距。 */
+    margin-bottom: 0;  /* Spacing is controlled by flex gap; avoid doubling it with the 4px above. */
 }
-/* 配置弹窗内边距收紧,减少四周留白(仅作用于本弹窗,不影响支持/确认/登录弹窗)。 */
-/* 标题区(修改配置)高度与通用弹窗(如支持作者弹窗)保持一致,不另设 head 内边距;
-   标题区到首个区块的间距由 body 上内边距控制。 */
+/* Tighten padding in the settings dialog to reduce surrounding whitespace (applies only here, not to support/confirmation/login dialogs). */
+/* Keep the settings title area the same height as generic dialogs (such as the support-author dialog), without extra head padding;
+   the body's top padding controls spacing between the title area and the first block. */
 #settingsModal .modal-body {
-    padding: 16px 16px;  /* 上 8px = 标题区到保存目录的间隙;左右 16px 与通用弹窗一致。 */
-    line-height: 1.5;  /* 比紧凑版(1.4)略松,整体不那么挤。 */
-    white-space: normal;  /* 覆盖通用 pre-line:源码元素间的换行不再渲染成空行,三个区块才能真正收紧;提示换行由 .modal-tip 单独保留。 */
+    padding: 16px 16px;  /* 8px top padding = gap between the title area and save directory; 16px horizontal padding matches generic dialogs. */
+    line-height: 1.5;  /* Slightly looser than the compact version (1.4), making the overall layout less cramped. */
+    white-space: normal;  /* Override the generic pre-line so source-code line breaks do not render as blank lines and the three blocks can be compacted; .modal-tip preserves prompt line breaks separately. */
 }
-/* 弹窗底部留白归零(仅本弹窗);顶部 header 恢复默认 11px 上下,避免标题贴边太紧凑。 */
+/* Remove bottom whitespace only from this dialog; restore the default 11px vertical header padding so the title is not too close to the edge. */
 #settingsModal .modal-foot {
     padding: 0 16px 14px;
 }
 
 
-/* 配置弹窗标题栏底色与输入框一档(.85),比--panel2(.72)实,在.92的卡片上层次更清晰。 */
+/* Set the settings dialog header background to the same opacity as the inputs (.85), more opaque than --panel2(.72) for clearer contrast on the .92 card. */
 #settingsModal .modal-head {
     background: rgba(34, 34, 39, .85);
 }
 
-/* 30天内免登录 */
+/* Stay logged in for 30 days */
 .login-remember {
     display: flex;
     align-items: center;
     gap: 6px;
-    margin: -5px 0 0;  /* 去掉底部间距,让登录按钮紧贴勾选行。 */
+    margin: -5px 0 0;  /* Remove bottom spacing so the login button sits close to the checkbox row. */
     color: var(--muted);
     font-size: 12px;
     cursor: pointer;
@@ -684,15 +684,15 @@ h1 {
 .login-submit {
     margin-top: -5px;
     display: block;
-    width: 100%;  /* 铺满卡片宽度:只有"登录"两字时右对齐会留下大片空白。 */
+    width: 100%;  /* Fill the card width; right alignment would leave a large blank area with only the word "Login". */
     padding: 9px 16px;
-    border-width: 2px;  /* 边框加粗,按钮更厚实。 */
+    border-width: 2px;  /* Thicker border gives the button more weight. */
     border-radius: 9px;
-    font-weight: 600;  /* 文字加粗。 */
+    font-weight: 600;  /* Bold text. */
     text-align: center;
 }
 
-/* 未登录时只保留动态渐变背景:隐藏整个页面内容,登录卡片在 .wrap 之外不受影响。 */
+/* When logged out, keep only the animated gradient background and hide all page content; the login card is outside .wrap and remains visible. */
 body.logged-out .wrap {
     display: none;
 }
@@ -709,7 +709,7 @@ body.logged-out .wrap {
     box-shadow: 0 0 0 4px rgba(67, 233, 123, .16);
 }
 
-/* 面板 */
+/* Panel */
 .panel {
     padding: 14px 16px;
     margin-bottom: 10px;
@@ -718,12 +718,12 @@ body.logged-out .wrap {
     background: var(--panel);
 }
 
-/* 所有卡片统一为半透明磨砂:暗色半透底 + 噪点 + 上沿高光/下沿暗边,
-   不做 backdrop-filter 采样。原 liquid-glass.js(真液态玻璃)已移除、不再使用——
-   它靠 backdrop-filter 实时采样背景 + SVG 位移产生折射,背景推进时逐帧重算,
-   大面积元素因此明显卡顿。改回这套纯静态层后 GPU 开销几乎为零,
-   背景平滑渐变透出半透明底色即呈现磨砂观感,与真玻璃差异极小。
-   .group-head 不并入:它仍维持独立的白色微亮分组条样式以区分层次。 */
+/* Give all cards a consistent translucent frosted treatment: dark translucent base + noise + top highlight/bottom shadow,
+   without backdrop-filter sampling. The original liquid-glass.js (real liquid glass) was removed and is no longer used—
+   it sampled the background in real time with backdrop-filter and produced refraction via SVG displacement, recalculating every frame as the background moved,
+   which caused noticeable stutter on large elements. This purely static layer has almost no GPU cost;
+   the smooth gradient showing through the translucent base looks frosted and is very close to real glass.
+   Exclude .group-head: its separate, subtly bright white group-bar style is retained to distinguish levels. */
 .side-item,
 .tab,
 .stat div,
@@ -756,7 +756,7 @@ th {
     margin-bottom: 8px;
 }
 
-/* 连接状态行:夹在“总进度/速度”行与进度条之间,上下间距与上方保持一致。 */
+/* Connection status row: placed between the "overall progress/speed" row and the progress bar, with the same spacing above and below. */
 #overallStatus, #uploadStatus {
     margin-bottom: 8px;
 }
@@ -780,8 +780,8 @@ th {
     font-variant-numeric: tabular-nums;
 }
 
-/* 存储页磁盘空间卡片:目录行 + 占用条 + 图例行。
-   保存目录与缓存目录共用同一套行式样式:标签、路径(省略显示,悬停看全文)与右侧数值。 */
+/* Storage page disk space card: directory row + usage bar + legend row.
+   The save and cache directories share the same row style: label, truncated path (full path on hover), and value on the right. */
 .storage-disk .disk-row {
     display: flex;
     flex-wrap: wrap;
@@ -806,18 +806,18 @@ th {
 }
 
 .storage-disk .disk-row-value {
-    margin-left: auto;  /* 数值推到行尾。 */
+    margin-left: auto;  /* Push the value to the end of the row. */
     color: var(--text);
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
 }
 
-/* 保存目录行:与下方占用条之间留出间距。 */
+/* Save-directory row: leave space between it and the usage bar below. */
 .storage-disk .disk-row-lead {
     margin-bottom: 10px;
 }
 
-/* 缓存目录行:与上方磁盘区隔一条发丝线。 */
+/* Cache-directory row: separate it from the disk section above with a hairline. */
 .storage-disk .disk-row-split {
     margin-top: 10px;
     padding-top: 10px;
@@ -826,7 +826,7 @@ th {
 
 .storage-disk .disk-legend {
     display: flex;
-    flex-wrap: wrap;  /* 窄屏时图例与数值换行,避免挤压重叠。 */
+    flex-wrap: wrap;  /* Wrap the legend and value on narrow screens to prevent crowding and overlap. */
     align-items: center;
     gap: 6px;
     margin-top: 10px;
@@ -842,12 +842,12 @@ th {
 }
 
 .storage-disk .dot-free {
-    margin-left: 8px;  /* 与上一项拉开距离,两个图例不贴在一起。 */
+    margin-left: 8px;  /* Add space after the previous item so the two legend entries do not touch. */
     background: #4a5160;
 }
 
 .storage-disk .disk-value {
-    margin-left: auto;  /* 数值推到行尾,与图例左右分栏。 */
+    margin-left: auto;  /* Push the value to the end of the row, separating it from the legend. */
     color: var(--text);
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
@@ -874,9 +874,9 @@ th {
     height: 100%;
     border-radius: 99px;
     background: linear-gradient(90deg, #43e97b, #38f9d7, #43e97b);
-    /* 原先的 background-size: 200% 100% 只为已删除的流光动画服务:
-       它让背景加宽一倍、靠滚动 background-position 露出不同段落。
-       动画移除后保留它会让渐变只显示左半段(绿→青),故去掉,使三色渐变完整呈现。 */
+    /* The former background-size: 200% 100% was only used by the removed shimmer animation:
+       it doubled the background width and revealed different sections by shifting background-position.
+       Keeping it after removing the animation would show only the left half of the gradient (green → cyan), so it was removed to display all three colors. */
     box-shadow: 0 0 10px rgba(56, 249, 215, .35);
     transition: width .5s ease;
 }
@@ -896,11 +896,11 @@ th {
     padding: 9px 12px;
     border: 1px solid var(--border);
     border-radius: 10px;
-    /* 只设 background-color:用 background 简写会清掉统一磨砂块的渐变与噪点图层。 */
+    /* Set only background-color: the background shorthand would clear the shared frosted layer's gradient and noise. */
     background-color: var(--panel);
 }
 
-/* 统计卡可点击筛选 */
+/* Statistic cards can be clicked to filter */
 .stat div[data-filter] {
     cursor: pointer;
     transition: border-color .15s ease, background .15s ease, color .15s ease;
@@ -916,10 +916,10 @@ th {
     color: var(--accent);
 }
 
-/* .panel 与 .list 已并入上方统一磨砂块,不再单独定义,避免两套样式互相覆盖。 */
+/* .panel and .list are included in the shared frosted layer above and are not defined separately, avoiding conflicting styles. */
 
-/* 统计卡的标签与数值都是两三个字,列宽被压缩时不允许折行:
-   火狐允许 CJK 逐字断行,一旦压缩就会竖排成"已跳/过"。 */
+/* Statistic card labels and values are only a few characters long, so do not wrap them when columns are compressed:
+   Firefox allows CJK text to break character by character, which would stack it vertically (for example, "Skipped"). */
 .stat span {
     font-size: 12px;
     color: var(--muted);
@@ -953,7 +953,7 @@ th {
     display: none;
 }
 
-/* 监听页的顶部选项卡 */
+/* Listener page top tabs */
 .tabs {
     display: flex;
     gap: 8px;
@@ -964,13 +964,13 @@ th {
     padding: 7px 18px;
     border: 1px solid var(--border);
     border-radius: 99px;
-    /* 同上:保留统一磨砂块的渐变与噪点,不覆盖整条 background。 */
+    /* As above: preserve the shared frosted layer's gradient and noise; do not override the entire background. */
     background-color: var(--panel);
     color: var(--muted);
     font-family: inherit;
     font-size: 13px;
     font-weight: 600;
-    white-space: nowrap;  /* 同上:短中文标签不折行。 */
+    white-space: nowrap;  /* As above: keep short labels on one line. */
     cursor: pointer;
     transition: border-color .15s ease, color .15s ease, background .15s ease;
 }
@@ -1023,7 +1023,7 @@ h2 {
     color: var(--accent);
 }
 
-/* 记录页分页条:每页条数选择、翻页按钮与页码信息。 */
+/* History page pagination bar: page-size selector, navigation buttons, and page information. */
 .storage-pager {
     display: flex;
     align-items: center;
@@ -1038,7 +1038,7 @@ h2 {
     gap: 4px;
 }
 
-/* 每页条数:自定义下拉,玻璃卡片与菜单提示同一套语言(.menu-dropdown/.logo-tip)。 */
+/* Page size: custom dropdown using the same glass-card style as the menu and tooltip (.menu-dropdown/.logo-tip). */
 .pager-select {
     position: relative;
 }
@@ -1051,7 +1051,7 @@ h2 {
     padding: 4px 8px;
     border: 1px solid var(--border);
     border-radius: 8px;
-    background: rgba(34, 34, 39, .85);  /* 比--panel2(.72)实一档,与筛选面板内的控件同档,浮层上更清晰。 */
+    background: rgba(34, 34, 39, .85);  /* One step more opaque than --panel2(.72), matching filter-panel controls for better clarity in overlays. */
     color: var(--text);
     font-family: inherit;
     font-size: 12px;
@@ -1075,7 +1075,7 @@ h2 {
     transform: rotate(180deg);
 }
 
-/* 下拉弹层:与 .menu-dropdown 一致的玻璃卡片,底色比--panel(.6)实一档,内容透出会导致看不清。 */
+/* Dropdown popover: same glass card as .menu-dropdown, with a base one step more opaque than --panel(.6) so content behind it does not obscure it. */
 .pager-select-pop {
     position: absolute;
     top: calc(100% + 6px);
@@ -1152,12 +1152,12 @@ h2 {
     margin-left: 2px;
 }
 
-/* 列表 */
+/* List */
 .list {
-    --cols: minmax(0, 1fr) 210px 148px 92px 84px 64px;  /* 下载、上传表的列宽来源,首列为弹性列,其余列为可拖拽的固定列。 */
+    --cols: minmax(0, 1fr) 210px 148px 92px 84px 64px;  /* Column widths for download and upload tables: the first column is flexible; the rest are fixed and draggable. */
     border: 1px solid var(--border);
     border-radius: 12px;
-    /* 同上:保留统一磨砂块的渐变与噪点。 */
+    /* As above: preserve the shared frosted layer's gradient and noise. */
     background-color: var(--panel);
     overflow: hidden;
 }
@@ -1169,7 +1169,7 @@ h2 {
     align-items: center;
     padding: 8px 14px;
     border-bottom: 1px solid var(--border);
-    /* 与面板同一张静态噪点,保持磨砂质感统一;底色仍是半透明的 --panel2。 */
+    /* Use the same static noise as the panels for a consistent frosted look; the base color remains translucent --panel2. */
     background-color: var(--panel2);
     background-image: var(--frost-noise);
     background-repeat: repeat;
@@ -1178,15 +1178,15 @@ h2 {
     color: var(--muted);
 }
 
-/* 表头的每个列格作为分隔条的定位参照,并加圆角与内边距,使其呈现玻璃片折射质感。 */
+/* Use each header cell as the positioning reference for its divider; add rounded corners and padding for a glass-pane refraction effect. */
 .list-head > span {
     position: relative;
     padding: 3px 8px;
     border-radius: 8px;
-    min-width: 0;  /* 允许列宽被压缩时文字省略而非撑开或竖排。 */
+    min-width: 0;  /* Allow text to truncate instead of expanding or wrapping vertically when a column is compressed. */
 }
 
-/* 列标题文字:宽度不足时以省略号截断,保持横向单行,不换行竖排。 */
+/* Column headings: truncate with an ellipsis when space is limited, keeping them on one horizontal line instead of wrapping vertically. */
 .list-head > span .htext {
     display: block;
     white-space: nowrap;
@@ -1194,10 +1194,10 @@ h2 {
     text-overflow: ellipsis;
 }
 
-/* 列宽拖拽分隔条,覆盖列间隙,常显一小段细线提示此处可拖拽,按下后左右拖动调整列宽。 */
+/* Column-width drag divider: spans the column gap and always shows a short line to indicate it is draggable; drag left or right to resize the column. */
 .grip {
     position: absolute;
-    top: -8px;  /* 上下各外扩表头内边距,让拖拽热区覆盖整个表头高度。 */
+    top: -8px;  /* Extend beyond the header padding on both ends so the drag target covers the full header height. */
     bottom: -8px;
     right: -6px;
     width: 12px;
@@ -1221,7 +1221,7 @@ h2 {
 
 .grip:hover::before,
 body.resizing .grip::before {
-    background: var(--accent);  /* 悬停或拖拽时保持原高度,只高亮提示可拖拽。 */
+    background: var(--accent);  /* Keep its height unchanged on hover or drag; highlight it only to indicate it is draggable. */
 }
 
 body.resizing {
@@ -1243,7 +1243,7 @@ body.resizing {
     background: rgba(56, 249, 215, .05);
 }
 
-/* 行内所有单元格:列宽被压缩到极限时允许收缩,由自身规则截断,绝不溢出覆盖相邻列。 */
+/* All cells in a row: allow shrinking when columns reach their minimum width and let each cell's own rules truncate content; never overflow over adjacent columns. */
 .task-row > *,
 .group-head > * {
     min-width: 0;
@@ -1254,10 +1254,10 @@ body.resizing {
     border-bottom: none;
 }
 
-/* 横向滚动时,行与分组的盒子必须覆盖完整列宽。
-   网格轨道会溢出容器,但盒子本身只有容器宽度,其背景与边框只绘制到容器边缘;
-   滚动才能看到的那一段就没有行底色,导致"初始可见区"与"滚动可见区"配色不一致。
-   min-content 等于各列最小宽度之和,桌面端它小于可用宽度,故无副作用。 */
+/* During horizontal scrolling, row and group boxes must cover the full column width.
+   Grid tracks can overflow their container, but the boxes themselves are only as wide as the container, so their backgrounds and borders stop at its edge;
+   the part visible only after scrolling would have no row background, making the initial and scrolled areas look inconsistent.
+   min-content is the sum of the minimum widths of all columns; it is less than the available width on desktop, so this has no side effects. */
 .list-head,
 .task-row,
 .group-head,
@@ -1266,7 +1266,7 @@ body.resizing {
     min-width: min-content;
 }
 
-/* 监听页的列:转发为监听频道与转发频道两列,下载只有一列,末列固定为操作按钮。 */
+/* Listener page columns: forwarding has listener-channel and target-channel columns; downloads have one column; the last column is reserved for the action button. */
 .listen-two {
     --cols: minmax(0, 1fr) 240px 56px;
 }
@@ -1275,24 +1275,24 @@ body.resizing {
     --cols: minmax(0, 1fr) 56px;
 }
 
-/* 通知表的列:内容为弹性列,创建者与登记时间为固定列。 */
+/* Notification table columns: content is flexible; creator and creation time are fixed-width. */
 .notice-list {
     --cols: minmax(0, 1fr) 160px 150px;
 }
 
-/* 记录表:来源(频道/消息)、文件、链接、大小、消息ID、类型、状态、时间。
-   第1列的来源单元格纵向跨行合并(同消息只显示一次),第2列为弹性列。
-   记录表已挂data-table,列宽机制按"弹性列在第2位"生成拖拽条,默认列宽由此处声明。 */
+/* History table: source (channel/message), file, link, size, message ID, type, status, and time.
+   The source cell in the first column spans rows vertically (shown once per message); the second column is flexible.
+   The history table has data-table, so the column-width logic creates drag handles with "flexible column in position 2"; default widths are declared here. */
 .list-storage {
     --cols: 150px minmax(200px, 1fr) 200px 100px 80px 90px 90px 150px;
 }
 
-/* 列间距改由单元格内边距承担:行分隔线要连续,不能留出gap断口。 */
+/* Use cell padding for column spacing so row dividers remain continuous without gaps. */
 .list-storage .list-head {
     gap: 0;
 }
 
-/* 记录表头改为弹性布局:标题文字可压缩省略,右侧常驻筛选按钮,列宽拖拽把手不受影响。 */
+/* Use a flex layout for history table headers: heading text can shrink and truncate, the filter button stays on the right, and column resize handles remain unaffected. */
 .list-storage .list-head > span {
     display: flex;
     align-items: center;
@@ -1305,7 +1305,7 @@ body.resizing {
     min-width: 0;
 }
 
-/* 表头筛选按钮:未筛选为下拉箭头,筛选中为漏斗并高亮。 */
+/* Header filter button: show a dropdown arrow when inactive and a highlighted funnel when filtering. */
 .list-storage .list-head .hfilter {
     display: inline-flex;
     align-items: center;
@@ -1332,7 +1332,7 @@ body.resizing {
     color: var(--accent);
 }
 
-/* 两个图标叠放在同一按钮里:默认显示下拉箭头,激活时切换为漏斗。 */
+/* Stack both icons in the same button: show the dropdown arrow by default and switch to the funnel when active. */
 .list-storage .list-head .hfilter .hfilter-funnel {
     display: none;
 }
@@ -1345,8 +1345,8 @@ body.resizing {
     display: block;
 }
 
-/* 筛选面板:与每页条数下拉一致的玻璃卡片,fixed定位避开表头滚动裁剪。
-   底色比--panel(.6)更实:面板浮在记录列表上方,列表内容透出会导致看不清。 */
+/* Filter panel: a glass card matching the page-size dropdown, fixed-positioned to avoid clipping when the header scrolls.
+   Use a more opaque base than --panel(.6): the panel floats above the history list, whose content would otherwise show through and reduce legibility. */
 .hfilter-pop {
     position: fixed;
     z-index: 50;
@@ -1362,7 +1362,7 @@ body.resizing {
     font-size: 13px;
 }
 
-/* 筛选面板内输入框(.hfilter-arg/.hfilter-search-input)的样式统一收敛到 .trmd-input,此处不再重复定义。 */
+/* Filter-panel inputs (.hfilter-arg/.hfilter-search-input) share the .trmd-input style, so they are not redefined here. */
 
 .hfilter-list {
     max-height: 240px;
@@ -1406,7 +1406,7 @@ body.resizing {
     font-size: 12px;
 }
 
-/* (全选)项与值列表之间用分隔线区分,半选状态由JS设置indeterminate。 */
+/* Separate the (Select all) item from the value list with a divider; JS sets indeterminate for the partially selected state. */
 .hfilter-all-item {
     padding-bottom: 7px;
     border-bottom: 1px solid var(--border);
@@ -1424,7 +1424,7 @@ body.resizing {
     margin-top: 8px;
 }
 
-/* 筛选面板中部的运算符下拉向上展开,避免弹层被视口底部裁切;底色与每页条数下拉同一全局规则。 */
+/* Expand the operator dropdown in the middle of the filter panel upward to avoid clipping at the viewport bottom; its background follows the same global rule as the page-size dropdown. */
 .hfilter-custom .pager-select-pop {
     top: auto;
     bottom: calc(100% + 6px);
@@ -1498,7 +1498,7 @@ body.resizing {
     color: var(--danger);
 }
 
-/* 窄屏:筛选面板改为底部全宽弹层,内容区滚动、"确定/取消"固定在底部,避免被手机视口裁切。 */
+/* Narrow screens: turn the filter panel into a full-width bottom sheet with a scrollable content area and fixed "Apply/Cancel" buttons, avoiding clipping by the mobile viewport. */
 @media (max-width: 760px) {
     .hfilter-pop {
         left: 8px !important;
@@ -1520,7 +1520,7 @@ body.resizing {
     .hfilter-pop .hfilter-custom {
         flex: 1 1 auto;
         min-height: 0;
-        max-height: none;  /* 取消基础240限制,由面板整体高度接管。 */
+        max-height: none;  /* Remove the base 240px limit; the panel's overall height controls it. */
         overflow-y: auto;
     }
 
@@ -1536,7 +1536,7 @@ body.resizing {
     min-width: min-content;
 }
 
-/* 空态文案横跨全部列,与监听板块一样占满整行,不因单列宽度而折行。 */
+/* Empty-state text spans all columns and fills the row like the listener section, rather than wrapping to a single column's width. */
 .list-storage .empty {
     grid-column: 1 / -1;
 }
@@ -1548,23 +1548,23 @@ body.resizing {
     overflow: hidden;
 }
 
-/* 斑马纹:按记录在整表中的序号交替,相邻行底色分明。 */
+/* Zebra striping: alternate based on each record's index in the full table so adjacent rows are clearly distinguished. */
 .storage-cell.alt {
     background: rgba(255, 255, 255, .025);
 }
 
-/* 新频道的第一行顶部画分隔线,标示归类边界;内阴影避免与上一行下边框叠成双线。 */
+/* Draw a divider above the first row of each new channel to mark the group boundary; an inset shadow avoids doubling the previous row's bottom border. */
 .storage-cell.group-start {
     box-shadow: inset 0 1px 0 var(--border);
 }
 
-/* 整行悬停:同一网格行的单元格一起高亮。 */
+/* Row hover: highlight all cells in the same grid row together. */
 .storage-cell.hover {
     background: rgba(56, 249, 215, .06);
 }
 
-/* 来源单元格:纵向跨行合并(同消息只显示一次),堆叠频道名、消息链接与文件数;
-   右侧分隔线区分数据列。 */
+/* Source cell: spans multiple rows vertically (shown once per message) and stacks the channel name, message link, and file count;
+   a divider on the right separates it from the data columns. */
 .storage-channel-cell {
     display: flex;
     flex-direction: column;
@@ -1630,7 +1630,7 @@ body.resizing {
     color: var(--danger);
 }
 
-/* 分组 */
+/* Groups */
 .group {
     border-bottom: 1px solid rgba(36, 43, 57, .6);
 }
@@ -1645,7 +1645,7 @@ body.resizing {
     gap: 12px;
     align-items: center;
     padding: 9px 14px;
-    /* 同样叠一层静态噪点,使分组条与面板的磨砂质感一致。 */
+    /* Add the same static noise layer so group bars share the panels' frosted appearance. */
     background-color: rgba(255, 255, 255, .03);
     background-image: var(--frost-noise);
     background-repeat: repeat;
@@ -1663,9 +1663,9 @@ body.resizing {
     background: rgba(0, 0, 0, .16);
 }
 
-/* 缩进放在名称单元格内,而不是整行:
-   行级 padding-left 会挤压名称列(1fr),令其后的固定列整体左移、与表头错位;
-   下沉到 .cell-name 后各行可用宽度一致,列位置对齐,缩进量保持不变(30-14=16)。 */
+/* Apply indentation to the name cell, not the whole row:
+   row-level padding-left would squeeze the name column (1fr), shifting all following fixed columns left and misaligning them with the header;
+   applying it to .cell-name keeps usable row widths and column positions aligned while preserving the same indent (30-14=16). */
 .group-body .task-row > .cell-name,
 .group-body .group-head > .cell-name {
     padding-left: 16px;
@@ -1685,12 +1685,12 @@ body.resizing {
     transition: transform .15s ease;
 }
 
-/* 只旋转当前分组自己的箭头,避免嵌套分组的箭头被父级影响。 */
+/* Rotate only the current group's arrow so nested group arrows are not affected by the parent. */
 .group.open > .group-head .arrow {
     transform: rotate(90deg);
 }
 
-/* 嵌套分组(频道 > 链接),逐层缩进。 */
+/* Nested groups (channel > link), indented by level. */
 .group-body .group-head {
     font-weight: 500;
     background: rgba(0, 0, 0, .16);
@@ -1700,7 +1700,7 @@ body.resizing {
     background: rgba(0, 0, 0, .24);
 }
 
-/* 二级嵌套缩进(52-14=38),同样只作用于名称单元格。 */
+/* Second-level nested indentation (52-14=38), applied to the name cell only as well. */
 .group-body .group-body .task-row > .cell-name {
     padding-left: 38px;
 }
@@ -1709,22 +1709,22 @@ body.resizing {
     padding-left: 52px;
 }
 
-/* 单元格 */
+/* Cells */
 .cell-name {
     display: flex;
     align-items: center;
     gap: 8px;
     min-width: 0;
-    overflow: hidden;  /* 列宽被压缩到极限时,图标与计数不得溢出覆盖右侧列。 */
+    overflow: hidden;  /* Prevent icons and counts from overflowing over the next column when column width is minimized. */
 }
 
-/* 通知行:内容可能有多行,与单行的创建者、时间顶端对齐。 */
+/* Notification rows: content may span multiple lines; align it to the top with the single-line creator and time cells. */
 .notice-row {
     align-items: start;
 }
 
-/* 通知内容:保留换行完整展示,不做省略;列宽由拖拽把手调整。
-   overflow-wrap允许路径、文件名等无空格长英文串在列内断行,否则会溢出格子覆盖右侧列。 */
+/* Notification content: preserve line breaks and show the full text without truncation; resize the column with its drag handle.
+   overflow-wrap lets long strings without spaces, such as paths and filenames, wrap within the column instead of overflowing over the next one. */
 .notice-row .notice-text {
     display: block;
     overflow: visible;
@@ -1738,8 +1738,8 @@ body.resizing {
     font-size: 14px;
 }
 
-/* 文件名最多两行:放得下就只占一行,放不下才折到第二行并省略。
-   每个名称按自身长度与当前列宽独立自适应,不依赖任何固定宽度阈值。 */
+/* Filenames use at most two lines: stay on one line when they fit; otherwise wrap to a second line and truncate.
+   Each name adapts to its own length and the current column width, without relying on a fixed width threshold. */
 .fname,
 .gname {
     overflow: hidden;
@@ -1758,30 +1758,30 @@ body.resizing {
 
 
 
-/* 进度列的最小宽度:保证圆环/进度条与百分比都能完整显示,
-   避免拖窄后百分比被裁切。由 measureColMins 读取 --col-min 参与列宽下限计算。 */
+/* Minimum width for the progress column: ensure the ring/bar and percentage remain fully visible
+   so the percentage is not clipped when the column is resized narrower. measureColMins reads --col-min when calculating minimum column widths. */
 .h-progress {
     --col-min: 72px;
 }
 
 .cell-progress {
-    --p: 0%;  /* 进度百分比,由 JS 通过内联 style 覆盖;此处为静态检查与缺省时的回退值。 */
+    --p: 0%;  /* Progress percentage, overridden by JS through inline styles; fallback for static checks and when unset. */
     display: flex;
     align-items: center;
     gap: 8px;
     min-width: 0;
-    overflow: hidden;  /* 进度条有最小宽度,窄列时在此处截断而非溢出。 */
+    overflow: hidden;  /* The progress bar has a minimum width; clip it here in narrow columns instead of letting it overflow. */
 }
 
 .cell-progress .track {
     flex: 1;
-    min-width: 0;  /* 允许压缩到 0:空间不足时优先牺牲进度条,保证百分比文字不被裁掉。 */
+    min-width: 0;  /* Allow shrinking to 0: when space is limited, sacrifice the progress bar first so the percentage text is not clipped. */
 }
 
 .pct {
     flex: none;
-    min-width: 44px;  /* 用最小宽度而非定宽:进度栏也会显示状态文字(已跳过/队列中),
-                         定宽 44px 在火狐里会被逐字折行成竖排,最小宽度可让盒子随文字撑开。 */
+    min-width: 44px;  /* Use a minimum instead of fixed width: the progress column also displays status text (Skipped/Queued),
+                         and Firefox wraps it character by character at a fixed 44px; a minimum lets the box expand to fit the text. */
     white-space: nowrap;
     text-align: right;
     font-size: 12px;
@@ -1789,7 +1789,7 @@ body.resizing {
     font-variant-numeric: tabular-nums;
 }
 
-/* 不支持或被忽略的类型的提示文字,占满进度栏并省略超长内容。 */
+/* Explanatory text for unsupported or ignored types; fill the progress column and truncate overly long content. */
 .pct.note {
     flex: 1;
     width: auto;
@@ -1858,7 +1858,7 @@ body.resizing {
     font-size: 12px;
 }
 
-/* 空态 */
+/* Empty state */
 .empty {
     padding: 20px 12px;
     color: #5f6879;
@@ -1866,7 +1866,7 @@ body.resizing {
     text-align: center;
 }
 
-/* 表格 */
+/* Table */
 table {
     width: 100%;
     border-collapse: collapse;
@@ -1881,7 +1881,7 @@ td {
 }
 
 th {
-    /* 同上:表头比卡片实一档,但仍要保留磨砂块的渐变与噪点。 */
+    /* As above: make the header one step more opaque than the cards while preserving the frosted layer's gradient and noise. */
     background-color: var(--panel2);
     color: var(--muted);
     font-weight: 600;
@@ -1910,9 +1910,9 @@ tbody tr:hover {
     font-size: 13px;
 }
 
-/* 响应式 */
+/* Responsive */
 
-/* 超宽屏:收回铺满策略限制最大宽度,避免表格行过长影响阅读。 */
+/* Extra-wide screens: limit the maximum width to counter the full-width layout and keep table rows from becoming too long to read. */
 @media (min-width: 2400px) {
     :root {
         --page-max: 2200px;
@@ -1934,14 +1934,14 @@ tbody tr:hover {
         text-align: center;
     }
 
-    /* 移动端不再隐藏列,改为横向滚动,分隔条保持可拖拽调整列宽。
-       滚动交给内层 .list-scroll:backdrop-filter 与 overflow 加在同一元素上时,
-       滚动区域会丢失毛玻璃效果,故把"滚动"与"玻璃"拆到两个元素上。 */
+    /* On mobile, keep all columns visible and use horizontal scrolling; dividers remain draggable for resizing.
+       Scrolling is handled by the inner .list-scroll: when backdrop-filter and overflow are applied to the same element,
+       the scrolling area loses its frosted-glass effect, so scrolling and glass are split across two elements. */
     .list-scroll {
         overflow-x: auto;
     }
 
-    /* 移动端收缩嵌套缩进,把宽度让给文件名(原 16/38,现 8/16)。 */
+    /* Reduce nested indentation on mobile to give filenames more room (was 16/38, now 8/16). */
     .group-body .task-row > .cell-name,
     .group-body .group-head > .cell-name {
         padding-left: 8px;
@@ -1951,23 +1951,23 @@ tbody tr:hover {
         padding-left: 16px;
     }
 
-    /* 窄屏优先保证文件名可见:
-       .gcount 是 flex:none(永不收缩),会硬占约 65px,让文件名只剩几十像素,故隐藏。 */
+    /* Prioritize filename visibility on narrow screens:
+       .gcount is flex:none (never shrinks) and would take about 65px, leaving only a few dozen pixels for the filename, so hide it. */
     .cell-name .gcount {
         display: none;
     }
 
-    /* 移动端可用宽度更小,行数上限放宽到 3 行(基础规则为 2 行),
-       进一步减少文件名被省略。仍是内容自适应:短名称只占一行,放不下才逐行增加。 */
+    /* Mobile has less available width, so increase the line limit to 3 (the base rule is 2)
+       to further reduce filename truncation. It still adapts to the content: short names use one line and add lines only as needed. */
     .fname,
     .gname {
         -webkit-line-clamp: 3;
     }
 
-    /* 窄屏分页条:统计信息较长,允许换行并独占底行,避免挤压每页/翻页控件或溢出容器。 */
+    /* Narrow-screen pagination: allow the longer summary to wrap and occupy its own bottom row so it does not squeeze the page-size/navigation controls or overflow the container. */
     .storage-pager {
         flex-wrap: wrap;
-        flex-basis: 100%;  /* 独占底行,把"共X条"与"刷新"留在顶部一行。 */
+        flex-basis: 100%;  /* Use the entire bottom row, leaving "X total" and "Refresh" on the top row. */
         order: 2;
     }
 
@@ -1977,7 +1977,7 @@ tbody tr:hover {
         white-space: normal;
     }
 
-    /* 窄屏标题栏:允许换行,避免刷新按钮等被挤压致文字竖排。 */
+    /* Narrow-screen section header: allow wrapping so refresh buttons and other controls do not get squeezed into vertical text. */
     .section-head {
         flex-wrap: wrap;
     }
@@ -1995,34 +1995,34 @@ tbody tr:hover {
     }
 }
 
-/* 窄屏:暂停与支持作者一起在 TRMD 下方第二行并排,☰ 用绝对定位钉死在右上角,
-   无论多窄都不会被挤到左侧(避免极窄时回绕到第二行并跑到按钮左边)。 */
+/* Narrow screens: place Pause and Support side by side on a second row below TRMD, and pin ☰ to the top-right with absolute positioning,
+   so it cannot be pushed to the left, even at very narrow widths (where it could otherwise wrap to the second row and land before the buttons). */
 @media (max-width: 600px) {
     .topbar {
-        position: relative;  /* 作为 ☰ 绝对定位的参照。 */
-        align-items: flex-start;  /* 首行元素顶端对齐,使 ☰ 与品牌区视觉同高。 */
-        justify-content: flex-start;  /* 覆盖基础 space-between:第二行按钮左对齐并排,中间不留空。 */
+        position: relative;  /* Reference position for the absolutely positioned ☰. */
+        align-items: flex-start;  /* Align the first-row items at the top so ☰ is level with the branding. */
+        justify-content: flex-start;  /* Override the base space-between: left-align the second-row buttons side by side with no gap between them. */
         flex-wrap: wrap;
     }
 
     .brand {
-        flex-basis: 100%;  /* 独占首行(内容左对齐),把暂停/支持作者挤到第二行。 */
+        flex-basis: 100%;  /* Take the full first row (content left-aligned), moving Pause/Support to the second row. */
     }
 
     #menuWrap {
         position: absolute;
         top: 0;
-        right: 0;  /* 永远钉在右上角,极窄时也不会跑到左侧。 */
+        right: 0;  /* Keep it pinned to the top-right, even on very narrow screens. */
     }
 
     #btnPause {
         order: 2;
-        margin-left: 0;  /* 取消基础自动外边距,留在第二行。 */
+        margin-left: 0;  /* Remove the base auto margin so it stays on the second row. */
     }
 
     #linkProxySeller {
         order: 3;
-        margin-left: 0;  /* 取消基础自动外边距,留在第二行。 */
+        margin-left: 0;  /* Remove the base auto margin so it stays on the second row. */
     }
 
     #supportBtn {
@@ -2031,8 +2031,8 @@ tbody tr:hover {
     }
 }
 
-/* 手机端:横向进度条在窄屏会显得过长,改用圆环(环形)展示进度。
-   圆环由 conic-gradient 按 --p 着色,再用径向遮罩掏空中心,背景透出即自然成环。 */
+/* Mobile: horizontal progress bars look too long on narrow screens, so use a ring to show progress.
+   conic-gradient colors the ring according to --p; a radial mask cuts out the center, allowing the background through to create the ring. */
 @media (max-width: 760px) {
     .cell-progress {
         justify-content: flex-end;
@@ -2041,22 +2041,22 @@ tbody tr:hover {
 
     .cell-progress .track {
         flex: none;
-        width: 14px;          /* 继续缩小直径。 */
+        width: 14px;          /* Reduce the diameter further. */
         height: 14px;
         min-width: 0;
         border-radius: 50%;
-        overflow: visible;  /* 遮罩作用于自身,不再裁切横向填充。 */
+        overflow: visible;  /* The mask is applied to the element itself, so it no longer clips the horizontal fill. */
         background: conic-gradient(var(--accent) var(--p, 0%), rgba(255, 255, 255, .1) 0);
-        /* 掏空比例下移使环带更粗;过渡带收窄到 6%,避免过宽导致发糊。 */
+        /* Move the cutout ratio down to thicken the ring; narrow the transition band to 6% to avoid blurring. */
         -webkit-mask: radial-gradient(transparent 36%, #000 42%);
         mask: radial-gradient(transparent 36%, #000 42%);
     }
 
     .cell-progress .track .fill {
-        display: none;  /* 环形已用 conic 表达,隐藏原横向填充块。 */
+        display: none;  /* The ring is already rendered with conic-gradient, so hide the original horizontal fill. */
     }
 }
 
-/* 配置弹窗数字网格始终保持两列(grid 1fr 1fr),不在窄屏退化成单列——
-   否则手机上"下载/上传"会变成上下两行堆叠。即便特别窄的手机屏,两列按比例并排,
-   每列仍足以容纳短标签与数字输入框,不会换行到第二行。 */
+/* Keep the settings dialog's numeric grid at two columns (grid 1fr 1fr) instead of collapsing it to one column on narrow screens—
+   otherwise "Download/Upload" would stack vertically on phones. Even on especially narrow phone screens, the columns sit side by side proportionally;
+   each still fits the short label and numeric input without wrapping onto a second line. */

@@ -74,26 +74,26 @@ from module.enums import (
 
 
 class WebHandler(BaseHTTPRequestHandler):
-    """处理网页面板的请求。"""
+    """Handle web-dashboard requests."""
     server_version: str = 'TRMDWeb'
-    remember_session: bool = False  # 本次响应是否需要下发Cookie。
-    expire_session: bool = False  # 本次响应是否需要清除Cookie(退出登录)。
-    first_login: bool = False  # 本次请求是否属于未携带有效Cookie的首次登录。
-    # 首页<body>起始标签,用正则匹配,模板给<body>新增属性后替换依然生效。
+    remember_session: bool = False  # Whether this response should set a cookie.
+    expire_session: bool = False  # Whether this response should clear the cookie (logout).
+    first_login: bool = False  # Whether this is the first request without a valid cookie.
+    # Match the opening <body> tag so replacement still works if attributes are added to the template.
     BODY_TAG_PATTERN: bytes = rb'<body\b[^>]*>'
-    # data-auth 表示已启用密码认证,前端据此显示"退出登录"入口。
-    FIRST_LOGIN_BODY: bytes = b'<body data-auth="1" data-first-login="1" data-bot="__HAS_BOT__" data-storage="__HAS_STORAGE__">'  # 首次登录时写入首页的标记,供页面自动展示卡片。
-    # 已设置账号密码时注入:首屏先隐藏页面内容,避免F5刷新时闪现一瞬间的已登录界面。
+    # data-auth indicates that password authentication is enabled; the frontend uses it to show the logout option.
+    FIRST_LOGIN_BODY: bytes = b'<body data-auth="1" data-first-login="1" data-bot="__HAS_BOT__" data-storage="__HAS_STORAGE__">'  # Mark the homepage on first login so it can automatically display the card.
+    # Inject when a username and password are set: hide page content initially to prevent a flash of the logged-in view on refresh.
     LOGIN_BODY: bytes = b'<body data-auth="1" class="logged-out" data-bot="__HAS_BOT__" data-storage="__HAS_STORAGE__">'
-    VERSION_PLACEHOLDER: bytes = b'__VERSION__'  # 首页模板中的TRMD版本占位符,返回页面时替换为实际版本号。
-    # 首页模板中的Pyrogram版本占位符,返回页面时替换为实际版本号。
+    VERSION_PLACEHOLDER: bytes = b'__VERSION__'  # TRMD version placeholder in the homepage template, replaced with the actual version before responding.
+    # Pyrogram version placeholder in the homepage template, replaced with the actual version before responding.
     PYROGRAM_PLACEHOLDER: bytes = b'__PYROGRAM_VERSION__'
-    HAS_BOT_PLACEHOLDER: bytes = b'__HAS_BOT__'  # 是否配置了机器人(bot_token),前端据此隐藏上传与监听侧边栏。
-    HAS_STORAGE_PLACEHOLDER: bytes = b'__HAS_STORAGE__'  # 记录数据库是否可用,前端据此展示记录侧边栏。
+    HAS_BOT_PLACEHOLDER: bytes = b'__HAS_BOT__'  # Whether a bot_token is configured; the frontend uses this to hide the upload and listener sidebars.
+    HAS_STORAGE_PLACEHOLDER: bytes = b'__HAS_STORAGE__'  # Whether the history database is available; the frontend uses this to show the history sidebar.
 
     def do_GET(self) -> None:  # noqa.
         if self.path.startswith('/api/'):
-            # 接口需要认证;页面与静态资源放行,否则登录卡片自身无法加载。
+            # Require authentication for API endpoints; allow pages and static assets so the login card can load.
             if self.__check_auth() is False:  # noqa.
                 return
             if self.path.startswith('/api/progress'):
@@ -109,10 +109,10 @@ class WebHandler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:  # noqa.
         if self.path.startswith('/api/login'):
-            self.__response_login()  # 登录接口本身不能被认证拦截。
+            self.__response_login()  # The login endpoint itself must not be blocked by authentication.
             return
         if self.path.startswith('/api/logout'):
-            self.__response_logout()  # 退出登录同样不能被认证拦截。
+            self.__response_logout()  # The logout endpoint must not be blocked by authentication either.
             return
         if self.__check_auth() is False:  # noqa.
             return
@@ -123,31 +123,35 @@ class WebHandler(BaseHTTPRequestHandler):
               or self.path.startswith('/api/config/max_retries')):
             self.__response_set_config()
         elif self.path.startswith('/api/pause'):
-            self.__response_set_pause()  # 三个历史路径等价:统一入口,多项改动只落盘一次。
+            self.__response_set_pause()  # The three legacy paths are equivalent; use one handler and persist changes only once.
         else:
             self.send_error(404)
 
     @staticmethod
     def replace_body_tag(body: bytes, tag: bytes) -> bytes:
-        """替换首页的<body>起始标签,注入认证标记与机器人标记。
-        模板的<body>可能携带属性,直接按固定字符串替换会漏掉,故用正则匹配起始标签本身。"""
+        """Replace the homepage's opening <body> tag to inject authentication and bot markers.
+
+        The template's <body> may have attributes, so a fixed-string replacement could miss it;
+        use a regular expression to match the opening tag itself.
+        """
         return re.sub(WebHandler.BODY_TAG_PATTERN, tag, body, count=1)
 
     def log_message(self, fmt, *args) -> None:
-        """屏蔽默认的请求日志,避免污染终端输出。"""
+        """Suppress default request logs to avoid cluttering terminal output."""
 
     def __check_auth(self) -> bool:
-        """校验认证:优先Cookie免密,其次前端持有的临时令牌,最后回退到Basic认证。"""
+        """Check authentication: prefer cookie-based access, then a temporary frontend token, and finally Basic authentication."""
         self.remember_session = False
         self.first_login = False
         web: Union[Web, None] = getattr(self.server, 'web', None)
         if web is None or not web.username:
             return True
         if web.check_session(self.__get_cookie()):
-            return True  # 浏览器已被记住,无需重复输入密码。
+            return True  # This browser is remembered; no password is needed again.
         authorization: str = self.headers.get('Authorization', '')
         if authorization.startswith('Bearer '):
-            # 未勾选"30天内免登录"时不发Cookie,前端把令牌存sessionStorage并随请求带来,关闭标签页即失效。
+            # Without "Stay logged in for 30 days", do not set a cookie; the frontend stores the token in
+            # sessionStorage and sends it with requests, so it expires when the tab is closed.
             if web.check_session(authorization.split(' ', 1)[1].strip()):
                 return True
         if not authorization.startswith('Basic '):
@@ -161,12 +165,12 @@ class WebHandler(BaseHTTPRequestHandler):
         if credential != f'{web.username}:{web.password}':
             self.__response_unauthorized()
             return False
-        self.remember_session = True  # 首次认证成功,响应时下发Cookie。
-        self.first_login = True  # 走到这里说明请求未携带有效Cookie,即本次为首次登录。
+        self.remember_session = True  # First authentication succeeded; set a cookie in the response.
+        self.first_login = True  # No valid cookie was included, so this is the first login.
         return True
 
     def __get_cookie(self) -> str:
-        """读取请求头中指定名称的Cookie。"""
+        """Read the cookie with the configured name from the request headers."""
         for item in self.headers.get('Cookie', '').split(';'):
             name, _, value = item.strip().partition('=')
             if name == WebMeta.COOKIE_NAME:
@@ -174,29 +178,34 @@ class WebHandler(BaseHTTPRequestHandler):
         return ''
 
     def __response_unauthorized(self) -> None:
-        """返回需要认证的响应。
-        不下发 WWW-Authenticate:否则浏览器会弹出系统自带的账号密码框,
-        无法套用页面风格;改由前端展示毛玻璃登录卡片。"""
+        """Return an authentication-required response.
+
+        Do not send WWW-Authenticate, which would open the browser's native credential dialog and
+        bypass the page styling; let the frontend show its frosted-glass login card instead.
+        """
         self.send_response(401)
         self.send_header('Content-Length', '0')
         self.end_headers()
 
     def __response_login(self) -> None:
-        """校验登录卡片提交的账号密码。
-        勾选"30天内免登录"才下发长期Cookie;未勾选时不下发Cookie,
-        改为把令牌返回给前端存放在sessionStorage,关闭标签页即需重新登录。"""
+        """Validate the username and password submitted by the login card.
+
+        Set a long-lived cookie only when "Stay logged in for 30 days" is selected. Otherwise,
+        return the token for the frontend to store in sessionStorage; closing the tab then requires
+        logging in again.
+        """
         web: Union[Web, None] = getattr(self.server, 'web', None)
         payload: dict = self.__read_json()
         ok: bool = False
         if web is not None:
-            if not web.username:  # 未设置账号密码时直接放行。
+            if not web.username:  # Allow access directly when no username and password are configured.
                 ok = True
             else:
                 username: str = str(payload.get('username') or '')
                 password: str = str(payload.get('password') or '')
                 ok = username == web.username and password == web.password
         if ok:
-            # 未勾选时不置 remember_session,即不下发任何Cookie。
+            # When the option is unchecked, leave remember_session false and do not set a cookie.
             self.remember_session = bool(payload.get('remember'))
             self.first_login = bool(web and web.username)
         self.__response_body(
@@ -213,8 +222,11 @@ class WebHandler(BaseHTTPRequestHandler):
         )
 
     def __response_session_cookie(self) -> None:
-        """下发或清除Cookie。
-        登录勾选"30天内免登录"时下发长期Cookie;退出登录时下发一个立即过期的Cookie以清除它。"""
+        """Set or clear the cookie.
+
+        Set a long-lived cookie when "Stay logged in for 30 days" is selected; on logout, set an
+        immediately expired cookie to clear it.
+        """
         web: Union[Web, None] = getattr(self.server, 'web', None)
         if web is None:
             return
@@ -224,14 +236,14 @@ class WebHandler(BaseHTTPRequestHandler):
                 f'Max-Age={Web.REMEMBER_COOKIE_MAX_AGE}; Path=/; HttpOnly; SameSite=Lax'
             )
         elif self.expire_session:
-            # Max-Age=0 让浏览器立即丢弃该Cookie(HttpOnly 无法由前端 JS 删除)。
+            # Max-Age=0 makes the browser discard the cookie immediately (HttpOnly cookies cannot be deleted by frontend JavaScript).
             cookie = f'{WebMeta.COOKIE_NAME}=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax'
         else:
             return
         self.send_header('Set-Cookie', cookie)
 
     def __response_logout(self) -> None:
-        """退出登录:轮换令牌使所有已下发的Cookie失效,并清除本浏览器的Cookie。"""
+        """Log out: rotate the token to invalidate all issued cookies and clear this browser's cookie."""
         web: Union[Web, None] = getattr(self.server, 'web', None)
         if web is not None:
             web.logout()
@@ -242,11 +254,11 @@ class WebHandler(BaseHTTPRequestHandler):
         )
 
     def __response_body(self, body: bytes, content_type: str, status: int = 200) -> None:
-        """返回指定内容的响应,status 用于登录失败时返回401。"""
+        """Return a response with the given content; status is used to return 401 for failed logins."""
         self.send_response(status)
         self.send_header('Content-Type', content_type)
         self.send_header('Content-Length', str(len(body)))
-        self.send_header('Cache-Control', 'no-store')  # 禁用缓存,避免浏览器沿用旧页面。
+        self.send_header('Cache-Control', 'no-store')  # Disable caching so the browser does not reuse an old page.
         self.__response_session_cookie()
         try:
             self.end_headers()
@@ -255,7 +267,7 @@ class WebHandler(BaseHTTPRequestHandler):
             log.info(f'Client interrupted response writing, {_t(KeyWord.REASON)}:"{e}"')
 
     def __response_progress(self) -> None:
-        """返回进度数据的JSON。"""
+        """Return progress data as JSON."""
         web: Union[Web, None] = getattr(self.server, 'web', None)
         query: dict = parse_qs(urlparse(self.path).query)
         section: str = (query.get('section') or [''])[0]
@@ -266,9 +278,9 @@ class WebHandler(BaseHTTPRequestHandler):
         )
 
     def __response_storages(self) -> None:
-        """返回网页下载/上传存储的JSON,读取时实时校验文件是否存在,不存在的条目直接丢弃。
+        """Return download/upload history as JSON, checking whether files exist during each read and discarding missing entries.
 
-        返回该类型的全部记录;分页与按频道分组由前端完成。
+        Return all records of the requested type; pagination and grouping by channel are handled by the frontend.
         """
         web: Union[Web, None] = getattr(self.server, 'web', None)
         query: dict = parse_qs(urlparse(self.path).query)
@@ -280,7 +292,7 @@ class WebHandler(BaseHTTPRequestHandler):
         )
 
     def __response_disk_usage(self) -> None:
-        """返回下载保存目录所在磁盘空间信息的JSON。"""
+        """Return disk-space information for the download directory as JSON."""
         web: Union[Web, None] = getattr(self.server, 'web', None)
         data: dict = web.disk_usage() if web else {}
         self.__response_body(
@@ -289,7 +301,7 @@ class WebHandler(BaseHTTPRequestHandler):
         )
 
     def __read_json(self) -> dict:
-        """读取请求体中的JSON数据,解析失败时返回空字典。"""
+        """Read JSON data from the request body, returning an empty dict if parsing fails."""
         try:
             length: int = int(self.headers.get('Content-Length') or 0)
         except (TypeError, ValueError):
@@ -303,7 +315,7 @@ class WebHandler(BaseHTTPRequestHandler):
             return {}
 
     def __response_remove_listener(self) -> None:
-        """处理移除监听下载与监听转发的请求。"""
+        """Handle requests to remove download and forwarding listeners."""
         web: Union[Web, None] = getattr(self.server, 'web', None)
         payload: dict = self.__read_json()
         if web is None:
@@ -319,9 +331,11 @@ class WebHandler(BaseHTTPRequestHandler):
         )
 
     def __response_set_config(self) -> None:
-        """处理网页面板修改配置的请求。
+        """Handle configuration changes from the web panel.
 
-        save_directory / max_tasks / max_retries三个历史路径在这里等价:一次性读取请求体中的全部字段交由Web.set_config处理,多项改动因此只会写一次配置文件。
+        The legacy save_directory, max_tasks, and max_retries paths are equivalent here: read all
+        fields from the request body at once and pass them to Web.set_config, so multiple changes
+        are persisted with a single configuration-file write.
         """
         web: Union[Web, None] = getattr(self.server, 'web', None)
         payload: dict = self.__read_json()
@@ -340,7 +354,7 @@ class WebHandler(BaseHTTPRequestHandler):
         )
 
     def __response_set_pause(self) -> None:
-        """处理全局暂停/恢复的请求。"""
+        """Handle requests to pause or resume globally."""
         web: Union[Web, None] = getattr(self.server, 'web', None)
         payload: dict = self.__read_json()
         if web is None:
@@ -353,19 +367,19 @@ class WebHandler(BaseHTTPRequestHandler):
         )
 
     def __response_static(self) -> None:
-        """返回网页模板与静态目录下的文件。"""
+        """Return a file from the web templates or static directory."""
         web: Union[Web, None] = getattr(self.server, 'web', None)
         if web is None:
             self.send_error(404)
             return
         name: str = unquote(self.path.split('?')[0].lstrip('/'))
-        if not name or name in Web.TEMPLATE_FILES:  # 根路径返回首页,登记的模板名称从模板目录取。
+        if not name or name in Web.TEMPLATE_FILES:  # The root path serves the homepage; registered template names are served from the template directory.
             root: str = os.path.abspath(web.template_directory)
             file_path: str = os.path.join(root, name or Web.INDEX_FILE)
         else:
             root = os.path.abspath(web.static_directory)
             file_path = os.path.abspath(os.path.join(root, name))
-        if os.path.commonpath([root, file_path]) != root:  # 禁止访问网页目录之外的文件。
+        if os.path.commonpath([root, file_path]) != root:  # Prevent access to files outside the web directory.
             self.send_error(403)
             return
         if not os.path.isfile(file_path):
@@ -379,9 +393,10 @@ class WebHandler(BaseHTTPRequestHandler):
             log.warning(f'Failed to read web file "{file_path}", {_t(KeyWord.REASON)}:"{e}"')
             self.send_error(404)
             return
-        if os.path.basename(file_path) == Web.INDEX_FILE:  # 首页需要替换标记与版本号。
-            # body 在此处已确定赋值(正常路径来自文件读取,异常路径已在上方 return)。
-            # 先取出基准内容到 page,后续替换均基于 page,避免在分支内回头读取 try 赋值的 body。
+        if os.path.basename(file_path) == Web.INDEX_FILE:  # Replace markers and version numbers on the homepage.
+            # body is assigned by this point (read from the file on the normal path; errors returned above).
+            # Copy it to page and base all later replacements on that value, rather than referring to
+            # body assigned inside the try block in separate branches.
             page: bytes = body  # type: ignore[reportPossiblyUnboundVariable]
             if self.first_login:
                 page = WebHandler.replace_body_tag(page, WebHandler.FIRST_LOGIN_BODY)
@@ -389,7 +404,7 @@ class WebHandler(BaseHTTPRequestHandler):
                 page = WebHandler.replace_body_tag(
                     page,
                     WebHandler.LOGIN_BODY
-                )  # 需要认证:首屏即隐藏页面内容,认证通过后由前端移除该类,避免刷新时闪现已登录界面。
+                )  # For authenticated pages, hide content immediately and let the frontend remove this class after login to prevent a flash on refresh.
             page = page.replace(
                 WebHandler.VERSION_PLACEHOLDER,
                 f'{VERSION_WITH_COMMIT}'.encode('UTF-8')
@@ -398,11 +413,11 @@ class WebHandler(BaseHTTPRequestHandler):
                 WebHandler.PYROGRAM_PLACEHOLDER,
                 f'{pyrogram_version}'.encode('UTF-8')
             )
-            page = page.replace(  # 注入是否配置机器人,前端据此隐藏上传与监听侧边栏。
+            page = page.replace(  # Inject whether a bot is configured; the frontend uses this to hide the upload and listener sidebars.
                 WebHandler.HAS_BOT_PLACEHOLDER,
                 b'1' if (web and web.has_bot) else b'0'
             )
-            page = page.replace(  # 注入记录数据库是否可用,前端据此展示记录侧边栏。
+            page = page.replace(  # Inject whether the history database is available; the frontend uses this to show the history sidebar.
                 WebHandler.HAS_STORAGE_PLACEHOLDER,
                 b'1' if (web and web.has_storage) else b'0'
             )
@@ -414,63 +429,64 @@ class WebHandler(BaseHTTPRequestHandler):
 
 
 class Web:
-    # 网页面板资源的目录约定。
-    # templates:存放HTML页面,新增页面时需在此登记模板名称以便路由。
-    # static:存放静态资源,按类型分子目录(css、js、img、fonts、vendor),
-    # 页面里用相对于站点根的路径引用,如"css/style.css"。
+    # Directory conventions for web-panel assets.
+    # templates stores HTML pages; register new page names here for routing.
+    # static stores assets in type-specific subdirectories (css, js, img, fonts, vendor).
+    # Pages reference them using paths relative to the site root, such as "css/style.css".
     TEMPLATE_DIRECTORY: str = os.path.join('module', 'templates')
     STATIC_DIRECTORY: str = os.path.join('module', 'static')
     INDEX_FILE: str = 'index.html'
-    TEMPLATE_FILES: tuple = ('index.html',)  # 模板目录提供的页面,其余请求一律按静态资源处理。
+    TEMPLATE_FILES: tuple = ('index.html',)  # Pages served from the template directory; all other requests are treated as static assets.
     UNGROUPED: str = 'Ungrouped'
-    REMOVE_LISTEN_TIMEOUT: int = 10  # 等待事件循环移除监听的超时时间,单位为秒。
-    REMEMBER_COOKIE_MAX_AGE: int = 30 * 24 * 3600  # Cookie的有效期,单位为秒(30天)。
-    STORAGE_TIMEOUT: int = 3  # 等待事件循环返回网页记录的超时时间,单位为秒。
-    CACHE_SIZE_INTERVAL: int = 30  # 缓存目录大小的最短重算间隔,单位为秒:全盘遍历开销大,不能跟着3秒轮询跑。
+    REMOVE_LISTEN_TIMEOUT: int = 10  # Timeout in seconds when waiting for the event loop to remove a listener.
+    REMEMBER_COOKIE_MAX_AGE: int = 30 * 24 * 3600  # Cookie lifetime in seconds (30 days).
+    STORAGE_TIMEOUT: int = 3  # Timeout in seconds when waiting for the event loop to return web history.
+    CACHE_SIZE_INTERVAL: int = 30  # Minimum interval in seconds between cache-size recalculations; a full traversal is expensive and should not run on each 3-second poll.
     UNFINISHED_STATE: tuple = (
         DownloadStatus.PENDING,
         DownloadStatus.DOWNLOADING
-    )  # 尚未出结果的消息状态。
+    )  # Message states that have not yet reached a result.
     LOCAL_IP: str = get_local_ip()
 
     def __init__(self, progress, app=None, downloader=None):
         self.progress = progress
         self.app = app
-        self.downloader = downloader  # 下载器实例,用于读取已注册的监听信息。
-        self.cache_size_stamp: float = 0.0  # 上次统计缓存目录大小的时刻,用于节流。
-        self.cache_size_value: int = 0  # 上次统计出的缓存目录字节数。
-        self.filled_chat_ids: set = set()  # 已补全过标题的频道ID,避免重复扫描与重复回写。
-        self.has_bot = bool(app and getattr(app, 'bot_token', None))  # 是否配置了机器人,决定前端是否展示上传与监听侧边栏(无机器人时只有下载可用)。
+        self.downloader = downloader  # Downloader instance, used to read registered listener information.
+        self.cache_size_stamp: float = 0.0  # Time of the last cache-size calculation, used for throttling.
+        self.cache_size_value: int = 0  # Cache-directory size in bytes from the last calculation.
+        self.filled_chat_ids: set = set()  # Channel IDs whose titles were backfilled, to avoid repeated scans and writes.
+        self.has_bot = bool(app and getattr(app, 'bot_token', None))  # Whether a bot is configured; controls the upload/listener sidebars (only downloads are available without a bot).
         self.credential: dict = gen_random_credential()
         self.protocol: str = 'http'
         self.ip: str = '0.0.0.0'
         self.port: int = self.get_free_port(PARSE_ARGS.port)
         self.username: str = self.credential.get(WebMeta.USERNAME)
         self.password: str = self.credential.get(WebMeta.PASSWORD)
-        self.token: str = get_web_session()  # 令牌,使浏览器在软件重启后依然免密。
+        self.token: str = get_web_session()  # Token that keeps the browser logged in after a software restart.
         self.template_directory, self.static_directory = self.get_web_directory()
         self.server: Union[ThreadingHTTPServer, None] = None
         self.thread: Union[threading.Thread, None] = None
 
     @property
     def has_storage(self) -> bool:
-        """记录数据库是否可用,决定前端是否展示记录入口。
+        """Whether the history database is available, determining whether the frontend shows the history entry.
 
-        数据库在登录成功后才会打开,故不能像has_bot那样在初始化时确定,必须实时判断。
+        The database opens only after a successful login, so unlike has_bot this cannot be determined
+        during initialization and must be checked at runtime.
         """
         return bool(getattr(self.downloader, 'storage_database', None))
 
     @staticmethod
     def __bind_port(port: int) -> int:
-        """绑定指定端口,返回实际占用的端口。"""
-        # 不设置SO_REUSEADDR,否则Windows下会绑到已被占用的端口,导致连接被其它进程接管。
+        """Bind the specified port and return the port actually used."""
+        # Do not set SO_REUSEADDR: on Windows this can bind to an occupied port and let another process take over connections.
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.bind(('', port))
             return s.getsockname()[1]
 
     @staticmethod
     def get_free_port(port: int) -> int:
-        """获取可用端口,指定端口被占用时自动分配。"""
+        """Get an available port, automatically assigning one if the specified port is occupied."""
         try:
             return Web.__bind_port(port)
         except OSError as e:
@@ -479,7 +495,7 @@ class Web:
 
     @staticmethod
     def get_web_directory() -> tuple:
-        """获取网页模板目录与静态资源目录,打包环境取资源解压目录。"""
+        """Get the web-template and static-asset directories, using the extracted resource directory in a packaged environment."""
         base_directory: str = get_work_directory()
         if is_frozen():
             base_directory = getattr(sys, '_MEIPASS', sys.prefix)  # noqa.
@@ -490,7 +506,7 @@ class Web:
 
     @staticmethod
     def format_seconds(seconds: Union[int, float, None]) -> str:
-        """将秒数格式化为易于阅读的剩余时间。"""
+        """Format seconds as a readable remaining-time string."""
         if seconds is None:
             return ''
         seconds: int = int(seconds)
@@ -501,7 +517,7 @@ class Web:
         return f'{seconds // 3600} hr {seconds % 3600 // 60} min {seconds % 60} sec'
 
     def start(self) -> bool:
-        """在后台线程启动网页面板。"""
+        """Start the web panel in a background thread."""
         for directory in (self.template_directory, self.static_directory):
             if not os.path.isdir(directory):
                 log.error(f'Failed to start web dashboard: web directory not found: "{directory}".')
@@ -512,7 +528,7 @@ class Web:
             log.error(f'Failed to start web dashboard, {_t(KeyWord.REASON)}:"{e}"')
             return False
         self.server.web = self
-        # 请求处理线程设为守护线程,退出时不会被网页面板的长连接/在途请求阻塞。
+        # Make request-handler threads daemons so persistent connections or in-flight requests do not block shutdown.
         self.server.daemon_threads = True
         self.thread = threading.Thread(target=self.server.serve_forever, name='TRMDWeb', daemon=True)
         self.thread.start()
@@ -527,8 +543,9 @@ class Web:
         if srv is None:
             return
         self.server = None
-        # 在守护线程中关闭serve_forever:避免仍有长连接/在途请求时shutdown()的
-        # __is_shut_down.wait()永久阻塞,导致键盘中断后程序假死、需多次Ctrl+C才退出。
+        # Run serve_forever shutdown in a daemon thread: with persistent connections or in-flight requests,
+        # shutdown() may block forever in __is_shut_down.wait(), leaving the program hung after Ctrl+C
+        # and requiring repeated interrupts to exit.
         shutdown_thread = threading.Thread(target=srv.shutdown, daemon=True)
         shutdown_thread.start()
         shutdown_thread.join(timeout=3)
@@ -539,7 +556,7 @@ class Web:
         log.info('Web dashboard stopped.')
 
     def print_meta(self) -> None:
-        """打印网页面板的访问信息。"""
+        """Print the web panel's access information."""
         PanelTable(
             title='Web Dashboard',
             header=('Property', 'Value'),
@@ -553,16 +570,16 @@ class Web:
         ).print_meta()
 
     def check_session(self, token: str) -> bool:
-        """校验浏览器提交的令牌是否有效,用于免密登录。"""
+        """Validate a token submitted by the browser for password-free login."""
         return bool(token) and token == self.token
 
     def logout(self) -> None:
-        """退出登录:重新生成令牌并持久化,使所有已下发的Cookie失效。"""
+        """Log out by generating and saving a new token, invalidating all issued cookies."""
         self.token = reset_web_session()
 
     @staticmethod
     def get_outer_links() -> dict:
-        """读取顶栏与菜单使用的外部链接,远程配置缺失时回退到内置默认值。"""
+        """Get external links for the header and menu, falling back to built-in defaults when remote configuration is missing."""
         config: dict = rc.cached_config()
         return {
             'github': config.get('github', rc.DEFAULT_GITHUB) + '/releases',
@@ -572,7 +589,7 @@ class Web:
         }
 
     def get_count(self) -> dict:
-        """聚合下载任务的成功、失败、跳过数量。"""
+        """Aggregate the number of successful, failed, and skipped download tasks."""
         count: dict = {'success': 0, 'failure': 0, 'skip': 0}
         if self.app is None:
             return count
@@ -585,15 +602,17 @@ class Web:
                 count['failure'] += len(value)
             elif name.startswith('skip_'):
                 count['skip'] += len(value)
-        # 链接级解析失败(如频道不存在)仅登记在 task.fail_id 的 -1 哨兵上,不写入 app 级 failure_* 集合。
-        # 这里单独把这类失败计入失败总数,使网页"失败"卡片数字与实际可见的失败链接一致,且不污染 app 级统计。
+        # Link-level parse failures (such as a missing channel) are recorded only as a -1 sentinel in
+        # task.fail_id, not in the app-level failure_* sets.
+        # Count them separately so the web panel's failure-card total matches the visible failed links
+        # without affecting app-level statistics.
         for _task in list(DownloadTask.TASKS.values()):
             if -1 in _task.fail_id:
                 count['failure'] += 1
         return count
 
     def get_link_progress(self) -> list:
-        """获取每个下载链接的进度与该链接下所有消息成员(含已完成、跳过、失败)。"""
+        """Get progress for each download link and all its message members, including completed, skipped, and failed members."""
         result: list = []
         try:
             for link, task in list(DownloadTask.TASKS.items()):
@@ -604,7 +623,7 @@ class Web:
                 unfinished: int = len(
                     [i for i in members if i.get('state') in Web.UNFINISHED_STATE]
                 )
-                base_num: int = max(member_num - fail_num, 0)  # 彻底失败的成员退出进度基数,避免进度永远到不了100%。
+                base_num: int = max(member_num - fail_num, 0)  # Exclude permanently failed members from the progress base so progress can reach 100%.
                 result.append({
                     'link': str(link),
                     'channel': str(task.chat_id or ''),
@@ -623,10 +642,11 @@ class Web:
         return result
 
     def get_members(self, task: DownloadTask) -> list:
-        """获取链接下所有消息成员的展示信息。
+        """Get display information for all message members under a link.
 
-        仍在队列中的消息可以取到原始消息,用于补全文件名与大小;
-        已完成或失败的消息已被移出队列,使用登记时保存的信息。
+        Original messages are available for queued items, so their file names and sizes can be
+        completed. Completed or failed messages have been removed from the queue, so use the
+        information saved when they were registered.
         """
         result: list = []
         for message_id, member in list(task.member_info.items()):
@@ -644,16 +664,16 @@ class Web:
         return result
 
     def format_queue_message(self, item: dict, state: Union[str, None] = None) -> dict:
-        """解析排队消息的展示信息,首次解析后缓存,避免每次轮询重复解析。"""
+        """Parse and cache display information for a queued message to avoid repeating the work on each poll."""
         meta: Union[dict, None] = item.get('meta')
         if meta is None:
             meta = self.parse_queue_message(item)
             item['meta'] = meta
-        meta['state'] = str(state or '')  # 排队状态会变化,不写入缓存。
+        meta['state'] = str(state or '')  # Queue state changes, so do not cache it.
         return meta
 
     def parse_queue_message(self, item: dict) -> dict:
-        """解析排队消息的名称、大小与日期。"""
+        """Parse the name, size, and date of a queued message."""
         message = item.get('message')
         result: dict = {'name': 'Message ' + str(getattr(message, 'id', '')), 'size': '', 'date': ''}
         try:
@@ -669,10 +689,10 @@ class Web:
         return result
 
     def get_listeners(self) -> dict:
-        """获取已注册的监听下载与监听转发信息。
+        """Get registered download and forwarding listener information.
 
         Returns:
-            dict: download为监听下载的频道链接;forward为监听转发的监听频道与转发频道。
+            dict: download contains download-listener channel links; forward contains source and target channels for forwarding.
         """
         result: dict = {'download': [], 'forward': []}
         if self.downloader is None:
@@ -682,7 +702,7 @@ class Web:
             for rule in list(self.downloader.listen_forward_chat):
                 args: list = str(rule).split()
                 if len(args) != 2:
-                    continue  # 转发规则固定为"监听频道 转发频道"两段,异常规则直接跳过。
+                    continue  # Forwarding rules must have exactly two parts, "source channel target channel"; skip malformed rules.
                 result['forward'].append({'source': args[0], 'target': args[1]})
         except Exception as e:
             log.debug(f'Error getting listener information, {_t(KeyWord.REASON)}: "{e}"')
@@ -690,22 +710,23 @@ class Web:
 
     @staticmethod
     def get_notices() -> dict:
-        """获取通知中心登记的通知,按类型分组供「通知」板块展示。"""
+        """Get notifications registered with the notice center, grouped by type for the Notices section."""
         return NoticeHub.snapshot()
 
     def get_storage(self, storage_type: str = '') -> list:
-        """读取网页下载/上传存储。
+        """Read web download/upload history.
 
-        读取动作需要投递到下载器的事件循环中执行(数据库连接由循环线程持有),
-        与移除监听一致:通过run_coroutine_threadsafe投递并等待结果。
-        数据库内部会先按目录mtime捷径做一次存在性校验,不存在的条目直接丢弃。
-        返回该类型的全部记录;分页与按频道分组由前端完成。
+        The read must run on the downloader's event loop (the loop thread owns the database
+        connection). As with listener removal, submit it with run_coroutine_threadsafe and wait
+        for the result. The database first uses directory mtimes as a shortcut to check whether
+        files exist, discarding missing entries. Return all records of the requested type;
+        pagination and grouping by channel are handled by the frontend.
 
         Args:
-            storage_type: 记录类型,download为下载存储,upload为上传存储,为空时返回全部记录。
+            storage_type: Record type: download or upload; empty returns all records.
 
         Returns:
-            list: 记录的展示信息。
+            list: Display information for the records.
         """
         if self.downloader is None:
             return []
@@ -724,31 +745,32 @@ class Web:
         except Exception as e:
             log.debug(f'Failed to get web history, {_t(KeyWord.REASON)}: "{e}"')
             return []
-        self.__fill_storage_chat_names(storages)  # 先把缓存里已有的标题补进记录,展示即为"标题(ID)"。
+        self.__fill_storage_chat_names(storages)  # Add any cached titles to the records so they display as "title (ID)".
         return [Web.format_storage(storage) for storage in storages]
 
     def disk_usage(self) -> dict:
-        """返回保存目录所在磁盘的空间信息与缓存目录占用,供存储页展示。
+        """Return disk-space information for the save-directory volume and cache usage for the Storage page.
 
-        Windows按盘符根查询:盘符即文件系统边界,与路径中的通配符和中间层级无关。
-        类UNIX只有一个根"/",而它可能跨多个挂载点(Docker的bind mount尤甚),
-        故裁到保存目录最近的真实目录再查,才能命中真正的文件系统。
-        Windows、Linux、macOS 统一由 shutil.disk_usage 读取(内部按平台调用
-        GetDiskFreeSpaceEx 或 statvfs),因此读取本身无需按系统分支。
+        On Windows, query the drive root: the drive defines the filesystem boundary, regardless of
+        wildcards or intermediate path components. Unix-like systems have a single "/" root that
+        may span multiple mount points (especially with Docker bind mounts), so query the nearest
+        existing directory under the save path to find the correct filesystem. shutil.disk_usage
+        handles Windows, Linux, and macOS uniformly (using GetDiskFreeSpaceEx or statvfs internally),
+        so the query itself needs no platform-specific branch.
 
         Returns:
-            dict: 磁盘的 directory、total、used、free、percent 及展示文本,
-                  外加缓存目录的 cache_directory、cache_size、cache_text。
+            dict: directory, total, used, free, percent, and display text for the disk,
+                plus cache_directory, cache_size, and cache_text for the cache directory.
         """
         directory: str = self.app.save_directory if self.app else ''
         root: str = ''
         if directory:
             if sys.platform == 'win32':
-                # Windows:盘符根即目标文件系统,无需解析%CHAT_NAME%等占位符。
+                # On Windows, the drive root is the target filesystem; no need to resolve placeholders such as %CHAT_NAME%.
                 drive, _ = os.path.splitdrive(os.path.abspath(directory))
                 root = drive + os.sep if drive else os.sep
             else:
-                # 类UNIX:根目录可能跨挂载点,改裁到最近的真实目录再查。
+                # On Unix-like systems the root may span mount points, so query the nearest existing directory instead.
                 root = os.path.abspath(directory)
                 drive, _ = os.path.splitdrive(root)
                 volume: str = drive + os.sep if drive else os.sep
@@ -759,7 +781,7 @@ class Web:
                         break
                     root = parent
                 if root == volume:
-                    root = ''  # 整条路径都不存在,不能拿根目录冒充。
+                    root = ''  # The entire path is missing; do not use the root directory as a substitute.
         data: dict = {'directory': directory}
         try:
             usage = shutil.disk_usage(root or os.getcwd())
@@ -783,13 +805,13 @@ class Web:
         return data
 
     def cache_size(self) -> dict:
-        """统计缓存目录占用的磁盘空间,并按时间节流避免每次轮询都全盘遍历。
+        """Measure the cache directory's disk usage, throttling recalculations to avoid a full traversal on every poll.
 
-        缓存目录同样支持通配符,故逐级向上裁剪到最近的真实目录再遍历:
-        占位符只是其下更深一层的子目录,同属一份缓存。
+        The cache directory also supports wildcards, so walk up to the nearest existing directory
+        before traversing it; placeholder paths are simply deeper subdirectories of the same cache.
 
         Returns:
-            dict: cache_directory、cache_size(字节)、cache_text(展示文本)。
+            dict: cache_directory, cache_size (bytes), and cache_text (display text).
         """
         directory: str = self.app.temp_directory if self.app else ''
         result: dict = {
@@ -801,7 +823,7 @@ class Web:
             return result
         now: float = time.monotonic()
         if now - self.cache_size_stamp >= Web.CACHE_SIZE_INTERVAL:
-            # 先占位再遍历:遍历期间到来的请求直接复用上次结果,避免多线程叠加遍历同一目录。
+            # Set the timestamp before traversing; requests arriving during the walk reuse the previous result instead of starting concurrent walks.
             self.cache_size_stamp = now
             total: int = 0
             real: str = os.path.abspath(directory)
@@ -814,7 +836,7 @@ class Web:
                     break
                 real = parent
             if real == volume:
-                # 缓存目录整条路径都不存在:不能把整个卷当成缓存统计,否则数字失去意义且遍历极慢。
+                # The cache path does not exist; do not count the whole volume as cache, which would be meaningless and very slow to traverse.
                 real = ''
             if real:
                 for walk_root, _, files in os.walk(real):
@@ -822,7 +844,7 @@ class Web:
                         try:
                             total += os.path.getsize(os.path.join(walk_root, name))
                         except OSError:
-                            continue  # 文件正被下载占用或已删除,跳过即可。
+                            continue  # The file is in use by a download or has been deleted; skip it.
             self.cache_size_value = total
         result['cache_size'] = self.cache_size_value
         result['cache_text'] = MetaData.suitable_units_display(self.cache_size_value)
@@ -830,7 +852,7 @@ class Web:
 
     @staticmethod
     def format_storage(storage: TRMDStorage) -> dict:
-        """格式化网页记录的展示信息,频道列优先取记录里的标题,与下载板块的"标题(ID)"样式一致。"""
+        """Format a web-history record for display, preferring its saved channel title as in the download section's "title (ID)" style."""
         chat_id: str = str(storage.chat_id) if storage.chat_id is not None else ''
         display_id: str = parse_chat_id(storage.link, chat_id)
         chat_name: str = storage.chat_name or ChatInfo.get(display_id)
@@ -854,11 +876,12 @@ class Web:
         }
 
     def __fill_storage_chat_names(self, storages: list) -> None:
-        """把ChatInfo缓存中已有的标题补到记录上,并异步回写数据库。
+        """Fill in record titles from the ChatInfo cache and asynchronously write them back to the database.
 
-        写入记录时若缓存未命中,chat_name为空,之后该频道被任何下载或上传流程
-        缓存过标题;此处读取时补全,让历史记录也显示"标题(ID)"而非裸ID。
-        回写只投递不等待,失败不影响本次展示;同一频道只补一次。
+        If a title was not cached when the record was written, chat_name is empty. A later download
+        or upload may cache the title; fill it in when reading so history shows "title (ID)" instead
+        of a bare ID. Submit the write-back without waiting, so failures do not affect this display;
+        update each channel only once.
         """
         storage_db = getattr(self.downloader, 'storage_database', None)
         loop: Union[AbstractEventLoop, None] = getattr(self.downloader, 'loop', None)
@@ -882,17 +905,18 @@ class Web:
             log.debug(f'Failed to backfill the channel title in the web history, {_t(KeyWord.REASON)}: "{e}"')
 
     def remove_listener(self, kind: str, link: str) -> dict:
-        """按网页面板的请求移除已注册的监听下载或监听转发。
+        """Remove a registered download or forwarding listener at the web panel's request.
 
-        移除动作需要在下载器的事件循环中执行,才能安全地让用户端向机器人发送命令,
-        而网页面板运行在独立的HTTP服务线程中,因此把协程投递到事件循环并等待结果。
+        Removal must run on the downloader's event loop so the user client can safely send a
+        command to the bot. The web panel runs on a separate HTTP thread, so submit the coroutine
+        to the event loop and wait for its result.
 
         Args:
-            kind: 监听类型,download为监听下载,forward为监听转发。
-            link: 监听下载为频道链接;监听转发为"监听频道 转发频道"。
+            kind: Listener type: download or forward.
+            link: A channel link for a download listener; "source channel target channel" for forwarding.
 
         Returns:
-            dict: status为是否移除成功,失败时e_code为失败原因。
+            dict: status indicates whether removal succeeded; e_code contains the reason for failure.
         """
         if self.downloader is None:
             return {'status': False, 'e_code': 'The web dashboard is not connected to the downloader.'}
@@ -910,16 +934,17 @@ class Web:
             return {'status': False, 'e_code': 'Removing the listener timed out. Please try again later.'}
 
     def set_pause(self, paused: bool) -> dict:
-        """按网页面板的请求切换全局暂停状态。
+        """Toggle the global pause state at the web panel's request.
 
-        切换标志与暂停事件必须在下载器的事件循环线程内完成,
-        网页面板运行在独立的HTTP服务线程中,因此通过call_soon_threadsafe把动作投递到事件循环执行。
+        The flag and pause event must be changed on the downloader's event-loop thread. Since the
+        web panel runs on a separate HTTP thread, use call_soon_threadsafe to schedule the change
+        on the event loop.
 
         Args:
-            paused: True为暂停,False为恢复。
+            paused: True to pause, False to resume.
 
         Returns:
-            dict: status为是否切换成功,失败时e_code为失败原因。
+            dict: status indicates whether the change succeeded; e_code contains the reason for failure.
         """
         if self.app is None:
             return {'status': False, 'e_code': 'Configuration is not loaded, so the task cannot be paused.'}
@@ -930,14 +955,14 @@ class Web:
             return {'status': False, 'e_code': 'The downloader is not running, so tasks cannot be paused.'}
 
         def apply(_paused: bool) -> None:
-            # 同一闭包内顺序切换标志与事件,避免HTTP线程读到不一致的中间状态。
+            # Change the flag and event in order within one closure so the HTTP thread cannot read an inconsistent intermediate state.
             self.app.is_paused = _paused
             if _paused:
                 self.downloader.pause_event.clear()
             else:
                 self.downloader.pause_event.set()
 
-        loop.call_soon_threadsafe(apply, paused)  # 投递到事件循环线程执行,无需等待即可确认已入队。
+        loop.call_soon_threadsafe(apply, paused)  # Schedule the change on the event-loop thread; no need to wait to confirm it was queued.
         return {'status': True}
 
     @staticmethod
@@ -949,18 +974,18 @@ class Web:
             range_text: str,
             error_parts: list
     ) -> Union[dict, None]:
-        """校验一组下载/上传数值是否合法,不合法时把失败原因追加到error_parts。
+        """Validate a set of download/upload values, appending errors to error_parts when invalid.
 
         Args:
-            values: 形如{'download': int, 'upload': int}的取值;None表示本次不修改。
-            lower: 允许的下限(含)。
-            upper: 允许的上限(含);None表示不限制上限。
-            name: 配置项名称,用于拼装失败原因。
-            range_text: 超出范围时的提示语。
-            error_parts: 失败原因收集列表。
+            values: Values in the form {'download': int, 'upload': int}; None means no change this time.
+            lower: Inclusive minimum value.
+            upper: Inclusive maximum value; None means there is no upper limit.
+            name: Setting name, used to build the failure message.
+            range_text: Message to use when a value is out of range.
+            error_parts: List that collects failure reasons.
 
         Returns:
-            dict | None: 校验通过时的规范化取值;本次不修改或校验失败时为None。
+            dict | None: Normalized values if valid; None if unchanged or validation fails.
         """
         if values is None:
             return None
@@ -979,18 +1004,19 @@ class Web:
 
     @staticmethod
     def __check_save_directory(path: str, allow_create: bool = True) -> dict:
-        """非交互地校验保存目录。
+        """Validate the save directory without prompting.
 
-        剥离通配符占位符后判断目录,不存在时按allow_create决定是否直接创建。
+        Remove wildcard placeholders before checking the directory; if it does not exist, allow_create determines whether to create it immediately.
 
         Args:
-            path: 新的保存目录,允许包含通配符占位符。
-            allow_create: 目录不存在时是否直接创建;False时不创建,并在结果中标记need_confirm,
-                由网页面板先向用户二次确认,避免静默创建拼错的目录。
+            path: New save directory; wildcard placeholders are allowed.
+            allow_create: Whether to create a missing directory immediately. If False, do not create
+                it and set need_confirm in the result so the web panel can ask the user to confirm,
+                avoiding silent creation of a mistyped directory.
 
         Returns:
-            dict: status为校验是否通过;不通过时e_code为失败原因;
-                need_confirm为True表示目录不存在且尚未创建。
+            dict: status indicates whether validation passed; e_code contains the failure reason.
+                need_confirm is True if the directory does not exist and has not been created.
         """
         if not path:
             return {'status': False, 'e_code': 'The save directory cannot be empty.'}
@@ -1006,7 +1032,7 @@ class Web:
         if os.path.isdir(clean_path):
             return {'status': True}
         if not allow_create:
-            return {'status': False, 'need_confirm': True}  # 目录不存在,交由网页面板二次确认后再创建。
+            return {'status': False, 'need_confirm': True}  # The directory is missing; let the web panel confirm before creating it.
         try:
             os.makedirs(clean_path, exist_ok=True)
         except Exception as e:

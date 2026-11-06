@@ -83,7 +83,7 @@ class DownloadType:
 
     def __iter__(self):
         for key, value in vars(self.__class__).items():
-            if not key.startswith('_') and not callable(value):  # 排除特殊方法和属性。
+            if not key.startswith('_') and not callable(value):  # Exclude special methods and attributes.
                 yield value
 
 
@@ -105,13 +105,13 @@ class UploadStatus:
 
 
 class NoticeType:
-    DOWNLOAD: str = 'download'  # 下载。
-    UPLOAD: str = 'upload'  # 上传。
-    FORWARD: str = 'forward'  # 转发。
+    DOWNLOAD: str = 'download'  # Download.
+    UPLOAD: str = 'upload'  # Upload.
+    FORWARD: str = 'forward'  # Forward.
 
     def __iter__(self):
         for key, value in vars(self.__class__).items():
-            if not key.startswith('_') and not callable(value):  # 排除特殊方法和属性。
+            if not key.startswith('_') and not callable(value):  # Exclude special methods and attributes.
                 yield value
 
 
@@ -129,7 +129,7 @@ class SaveDirectoryPrefix:
 
     def __iter__(self):
         for key, value in vars(self.__class__).items():
-            if not key.startswith('_') and not callable(value):  # 排除特殊方法和属性。
+            if not key.startswith('_') and not callable(value):  # Exclude special methods and attributes.
                 yield value
 
 
@@ -195,7 +195,7 @@ class Issues:
 
     def __iter__(self):
         for key, value in vars(self.__class__).items():
-            if not key.startswith('_') and not callable(value):  # 排除特殊方法和属性。
+            if not key.startswith('_') and not callable(value):  # Exclude special methods and attributes.
                 yield value
 
 
@@ -297,7 +297,7 @@ class Extension:
 
 
 class GradientColor:
-    # 生成渐变色:https://photokit.com/colors/color-gradient/?lang=zh
+    # Gradient color source: https://photokit.com/colors/color-gradient/?lang=zh
     BLUE2PURPLE_14 = [
         '#0ebeff',
         '#21b4f9',
@@ -402,21 +402,21 @@ class GradientColor:
     def __extend_gradient_colors(colors: list, target_length: int) -> list:
         extended_colors = colors[:]
         while len(extended_colors) < target_length:
-            # 添加原列表（除最后一个元素外）的逆序
+            # Append the original list in reverse order, excluding its last item.
             extended_colors.extend(colors[-2::-1])
-            # 如果仍然不够长，继续添加正序部分
+            # If it is still too short, append the remaining items in forward order.
             if len(extended_colors) < target_length:
                 extended_colors.extend(colors[:-1])
         return extended_colors[:target_length]
 
     @staticmethod
     def gen_gradient_text(text: str, gradient_color: list) -> str:
-        """当渐变色列表小于文字长度时,翻转并扩展当前列表。"""
+        """Reverse and extend the gradient list when it is shorter than the text."""
         text_lst: list = [i for i in text]
         text_lst_len: int = len(text_lst)
         gradient_color_len: int = len(gradient_color)
         if text_lst_len > gradient_color_len:
-            # 扩展颜色列表以适应文本长度
+            # Extend the color list to match the text length.
             gradient_color = GradientColor.__extend_gradient_colors(gradient_color, text_lst_len)
         result: str = ''
         for i in range(text_lst_len):
@@ -425,23 +425,23 @@ class GradientColor:
 
     @staticmethod
     def __hex_to_rgb(hex_color: str) -> tuple:
-        """将十六进制颜色值转换为RGB元组。"""
+        """Convert a hexadecimal color value to an RGB tuple."""
         hex_color = hex_color.lstrip('#')
         return tuple(int(hex_color[i:i + 2], 16) for i in (0, 2, 4))
 
     @staticmethod
     def __rgb_to_hex(r: int, g: int, b: int) -> str:
-        """将RGB元组转换为十六进制颜色值。"""
+        """Convert an RGB tuple to a hexadecimal color value."""
         return f"#{r:02x}{g:02x}{b:02x}"
 
     @staticmethod
     def generate_gradient(start_color: str, end_color: str, steps: int) -> list:
-        """根据起始和结束颜色生成颜色渐变列表。"""
+        """Generate a gradient list from the start and end colors."""
         steps = 2 if steps <= 1 else steps
-        # 转换起始和结束颜色为RGB
+        # Convert the start and end colors to RGB.
         start_rgb = GradientColor.__hex_to_rgb(start_color)
         end_rgb = GradientColor.__hex_to_rgb(end_color)
-        # 生成渐变色列表
+        # Build the gradient color list.
         gradient_color: list = []
         for i in range(steps):
             r = int(start_rgb[0] + (end_rgb[0] - start_rgb[0]) * i / (steps - 1))
@@ -590,9 +590,9 @@ class Validator:
     def is_valid_port(port: int) -> bool:
         try:
             return 0 < int(port) <= 65535
-        except ValueError:  # 处理非整数字符串的情况
+        except ValueError:  # Handle a string that is not an integer.
             return False
-        except TypeError:  # 处理传入非数字类型的情况
+        except TypeError:  # Handle an input that is not numeric.
             return False
         except Exception as e:
             log.error(f'Unexpected error. Reason: "{e}"')
@@ -622,18 +622,18 @@ class ProcessConfig:
 
     @staticmethod
     def __parse_proxy_url(proxy_url: str) -> Optional[dict]:
-        """解析代理URL字符串。"""
+        """Parse a proxy URL string."""
         try:
             if not proxy_url:
                 return None
 
-            # 正则表达式匹配代理URL，支持以下格式：
+            # Match proxy URLs in the following formats:
             # - http://username:password@host:port
             # - https://host:port
             # - socks4://host:port
             # - socks5://host:port
-            # - host:port (无协议前缀)
-            # - 支持URL末尾有/的情况，如 http://127.0.0.1:10808/
+            # - host:port (without a scheme)
+            # - URLs ending with /, such as http://127.0.0.1:10808/
             pattern = r'^(?:(https?|socks[45][ah]?)://)?(?:[^@]*@)?([^:]+):(\d+)/+$'
             match = re.match(pattern, proxy_url.lower())
 
@@ -644,14 +644,14 @@ class ProcessConfig:
             hostname = match.group(2)
             port = match.group(3)
 
-            # 如果没有scheme，默认为http。
+            # Default to http when no scheme is provided.
             if not scheme:
                 scheme = 'http'
-            # socks4a和socks5h统一为socks4和socks5。
+            # Normalize socks4a and socks5h to socks4 and socks5.
             elif scheme in ('socks4a', 'socks5h'):
                 scheme = scheme[:-1]
 
-            # 验证端口号有效性。
+            # Validate the port number.
             try:
                 port = int(port)
             except ValueError:
@@ -674,7 +674,7 @@ class ProcessConfig:
 
     @staticmethod
     def get_unix_proxy() -> Optional[dict]:
-        """从环境变量获取 Unix/Linux/macOS 代理设置。"""
+        """Get Unix/Linux/macOS proxy settings from environment variables."""
         env_vars = ['http_proxy', 'HTTP_PROXY', 'https_proxy', 'HTTPS_PROXY', 'all_proxy', 'ALL_PROXY']
 
         for var in env_vars:
@@ -688,7 +688,7 @@ class ProcessConfig:
 
     @staticmethod
     def get_windows_proxy() -> Optional[dict]:
-        """从 Windows 注册表获取代理设置。"""
+        """Get proxy settings from the Windows registry."""
         try:
             import winreg
             with winreg.OpenKey(
@@ -703,9 +703,9 @@ class ProcessConfig:
                 if not proxy_server:
                     return None
 
-                # 使用正则表达式解析代理服务器字符串。
-                # 格式可能是: "http=127.0.0.1:7890;https=127.0.0.1:7890;socks=127.0.0.1:1080"。
-                # 或者是: "127.0.0.1:7890"。
+                # Parse the proxy server string with a regular expression.
+                # It may look like "http=127.0.0.1:7890;https=127.0.0.1:7890;socks=127.0.0.1:1080".
+                # It may also be a single address, such as "127.0.0.1:7890".
                 proxy_info = {}
                 pattern = r'(\w+)=([^;]+)'
                 matches = re.findall(pattern, proxy_server)
@@ -714,16 +714,16 @@ class ProcessConfig:
                     for proto, addr in matches:
                         proxy_info[proto.lower()] = addr
                 else:
-                    # 如果没有协议前缀，则整个字符串就是代理地址。
+                    # Without a protocol prefix, the entire string is the proxy address.
                     proxy_info['http'] = proxy_server
 
-                # 优先级：http > https > socks。
+                # Priority: http > https > socks.
                 proxy_addr = proxy_info.get('http') or proxy_info.get('https') or proxy_info.get('socks')
 
                 if not proxy_addr:
                     return None
 
-                # 使用正则表达式解析地址和端口。
+                # Parse the address and port with a regular expression.
                 addr_pattern = r'^([^:]+):(\d+)$'
                 addr_match = re.match(addr_pattern, proxy_addr)
 
@@ -736,14 +736,14 @@ class ProcessConfig:
                 except ValueError:
                     return None
 
-                # 判断协议类型。
+                # Determine the proxy scheme.
                 scheme = 'http'
                 if 'socks5' in proxy_server.lower():
                     scheme = 'socks5'
                 elif 'socks4' in proxy_server.lower():
                     scheme = 'socks4'
                 elif 'socks=' in proxy_server.lower():
-                    # 如果只有socks=没有数字，默认socks5
+                    # Default to socks5 when socks= is present without a version number.
                     scheme = 'socks5'
 
                 if not (0 <= port <= 65535):
@@ -764,9 +764,9 @@ class ProcessConfig:
         def decorator(func: Callable) -> Callable:
             @wraps(func)
             def wrapper(*args, **kwargs) -> Any:
-                # 尝试获取系统代理（跨平台）。
+                # Try to get the system proxy (cross-platform).
                 system_proxy = ProcessConfig.get_windows_proxy() if platform.system() == 'Windows' else ProcessConfig.get_unix_proxy()
-                # 如果成功获取到系统代理并且包含所需的参数。
+                # Continue if the system proxy was retrieved and contains the requested parameter.
                 if system_proxy and param_name in system_proxy:
                     question: str = GetStdioParams.UNDEFINED
                     if param_name == 'scheme' and ProcessConfig.PROXY_AUTO_FILL is False:
@@ -785,9 +785,9 @@ class ProcessConfig:
                                 log.error(f'Unexpected error. Reason: "{e}"')
                                 break
                     if question in ('y', '') or ProcessConfig.PROXY_AUTO_FILL:
-                        # 提取对应参数的值。
+                        # Extract the requested parameter value.
                         value = system_proxy[param_name]
-                        # 根据参数类型打印相应的提示信息。
+                        # Display a message appropriate to the parameter type.
                         if param_name == 'scheme':
                             console.print(
                                 f'Proxy type automatically obtained from system settings: "{value}"',
@@ -816,7 +816,7 @@ class ProcessConfig:
                                 'record_flag': True
                             }
 
-                # 如果没有获取到系统代理或参数不完整，执行原函数。
+                # If no system proxy was found or it is incomplete, call the original function.
                 return func(*args, **kwargs)
 
             return wrapper
@@ -834,7 +834,7 @@ class ProcessConfig:
 
     @staticmethod
     def get_dtype(download_dtype: list) -> dict:
-        """获取所需下载文件的类型。"""
+        """Get the requested download types."""
         meta: dict = {}
         support_dtype: list = [_ for _ in DownloadType()]
         for dtype in download_dtype:
@@ -843,7 +843,7 @@ class ProcessConfig:
 
     @staticmethod
     def stdio_style(key: str, color=None) -> str:
-        """控制用户交互时打印出不同的颜色(渐变)。"""
+        """Choose a gradient color for interactive prompts."""
         if color is None:
             color = GradientColor.ORANGE2YELLOW_15
         _stdio_queue: dict = {
@@ -867,11 +867,11 @@ class ProcessConfig:
 
     @staticmethod
     def is_proxy_input(proxy_config: dict) -> bool:
-        """检测代理配置是否需要用户输入。"""
+        """Check whether the proxy configuration requires user input."""
         result: bool = False
         basic_truth_table: list = []
         advance_account_truth_table: list = []
-        if proxy_config.get('enable_proxy') is False:  # 检测打开了代理但是代理配置错误。
+        if proxy_config.get('enable_proxy') is False:  # The proxy is disabled or its configuration is invalid.
             return False
         for _ in proxy_config.items():
             if _[0] in ['scheme', 'port', 'hostname']:
@@ -906,7 +906,7 @@ class GetStdioParams:
             default: str = '',
             timeout: int = 5
     ) -> str:
-        """跨平台的输入超时后自动设置为默认值,报错时返回默认input。"""
+        """Use the default value on timeout across platforms; fall back to regular input if an error occurs."""
 
         def timeout_notice():
             console.print('\nInput timed out; the default value was selected.\n', style='#FF4689')
@@ -924,33 +924,33 @@ class GetStdioParams:
                     elapsed = time.time() - start_time
                     remaining = int(timeout - elapsed)
 
-                    # 倒计时显示更新。
+                    # Update the countdown display.
                     if remaining != last_second and remaining >= 0:
                         if countdown_displayed:
-                            # 删除之前的倒计时（1位数字+1个空格）。
+                            # Erase the previous countdown (one digit and one space).
                             print('\b \b\b \b', end='', flush=True)
-                        # 显示新的倒计时（输入时才显示）。
+                        # Show the new countdown only before input begins.
                         if not input_buffer and remaining >= 0:
                             console.print(f'{remaining} ', end='', style='dim')
                             countdown_displayed = True
                         last_second = remaining
 
-                    if msvcrt.kbhit():  # 检测是否有键盘输入。
-                        # 清除倒计时显示。
+                    if msvcrt.kbhit():  # Check for keyboard input.
+                        # Clear the countdown display.
                         if countdown_displayed:
                             print('\b \b\b \b', end='', flush=True)
                             countdown_displayed = False
 
                         char = msvcrt.getwch()
-                        if char == '\r':  # 回车键结束输入。
+                        if char == '\r':  # Enter ends input.
                             user_input = ''.join(input_buffer)
                             print('\n') if user_input in ('y', 'n', '') else None
                             return user_input.strip() or default
-                        elif char in ('\x08', '\b'):  # Backspace键处理。
+                        elif char in ('\x08', '\b'):  # Handle Backspace.
                             if input_buffer:
                                 input_buffer.pop()
-                                print('\b \b', end='', flush=True)  # 删除控制台上的最后一个字符。
-                        elif char in ('\x00', '\xe0'):  # 上下左右键。
+                                print('\b \b', end='', flush=True)  # Delete the last character from the console.
+                        elif char in ('\x00', '\xe0'):  # Arrow keys.
                             _ = msvcrt.getwch()
                         else:
                             input_buffer.append(char)
@@ -971,11 +971,11 @@ class GetStdioParams:
             console.print(prompt, end='')
             sys.stdout.flush()
 
-            # 保存原始终端设置。
+            # Save the original terminal settings.
             old_settings = termios.tcgetattr(sys.stdin)
             elapsed = 0
             try:
-                # 设置终端为原始模式,允许逐字符读取。
+                # Set the terminal to raw mode to read input one character at a time.
                 tty.setraw(sys.stdin.fileno())
 
                 start_time: float = time.time()
@@ -986,55 +986,55 @@ class GetStdioParams:
                     elapsed = time.time() - start_time
                     remaining = int(timeout - elapsed)
 
-                    # 倒计时显示更新。
+                    # Update the countdown display.
                     if remaining != last_second and remaining >= 0:
                         if countdown_displayed:
-                            # 删除之前的倒计时（数字+空格）。
+                            # Erase the previous countdown (digits and a space).
                             backspace_count = len(str(last_second)) + 1
                             sys.stdout.write('\b \b' * backspace_count)
                             sys.stdout.flush()
-                        # 显示新的倒计时（输入时才显示）。
+                        # Show the new countdown only before input begins.
                         if not input_buffer and remaining >= 0:
                             console.print(f'{remaining} ', end='', style='dim')
                             sys.stdout.flush()
                             countdown_displayed = True
                         last_second = remaining
 
-                    # 使用select检测输入,超时0.1秒以便更新倒计时。
+                    # Poll input with select, timing out after 0.1 seconds to refresh the countdown.
                     ready, _, _ = select.select([sys.stdin], [], [], 0.1)
 
                     if ready:
-                        # 清除倒计时显示。
+                        # Clear the countdown display.
                         if countdown_displayed:
                             backspace_count = len(str(remaining)) + 1
                             sys.stdout.write('\b \b' * backspace_count)
                             sys.stdout.flush()
                             countdown_displayed = False
 
-                        # 读取一个字符。
+                        # Read one character.
                         char = sys.stdin.read(1)
 
-                        if char == '\r' or char == '\n':  # 回车键结束输入。
+                        if char == '\r' or char == '\n':  # Enter ends input.
                             user_input = ''.join(input_buffer)
                             sys.stdout.write('\n')
                             sys.stdout.flush()
                             return user_input.strip() or default
-                        elif char == '\x7f' or char == '\b':  # Backspace/Delete键处理。
+                        elif char == '\x7f' or char == '\b':  # Handle Backspace/Delete.
                             if input_buffer:
                                 input_buffer.pop()
                                 sys.stdout.write('\b \b')
                                 sys.stdout.flush()
-                        elif char == '\x1b':  # 转义序列（上下左右键等）。
-                            # 读取接下来的两个字符。
+                        elif char == '\x1b':  # Escape sequence (arrow keys, etc.).
+                            # Read the next two characters.
                             _ = sys.stdin.read(2)
-                        elif ord(char) >= 32:  # 可打印字符。
+                        elif ord(char) >= 32:  # Printable character.
                             input_buffer.append(char)
                             sys.stdout.write(char)
                             sys.stdout.flush()
                         last_second = -1  # 输入开始后不再显示倒计时。
 
                     elif elapsed > timeout:
-                        # 清除倒计时显示。
+                        # Clear the countdown display.
                         if countdown_displayed:
                             backspace_count = len(str(remaining)) + 1
                             sys.stdout.write('\b \b' * backspace_count)
@@ -1044,7 +1044,7 @@ class GetStdioParams:
                 log.exception(f'Could not set this automatically. Please set it manually. {_t(KeyWord.REASON)}: "{e}"')
                 return console.input(error_prompt if error_prompt else prompt)
             finally:
-                termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)  # 恢复终端设置。
+                termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)  # Restore the terminal settings.
                 timeout_notice() if elapsed > timeout else print()
 
     @staticmethod
@@ -1163,7 +1163,7 @@ class GetStdioParams:
 
     @staticmethod
     def get_links(last_record: str, valid_format: str = '.txt', enable_bot: bool = False) -> dict:
-        # 输入需要下载的媒体链接文件路径,确保文件存在。
+        # Prompt for the media links file and ensure that it exists.
         links_file_path = None
         while True:
             try:
@@ -1200,7 +1200,7 @@ class GetStdioParams:
 
     @staticmethod
     def get_save_directory(last_record) -> dict:
-        # 输入媒体保存路径,确保是一个有效的目录路径。
+        # Prompt for the media save path and ensure it is a valid directory.
         while True:
             save_directory = console.input(
                 f'Enter the media save directory. Previous value: "{last_record if last_record else GetStdioParams.UNDEFINED}":').strip()
@@ -1225,7 +1225,7 @@ class GetStdioParams:
 
     @staticmethod
     def get_max_download_task(last_record) -> dict:
-        # 输入最大下载任务数,确保是一个整数且不超过特定限制。
+        # Prompt for the maximum number of download tasks and validate the integer value.
         default_prompt: str = '(default: 3)' if last_record is None else ''
         while True:
             try:
@@ -1314,7 +1314,7 @@ class GetStdioParams:
             last_record: str = 'n'
         else:
             last_record = GetStdioParams.UNDEFINED
-        t = 'Automatic shutdown after downloads enabled.'  # v1.3.0 修复配置is_shutdown参数时显示错误。
+        t = 'Automatic shutdown after downloads enabled.'  # v1.3.0: fix an incorrect message for the is_shutdown setting.
         f = 'Automatic shutdown after downloads disabled.'
         default_prompt: str = '(default: n)' if last_record == GetStdioParams.UNDEFINED else ''
         while True:
@@ -1349,7 +1349,7 @@ class GetStdioParams:
         else:
             ep_notice: str = GetStdioParams.UNDEFINED
         default_prompt: str = '(default: n)' if ep_notice == GetStdioParams.UNDEFINED else ''
-        while True:  # 询问是否开启代理。
+        while True:  # Ask whether to enable the proxy.
             enable_proxy = console.input(
                 f'Use a proxy? Previous value: "{ep_notice}"'
                 f'Options: "{valid_format}" {default_prompt}:').strip().lower()
@@ -1378,7 +1378,7 @@ class GetStdioParams:
         if valid_format is None:
             valid_format: list = ['http', 'socks4', 'socks5']
         fmt_valid_format = '|'.join(valid_format)
-        while True:  # v1.3.0 修复代理配置scheme参数配置抛出AttributeError。
+        while True:  # v1.3.0: fix an AttributeError when configuring the proxy scheme.
             scheme = console.input(
                 f'Enter the proxy type. Previous value: "{last_record if last_record else GetStdioParams.UNDEFINED}"'
                 f'Valid types: "{fmt_valid_format}":').strip().lower()
@@ -1400,7 +1400,7 @@ class GetStdioParams:
         hostname = None
         while True:
             scheme, _, __ = ProcessConfig.get_proxy_info(proxy_config).values()
-            # 输入代理IP地址。
+            # Prompt for the proxy IP address.
             try:
                 hostname = console.input(
                     f'Enter the IP address for the "{scheme}" proxy. Previous value: "{last_record if last_record else GetStdioParams.UNDEFINED}"'
@@ -1421,9 +1421,9 @@ class GetStdioParams:
     @ProcessConfig.get_system_proxy('port')
     def get_port(proxy_config: dict, last_record: str, valid_format: str = '0~65535'):
         port = None
-        # 输入代理端口。
+        # Prompt for the proxy port.
         while True:
-            try:  # hostname,scheme可能出现None。
+            try:  # hostname or scheme may be None.
                 scheme, hostname, __ = ProcessConfig.get_proxy_info(proxy_config).values()
                 port = console.input(
                     f'Enter the proxy port for IP "{hostname}" and type "{scheme}".'
@@ -1446,7 +1446,7 @@ class GetStdioParams:
 
     @staticmethod
     def get_proxy_authentication():
-        # 是否需要认证。
+        # Ask whether authentication is required.
         style = ProcessConfig.stdio_style('proxy_authentication')
         valid_format: str = 'y|n'
         while True:
@@ -1488,7 +1488,7 @@ class BotCommandText:
 
     def __iter__(self):
         for key, value in vars(self.__class__).items():
-            if not key.startswith('_') and not callable(value):  # 排除特殊方法和属性。
+            if not key.startswith('_') and not callable(value):  # Exclude special methods and attributes.
                 yield value
 
     @staticmethod
@@ -1592,10 +1592,10 @@ class BotCallbackText:
 
 
 class BotCallbackPrefix:
-    """回调数据的固定前缀,其后拼接动态参数(日期、年份、关键词等)。
+    """Fixed prefixes for callback data, followed by dynamic parameters (dates, years, keywords, etc.).
 
-    与BotCallbackText的区别在于这些值只做前缀匹配,实际回调数据还会追加参数,
-    压缩回调数据时同样以此为准,避免出现两处硬编码不一致。
+    Unlike BotCallbackText, these values are matched as prefixes and callback data includes additional parameters.
+    Use these values when compressing callback data as well, so the two representations cannot drift apart.
     """
     TIME_INC: str = 'time_inc_'
     TIME_DEC: str = 'time_dec_'
@@ -1609,7 +1609,7 @@ class BotCallbackPrefix:
 
     def __iter__(self):
         for key, value in vars(self.__class__).items():
-            if not key.startswith('__') and not callable(value):  # 排除特殊方法和属性。
+            if not key.startswith('__') and not callable(value):  # Exclude special methods and attributes.
                 yield value
 
 

@@ -19,16 +19,16 @@ from rich.logging import RichHandler
 
 def read_input_history(history_path: str, max_record_len: int, **kwargs) -> None:
     if kwargs.get('platform') == 'Windows':
-        # 尝试读取历史记录文件。
+        # Try to read the history file.
         import readline
         readline.backend = 'readline'
         try:
             readline.read_history_file(history_path)
         except FileNotFoundError:
             pass
-        # 设置历史记录的最大长度。
+        # Set the maximum history length.
         readline.set_history_length(max_record_len)
-        # 注册退出时保存历史记录。
+        # Register a handler to save history on exit.
         atexit.register(readline.write_history_file, history_path)
 
 
@@ -44,7 +44,7 @@ def via_log_level(log_level: str, param_name: str, default_level: int = logging.
 class CustomDumper(yaml.Dumper):
 
     def represent_none(self, data):
-        """自定义将yaml文件中None表示为~。"""
+        """Represent None as ~ when serializing YAML."""
         return self.represent_scalar('tag:yaml.org,2002:null', '~')
 
 
@@ -58,22 +58,22 @@ class CallerFilter(logging.Filter):
             module_path: str = os.path.splitext(rel_path)[0].replace(os.sep, '.')
         except Exception:  # noqa.
             module_path: str = record.module
-        # 先写入默认值,保证后续任何分支返回时格式化字段都完整。
-        # 若缺失字段,格式化日志时会抛出"Formatting field not found in record"(如在函数外直接调用日志)。
+        # Set defaults first so every return path has all fields needed for log formatting.
+        # Missing fields would raise "Formatting field not found in record" when formatting the log (for example, when logging outside a function).
         record.name_part = '' if record.name == 'rich' else f'{record.name}:'
-        record.caller_name = ''  # 没有上层调用者时留空,连分隔符一起省略。
+        record.caller_name = ''  # Leave empty when there is no caller so the separator is omitted too.
         record.file_func = f'{module_path}.{record.funcName}'
         frame = sys._getframe(1)
-        # 回溯到实际调用日志的帧(record的pathname与lineno即为其位置)。
+        # Walk back to the frame that actually logged the message (record.pathname and record.lineno point to it).
         while frame is not None:
             if frame.f_code.co_filename == record.pathname and frame.f_lineno == record.lineno:
                 break
             frame = frame.f_back
         caller_frame = frame.f_back if frame is not None else None
-        if caller_frame is None:  # 在模块顶层等没有上层调用者的位置记录日志。
+        if caller_frame is None:  # Logging from a module-level location with no caller frame.
             return True
         func_name: str = caller_frame.f_code.co_name
-        # 项目内的调用者显示完整模块名,第三方与标准库仅显示函数名,避免名称过长导致换行。
+        # Show full module names for project callers and only function names for third-party and standard-library callers to avoid long wrapped names.
         if caller_frame.f_code.co_filename.startswith(CallerFilter.PROJECT_PATH):
             record.caller_name = f'{caller_frame.f_globals.get("__name__", "")}.{func_name}:'
         else:
@@ -84,7 +84,7 @@ class CallerFilter(logging.Filter):
 LOG_TIME_FORMAT = '[%Y-%m-%d %H:%M:%S]'
 console = Console(log_path=False, log_time_format=LOG_TIME_FORMAT)
 DOWNLOAD_TIMEOUT = 120
-FORWARD_LIMIT = 33  # 每分钟允许的最大转发次数。
+FORWARD_LIMIT = 33  # Maximum number of forwards allowed per minute.
 AUTHOR = 'Gentlesprite'
 __version__ = '2.1.5'
 __license__ = 'GPL-3.0-or-later'
@@ -98,19 +98,19 @@ APPDATA_PATH = os.path.join(
 GLOBAL_CONFIG_NAME = '.CONFIG.yaml'
 GLOBAL_CONFIG_PATH = os.path.join(APPDATA_PATH, GLOBAL_CONFIG_NAME)
 PLATFORM = platform.system()
-os.makedirs(APPDATA_PATH, exist_ok=True)  # v1.2.6修复初次运行打开报错问题。
+os.makedirs(APPDATA_PATH, exist_ok=True)  # v1.2.6: fix an error when opening the app on first run.
 INPUT_HISTORY_PATH = os.path.join(APPDATA_PATH, f'.{SOFTWARE_SHORT_NAME}_HISTORY')
 MAX_RECORD_LENGTH = 1000
 read_input_history(history_path=INPUT_HISTORY_PATH, max_record_len=MAX_RECORD_LENGTH, platform=PLATFORM)
 LOG_PATH = os.path.join(APPDATA_PATH, f'{SOFTWARE_SHORT_NAME}_LOG.log')
 MAX_LOG_SIZE = 200 * 1024 * 1024  # 200MB
-BACKUP_COUNT = 0  # 不保留日志文件。
+BACKUP_COUNT = 0  # Do not retain log files.
 LOG_FORMAT = '%(name_part)s%(caller_name)s%(file_func)s:%(lineno)d - %(message)s'
 FILE_LOG_LEVEL: int = logging.INFO
 CONSOLE_LOG_LEVEL: int = logging.WARNING
 REFERRAL_RECORD_PATH: str = os.path.join(APPDATA_PATH, f'.{SOFTWARE_SHORT_NAME}_REFERRAL')
 TRMD_WEB_SESSION: str = os.path.join(APPDATA_PATH, f'.{SOFTWARE_SHORT_NAME}_WEB_SESSION')
-# 配置日志文件处理器(文件记录)
+# Configure the file handler.
 file_handler = RotatingFileHandler(
     filename=LOG_PATH,
     maxBytes=MAX_LOG_SIZE,
@@ -134,9 +134,9 @@ if os.path.exists(GLOBAL_CONFIG_PATH):
 
 file_handler.setLevel(logging.getLevelName(FILE_LOG_LEVEL))
 file_handler.addFilter(CallerFilter())
-# 配置日志终端记录器(控制台输出)
+# Configure the console handler.
 console_handler = RichHandler(
-    level=CONSOLE_LOG_LEVEL,  # 控制台只显示WARNING及以上级别。
+    level=CONSOLE_LOG_LEVEL,  # Show only WARNING and higher levels in the console.
     console=console,
     rich_tracebacks=True,
     show_path=False,
@@ -144,20 +144,20 @@ console_handler = RichHandler(
     log_time_format=LOG_TIME_FORMAT
 )
 console_handler.addFilter(CallerFilter())
-# 配置日志记录器(根记录器设置为最低级别 DEBUG)
+# Configure the logger (set the root logger to the lowest level, DEBUG).
 logging.basicConfig(
-    level=logging.DEBUG,  # 根记录器设置为DEBUG,允许所有日志通过。
+    level=logging.DEBUG,  # Set the root logger to DEBUG so all messages pass through.
     format=LOG_FORMAT,
     datefmt=LOG_TIME_FORMAT,
     handlers=[
-        console_handler,  # 控制台:WARNING+
-        file_handler  # 文件:INFO+
+        console_handler,  # Console: WARNING and higher.
+        file_handler  # File: INFO and higher.
     ]
 )
 
 
 class PyrogramQuietFilter(logging.Filter):
-    """按记录名与调用者命名空间屏蔽pyrogram的INFO/DEBUG日志。"""
+    """Filter Pyrogram INFO/DEBUG logs by record name and caller namespace."""
     PYROGRAM_LOGGERS = (
         'pyrogram.client',
         'pyrogram.crypto',

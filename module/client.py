@@ -589,16 +589,16 @@ class TelegramRestrictedMediaDownloaderClient(pyrogram.Client):
     ) -> AsyncIterator[bytes]:
 
         if isinstance(message, types.Message) and message.live_photo is not None:
-            # 实况照片消息同时含静态照片与动态视频,按实际下载类型选择下载内容。
+            # Motion photo messages contain both a still image and a video; choose the content based on the requested download type.
             if download_type == DownloadType.LIVE_PHOTO:
-                # 按实况照片下载时取视频部分,输出可播放的动态照片。
+                # For a motion photo download, use the video component to produce a playable motion photo.
                 file_id_obj = FileId.decode(message.live_photo.file_id)
                 file_size: int = message.live_photo.file_size
             else:
-                # 按普通照片下载时仅取静态照片部分。
+                # For a regular photo download, use only the still image component.
                 file_id_obj = FileId.decode(message.photo.file_id)
                 file_size: int = message.photo.file_size
-            if offset < 0:  # 负偏移表示从文件末尾倒数。
+            if offset < 0:  # A negative offset counts backward from the end of the file.
                 if file_size == 0:
                     raise ValueError('Negative offset for live photo requires file_size')
                 offset += math.ceil(file_size / 1024 / 1024)
@@ -762,8 +762,8 @@ class TelegramRestrictedMediaDownloaderSession(Session):
                     else:
                         ConnectionStatus.update(message)
 
-                    # 连接异常(含超时)多为连接已断或半开,若底层正在重建连接(is_started被清),先等待其重建完成再重试,
-                    # 避免在已断开或重建中的连接上反复发请求,既配合底层重连又避免加剧请求压力。
+                    # Connection errors (including timeouts) usually mean the connection is closed or half-open. If the transport is reconnecting (is_started is clear),
+                    # wait for it to recover before retrying. This cooperates with the reconnect logic and avoids repeatedly sending requests on a broken connection.
                     if not self.is_started.is_set():
                         try:
                             await asyncio.wait_for(self.is_started.wait(), self.WAIT_TIMEOUT)

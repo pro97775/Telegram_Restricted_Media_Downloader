@@ -36,7 +36,7 @@ _mimetypes = mimetypes.MimeTypes()
 
 
 def split_path(path: str) -> dict:
-    """将传入路径拆分为目录名和文件名并以字典形式返回。"""
+    """Split a path into its directory and filename and return them in a dictionary."""
     directory, file_name = os.path.split(path)
     return {
         'directory': directory,
@@ -45,22 +45,22 @@ def split_path(path: str) -> dict:
 
 
 def __is_exist(file_path: str) -> bool:
-    """判断文件路径是否存在。"""
+    """Check whether a file path exists."""
     return not os.path.isdir(file_path) and os.path.exists(file_path)
 
 
 def compare_file_size(a_size: int, b_size: int) -> bool:
-    """比较文件的大小是否一致。"""
+    """Check whether two file sizes match."""
     return a_size == b_size
 
 
 def is_file_duplicate(save_directory: str, sever_file_size: int) -> bool:
-    """判断文件是否重复。"""
+    """Check whether the file is a duplicate."""
     return __is_exist(save_directory) and compare_file_size(os.path.getsize(save_directory), sever_file_size)
 
 
 def validate_title(title: str) -> str:
-    """验证并修改(如果不合法)标题的合法性。"""
+    """Validate a title and sanitize it if necessary."""
     r_str = r"[/\\:*?\"<>|\n]"  # '/ \ : * ? " < > |'
     new_title = re.sub(r_str, "_", title)
     return new_title
@@ -68,19 +68,19 @@ def validate_title(title: str) -> str:
 
 def truncate_filename(path: str, limit: int = 230) -> str:
     # https://github.com/tangyoha/telegram_media_downloader/blob/a3a9c2bed89ea8fd4db0b6616f055dfa11208362/utils/format.py#L195
-    """将文件名截断到最大长度。
+    """Truncate a filename to the maximum length.
     Parameters
     ----------
     path: str
-        文件名路径
+        File path.
 
     limit: int
-        文件名长度限制（以UTF-8 字节为单位）
+        Maximum filename length in UTF-8 bytes.
 
     Returns
     -------
     str
-        如果文件名的长度超过限制，则返回截断后的文件名;否则返回原始文件名。
+        The truncated filename if it exceeds the limit; otherwise, the original filename.
     """
     p, f = os.path.split(os.path.normpath(path))
     f, e = os.path.splitext(f)
@@ -91,7 +91,7 @@ def truncate_filename(path: str, limit: int = 230) -> str:
 
 
 def gen_backup_config(old_path: str, absolute_backup_dir: str, error_config: bool = False) -> str:
-    """备份配置文件。"""
+    """Back up the configuration file."""
 
     try:
         os.makedirs(absolute_backup_dir, exist_ok=True)
@@ -124,7 +124,7 @@ def gen_backup_config(old_path: str, absolute_backup_dir: str, error_config: boo
 
 
 def safe_delete(file_p_d: str) -> bool:
-    """删除文件或目录。"""
+    """Delete a file or directory safely."""
     try:
         if os.path.isdir(file_p_d):
             shutil.rmtree(file_p_d)
@@ -148,7 +148,7 @@ def safe_delete(file_p_d: str) -> bool:
 def safe_scan_directory_file(
         directory: str
 ) -> List[str]:
-    """扫描目录下的文件并返回文件名的列表。"""
+    """List the filenames of files in a directory."""
     with os.scandir(directory) as entries:
         return [entry.name for entry in entries if entry.is_file()]
 
@@ -174,7 +174,7 @@ def safe_replace(origin_file: str, overwrite_file: str) -> dict:
 
 
 def move_to_save_directory(temp_file_path: str, save_directory: str) -> dict:
-    """移动文件到指定路径。"""
+    """Move a file to the specified directory."""
     try:
         os.makedirs(save_directory, exist_ok=True)
         if os.path.isdir(save_directory):
@@ -200,8 +200,8 @@ def move_to_save_directory(temp_file_path: str, save_directory: str) -> dict:
 
 
 def get_extension(file_id: str, mime_type: str, dot: bool = True) -> str:
-    """获取文件的扩展名。
-    更多扩展名见: https://www.iana.org/assignments/media-types/media-types.xhtml
+    """Get a file's extension.
+    For more extensions, see: https://www.iana.org/assignments/media-types/media-types.xhtml
     """
 
     if not file_id:
@@ -223,7 +223,7 @@ def get_extension(file_id: str, mime_type: str, dot: bool = True) -> str:
         if 'video' in mime_type:
             extension = guessed_extension or Extension.VIDEO.get(mime_type, 'mp4')
         elif 'image' in mime_type:
-            extension = guessed_extension or Extension.PHOTO.get(mime_type, 'jpg')  # v1.2.8 修复获取图片格式时,实际指向为视频字典的错误。
+            extension = guessed_extension or Extension.PHOTO.get(mime_type, 'jpg')  # v1.2.8: fix using the video mapping when resolving image formats.
         else:
             extension = guessed_extension or 'zip'
     elif file_type == FileType.STICKER:
@@ -239,13 +239,13 @@ def get_extension(file_id: str, mime_type: str, dot: bool = True) -> str:
 
 
 def __guess_extension(mime_type: str) -> Optional[str]:
-    """如果扩展名不是None，则从没有点的MIME类型返回中猜测文件扩展名。"""
+    """Guess the file extension from the MIME type, if one is available."""
     extension = _mimetypes.guess_extension(mime_type, strict=True)
     return extension[1:] if extension and extension.startswith('.') else extension
 
 
 def __get_file_type(file_id: str) -> FileType:
-    """获取文件类型。"""
+    """Get the file type."""
     decoded = rle_decode(b64_decode(file_id))
 
     # File id versioning. Major versions lower than 4 don't have a minor version
@@ -269,7 +269,7 @@ def __get_file_type(file_id: str) -> FileType:
 
 
 def get_file_size(file_path: str, temp_ext: str = '.temp') -> int:
-    """获取文件大小，支持临时扩展名。"""
+    """Get a file's size, also checking for a temporary suffix."""
     if os.path.exists(file_path):
         return os.path.getsize(file_path)
     elif os.path.exists(file_path + temp_ext):
@@ -285,7 +285,7 @@ def get_mime_from_extension(file_path: str) -> str:
 
 def extract_full_extension(filename: Union[str, None]):
     """
-    提取完整的文件扩展名，支持多段扩展名。
+    Extract the full file extension, including compound extensions.
     """
     if not filename or not isinstance(filename, str):
         return None
@@ -295,9 +295,9 @@ def extract_full_extension(filename: Union[str, None]):
         return None
 
     multi_ext_patterns = [
-        r'\.(7z|rar|zip|r\d+|z\d+|s\d+|t\d+)\.\d+$',  # 压缩文件分卷格式。
-        r'\.(tar|zip|7z|rar)(\.(gz|bz2|xz|zip|7z|rar))+$',  # 多段压缩格式
-        r'\.(tar\.(gz|bz2|xz)|[a-z0-9]+\.\d+)$'  # 常见的多段扩展名
+        r'\.(7z|rar|zip|r\d+|z\d+|s\d+|t\d+)\.\d+$',  # Split archive formats.
+        r'\.(tar|zip|7z|rar)(\.(gz|bz2|xz|zip|7z|rar))+$',  # Compound archive formats.
+        r'\.(tar\.(gz|bz2|xz)|[a-z0-9]+\.\d+)$'  # Common compound extensions.
     ]
 
     for pattern in multi_ext_patterns:
@@ -306,7 +306,7 @@ def extract_full_extension(filename: Union[str, None]):
             full_ext = match.group(0).lstrip('.')
             return full_ext
 
-    # 普通文件,返回最后一个扩展名。
+    # For regular files, return the final extension.
     base_ext = os.path.splitext(filename)[-1]
     if base_ext:
         return base_ext.lstrip('.')
@@ -316,18 +316,18 @@ def extract_full_extension(filename: Union[str, None]):
 
 def is_compressed_file(filename: Union[str, None]) -> bool:
     """
-    判断是否为压缩包文件。
+    Check whether a file is an archive.
     """
     if not filename:
         return False
 
-    # 压缩文件扩展名模式。
+    # Archive filename patterns.
     compressed_patterns = [
-        # 单扩展名压缩格式。
+        # Single-extension archive formats.
         r'\.(7z|rar|zip|tar|gz|bz2|xz|arj|cab|lzh|lzma|tgz|tbz2|txz|z|Z)$',
-        # 多段扩展名压缩格式。
+        # Compound-extension archive formats.
         r'\.(tar\.(gz|bz2|xz)|7z\.\d+|rar\.\d+|zip\.\d+)$',
-        # 旧格式分卷。
+        # Legacy split archive formats.
         r'\.(r\d+|z\d+|s\d+|t\d+)$'
     ]
 

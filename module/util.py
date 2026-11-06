@@ -131,13 +131,14 @@ async def collect_message_id(
         save_directory: str,
         cache: dict
 ) -> Union[list, None]:
-    """预取媒体组成员id列表并写入缓存。
+    """Prefetch and cache the IDs of members in a media group.
 
-    仅当保存路径模板含%MESSAGE_ID%或%MESSAGE_ID_WITH_ENTITIES%通配符且消息属于媒体组时,才发起异步的
-    message.get_media_group();结果以media_group_id为键存入cache,供下载阶段
-    的 env_save_directory 同步读取,避免同步方法里await协程这一根本矛盾。
-    缓存命中则直接返回,避免同组每条消息各发一次 RPC。
-    路径不含通配符或消息非媒体组时返回None,不触碰cache。
+    Call the asynchronous message.get_media_group() only when the save-path template contains
+    the %MESSAGE_ID% or %MESSAGE_ID_WITH_ENTITIES% wildcard and the message belongs to a media group.
+    Store the result in cache under media_group_id for the download stage's synchronous
+    env_save_directory lookup, avoiding the fundamental problem of awaiting a coroutine in a
+    synchronous method. Return cached results directly to avoid one RPC per message in the group.
+    If the path has no wildcard or the message is not in a media group, return None without touching cache.
     """
     if (SaveDirectoryPrefix.MESSAGE_ID not in save_directory
             and SaveDirectoryPrefix.MESSAGE_ID_WITH_ENTITIES not in save_directory):
@@ -150,7 +151,7 @@ async def collect_message_id(
         return group_ids
     try:
         group = await message.get_media_group()
-    except Exception as e:  # noqa: BLE001  预取失败(如 FloodWait/超时)不影响主流程,错误不往外抛。
+    except Exception as e:  # noqa: BLE001  Prefetch failures (e.g. FloodWait or timeout) do not affect the main flow and are not re-raised.
         log.warning(f'Failed to prefetch media group member IDs. Reason: "{e}".')
         group = None
     group_ids = [m.id for m in group if getattr(m, 'id', None) is not None] if group else []
@@ -165,19 +166,21 @@ def save_message_entities(
         save_directory: str,
         media_group_cache: Optional[dict] = None
 ) -> None:
-    """将消息文本与格式化实体序列化为 JSON 落盘,供 %MESSAGE_ID_WITH_ENTITIES% 使用。
+    """Serialize message text and formatting entities to JSON for %MESSAGE_ID_WITH_ENTITIES%.
 
-    文件名规则:媒体组以 media_group_id 缓存的成员 id 列表取 min-max 区间(与保存目录名一致,
-    每组仅一份);单条消息用 message.id。文件名形如 "{key}_entities.json",与媒体文件区分。
-    媒体消息取 caption,纯文本消息取 text;实体按 pyrogram raw 的 to_dict() 形态输出
-    (与 text.json 样例一致)。无文本且无实体(如纯媒体无 caption)时跳过,避免产生空文件。
+    For media groups, use the min-max range of the cached member IDs from media_group_id
+    (matching the save-directory name, with one file per group); for a single message, use
+    message.id. The filename is "{key}_entities.json", distinct from media files. Use caption
+    for media messages and text for plain-text messages. Output entities in the pyrogram raw
+    to_dict() form (matching the text.json example). Skip messages with no text or entities
+    (such as media without a caption) to avoid creating empty files.
     """
     caption = getattr(message, 'caption', None)
     text = caption if caption is not None else getattr(message, 'text', None)
     entities = (message.caption_entities if caption is not None
                 else getattr(message, 'entities', None)) or []
     if not (text or entities):
-        return  # 纯媒体无 caption,不落盘。
+        return  # Do not save media without a caption.
     media_group_id = getattr(message, 'media_group_id', None)
     try:
         if media_group_id and media_group_cache:
@@ -192,13 +195,13 @@ def save_message_entities(
         file_path = os.path.join(save_directory, f'{entity_key}_entities.json')
         with open(file_path, 'w', encoding='UTF-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2, default=str)
-    except Exception as e:  # noqa: BLE001  实体落盘失败绝不影响下载主流程,错误不往外抛。
+    except Exception as e:  # noqa: BLE001  Entity-save failures must not affect the download flow and are not re-raised.
         log.warning(f'Failed to save message entity JSON. Reason: "{e}".')
 
 
 def message_entity_to_dict(entity) -> dict:
-    """将pyrogram.types.MessageEntity转为raw to_dict()形态。"""
-    _raw = getattr(entity.type, 'value', None)  # kurigram下entity.type.value即raw类型类。
+    """Convert a pyrogram.types.MessageEntity to the raw to_dict() form."""
+    _raw = getattr(entity.type, 'value', None)  # In kurigram, entity.type.value is the raw type class.
     d = {
         '_': getattr(_raw, 'QUALNAME', None) or f'types.{getattr(_raw, "__name__", entity.type)}',
         'offset': entity.offset,
@@ -237,20 +240,24 @@ def parse_chat_id(
         link: str,
         fallback: Union[str, int, None] = None
 ) -> str:
-    """从链接解析频道显示口径的chat_id。
+    """Parse the chat_id from a link using the channel-display convention.
 
-    与下载板块的get_message_by_link同源:该函数用正则取group(1)原样作chat_id(用户名链接保留
-    用户名),仅/c/私密链接经utils.get_channel_id转为-100数字ID;评论?comment=在解析前已被剥离,
-    故评论链接同样按原频道用户名解析。此处用extract_chat_id_from_link复刻该口径:
-    - 用户名链接(含评论与话题链接)返回用户名;
-    - 私密/c/链接解析出数字ID时回退fallback(记录入库的message.chat.id,同为-100数字ID);
-    - 链接非t.me域名或解析失败同样回退fallback。
-    fallback本身已是展示口径(非空且非-100数字ID,如用户名)时直接采用,不再解析,避免覆盖。
+    This mirrors get_message_by_link in the download section: that function uses a regex to take
+    group(1) as-is for chat_id (preserving usernames in username links), converting only private
+    /c/ links to numeric -100 IDs via utils.get_channel_id. The ?comment= parameter is stripped
+    before parsing, so comment links are parsed using the original channel username as well.
+    extract_chat_id_from_link reproduces that convention here:
+    - Username links (including comment and topic links) return the username.
+    - For private /c/ links that parse to a numeric ID, fall back to fallback (the message.chat.id
+      stored in the record, also a numeric -100 ID).
+    - Links outside the t.me domain or links that fail to parse also fall back to fallback.
+    If fallback is already in display form (nonempty and not a numeric -100 ID, e.g. a username),
+    use it directly without parsing so it is not overwritten.
     """
     if fallback is not None and not str(fallback).startswith('-100'):
         return str(fallback)
-    # 域名口径与下载板块的链接正则一致(接受无协议与www/telegram.me等变体),大小写不敏感;
-    # 杂串由域名校验挡下:extract_chat_id_from_link本身不校验域名。
+    # Match the download section's URL regex convention (accepting no scheme and www/telegram.me variants), case-insensitively.
+    # Domain validation rejects unrelated text; extract_chat_id_from_link does not validate the domain itself.
     url: str = str(link) if link else ''
     if url and not re.match(r'^https?://', url, re.I):
         url = f'https://{url}'
@@ -304,11 +311,12 @@ def extract_info_from_link(link: str) -> Link:
 
 
 def extract_chat_id_from_link(link: str) -> Union[str, int, None]:
-    """从消息链接提取chat_id,借鉴extract_info_from_link的本地解析,仅取parse_chat_id所需内容。
+    """Extract chat_id from a message link, using local parsing like extract_info_from_link but only what parse_chat_id needs.
 
-    与extract_info_from_link的区别:不解析comment、topic_id、post_id,也不读取query——
-    评论?comment=是parse_link触发get_chat的RPC条件,此处无需评论信息,从根上不碰。
-    域名合法性由调用方校验;用户名保留链接中的原始大小写,不做lower改写。
+    Unlike extract_info_from_link, this does not parse comment, topic_id, or post_id, and does not
+    read the query string. A ?comment= link causes parse_link to make a get_chat RPC; comment data
+    is not needed here, so avoid it entirely. The caller validates the domain; preserve the
+    original case of usernames rather than lowercasing them.
     """
     try:
         u = urlparse(link)
@@ -321,25 +329,25 @@ def extract_chat_id_from_link(link: str) -> Union[str, int, None]:
         if len(paths) >= 2 and paths[1].isascii() and paths[1].isdigit():
             return int(f'-100{int(paths[1])}')
         return None
-    # 用户名链接(含话题三段):第一段即用户名。
+    # For username links (including three-part topic links), the first segment is the username.
     return paths[0]
 
 
 async def get_message_by_link(
         client: pyrogram.Client,
         link: str,
-        single_link: bool = False  # 为True时,将每个链接都视作是单文件。
+        single_link: bool = False  # If True, treat each link as a single file.
 ) -> Union[dict, None]:
     origin_link: str = link
     record_type: set = set()
     link: str = link[:-1] if link.endswith('/') else link
-    if '?single&comment' in link:  # v1.1.0修复讨论组中附带?single时不下载的问题。
+    if '?single&comment' in link:  # v1.1.0 fixed downloads failing for discussion groups with ?single.
         record_type.add(LinkType.COMMENT)
         single_link = True
     if '?single' in link:
         link: str = link.split('?single')[0]
         single_link = True
-    if '?comment' in link:  # 链接中包含?comment表示用户需要同时下载评论中的媒体。
+    if '?comment' in link:  # A ?comment parameter means the user also wants media from the comments.
         link = link.split('?comment')[0]
         record_type.add(LinkType.COMMENT)
     if link.count('/') >= 5 or 't.me/c/' in link:
@@ -364,11 +372,11 @@ async def get_message_by_link(
     log.info(f'Parsed link: "{link}", channel: "{chat_id}", message ID: "{message_id}".')
     comment_message: list = []
     if LinkType.COMMENT in record_type:
-        # 如果用户需要同时下载媒体下面的评论,把评论中的所有信息放入列表一起返回。
+        # If the user also wants media from the comments, include all comment items in the returned list.
         async for comment in client.get_discussion_replies(chat_id, message_id):
             if not any(getattr(comment, dtype) for dtype in DownloadType()):
                 continue
-            if single_link:  # 处理单链接情况。
+            if single_link:  # Handle a single-link request.
                 if '=' in origin_link and int(origin_link.split('=')[-1]) != comment.id:
                     continue
             comment_message.append(comment)
@@ -378,8 +386,8 @@ async def get_message_by_link(
     if single_link:
         is_group = False
         group_message: Union[list, None] = None
-    if is_group or comment_message:  # 组或评论区。
-        try:  # v1.1.2解决当group返回None时出现comment无法下载的问题。
+    if is_group or comment_message:  # A group or comment section.
+        try:  # v1.1.2 fixed comment downloads when group returned None.
             group_message.extend(comment_message) if comment_message else None
         except AttributeError:
             if comment_message and group_message is None:
@@ -403,7 +411,7 @@ async def get_message_by_link(
                 'message': group_message,
                 'member_num': len(group_message)
             }
-    elif is_group is False and group_message is None:  # 单文件。
+    elif is_group is False and group_message is None:  # A single file.
         link_type = LinkType.TOPIC if LinkType.TOPIC in record_type else LinkType.SINGLE
         log.info(f'Link "{link}" parsed as "{link_type}" with 1 media item.')
         return {
@@ -425,7 +433,7 @@ async def __is_group(message) -> Tuple[Union[bool, None], Union[list, None]]:
     try:
         return True, await message.get_media_group()
     except ValueError:
-        return False, None  # v1.0.4 修改单文件无法下载问题。
+        return False, None  # v1.0.4 fixed an issue that prevented single-file downloads.
     except AttributeError:
         return None, None
 
@@ -491,23 +499,23 @@ async def format_chat_link(
     len_parts: int = len(parts)
     result: Union[str, None] = None
     if len_parts > 3 and topic is False:
-        # 判断是否是/c/类型的频道链接(确保是独立的'c'部分)。
-        if parts[3] == 'c' and len_parts >= 5:  # 对于/c/类型。
+        # Check whether this is a /c/ channel link (ensure 'c' is its own segment).
+        if parts[3] == 'c' and len_parts >= 5:  # For /c/ links.
             if len_parts >= 6:
-                # 6个部分时,保留前5个部分 (去掉最后一个)。
+                # With 6 segments, keep the first 5 (drop the last one).
                 result = '/'.join(parts[:5])  # https://t.me/c/2530641322/1 -> https://t.me/c/2530641322
 
-        else:  # 对于普通类型。
+        else:  # For regular links.
             if len_parts >= 5:
-                # 5个部分时,保留前4个部分(去掉最后一个)。
+                # With 5 segments, keep the first 4 (drop the last one).
                 result = '/'.join(parts[:4])  # https://t.me/customer/144 -> https://t.me/customer
-    else:  # 话题格式化。
-        if parts[3] == 'c' and len_parts >= 5:  # 对于/c/类型。
+    else:  # Format a topic link.
+        if parts[3] == 'c' and len_parts >= 5:  # For /c/ links.
             if len_parts >= 7:
-                # 7个部分时,保留前6个部分(去掉最后一个)。
+                # With 7 segments, keep the first 6 (drop the last one).
                 result = '/'.join(parts[:6])  # https://t.me/c/2495197831/100/200 -> https://t.me/c/2495197831/100
         elif len_parts >= 6:
-            # 6个部分时,保留前5个部分(去掉最后一个)。
+            # With 6 segments, keep the first 5 (drop the last one).
             result = '/'.join(parts[:5])  # https://t.me/customer/5/1 -> https://t.me/customer/5
 
     return result if result else link
@@ -521,7 +529,7 @@ async def get_my_id(client: pyrogram.Client) -> int:
 def get_local_ip() -> str:
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
         try:
-            sock.connect(('10.255.255.255', 1))  # 不发送数据，仅让内核选择出口网卡。
+            sock.connect(('10.255.255.255', 1))  # Send no data; let the kernel select the outgoing interface.
             return sock.getsockname()[0]
         except OSError:
             return '127.0.0.1'
@@ -553,7 +561,7 @@ async def delete_own_message(
         elif isinstance(result, raw.types.Updates):
             updates: list = list(result.updates)
         for update in updates:
-            # StartBot返回的是Updates组合类型,自己发出的消息id由UpdateMessageID按random_id给出。
+            # StartBot returns an Updates composite; UpdateMessageID provides our sent message ID by random_id.
             if isinstance(update, raw.types.UpdateMessageID):
                 if not random_id or update.random_id == random_id:
                     message_id = update.id
@@ -561,7 +569,7 @@ async def delete_own_message(
             if isinstance(update, raw.types.UpdateNewMessage) and getattr(update.message, 'out', False):
                 message_id = getattr(update.message, 'id', 0)
                 break
-        if not message_id:  # 服务端未生成自己的消息时无可删除内容。
+        if not message_id:  # There is nothing to delete if the server did not create our message.
             return False
         await client.invoke(
             raw.functions.messages.DeleteMessages(id=[message_id], revoke=False)
@@ -572,9 +580,9 @@ async def delete_own_message(
 
 
 def parse_referral(link: str) -> tuple:
-    """按固定格式"t.me/用户名?start=启动参数"解析链接,返回"用户名"与"启动参数"。"""
-    link: str = str(link).strip().split('://')[-1]  # 去掉协议。
-    link: str = link.split('/', 1)[-1]  # 去掉域名。
+    """Parse a link in the form "t.me/username?start=start_parameter" and return the username and start parameter."""
+    link: str = str(link).strip().split('://')[-1]  # Remove the scheme.
+    link: str = link.split('/', 1)[-1]  # Remove the domain.
     if '?start=' not in link:
         raise ValueError(f'Unexpected referral link: "{link}"')
     username, start_param = link.split('?start=', 1)
@@ -585,13 +593,13 @@ def check_update(
         remote_version: str,
         local_version: str
 ) -> str:
-    """按"主版本.次版本.修订号"逐段比较版本号,远程版本更高时返回该版本号,否则返回空字符串。"""
+    """Compare version components in "major.minor.patch" order; return the remote version if newer, otherwise an empty string."""
     if not isinstance(remote_version, str) or not isinstance(local_version, str):
         return ''
-    # 只取数字段参与比较,忽略前后缀,保证"v2.0.1"与"2.0.1"等价。
+    # Compare only numeric components, ignoring prefixes and suffixes so "v2.0.1" equals "2.0.1".
     remote: list = [int(i) for i in re.findall(pattern=r'\d+', string=remote_version)]
     local: list = [int(i) for i in re.findall(pattern=r'\d+', string=local_version)]
-    # 位数不足时补0,保证"2.0"与"2.0.0"等价。
+    # Pad shorter versions with zeros so "2.0" equals "2.0.0".
     size: int = max(len(remote), len(local))
     remote += [0] * (size - len(remote))
     local += [0] * (size - len(local))
@@ -747,21 +755,21 @@ def check_environment():
 
 
 def get_executable_path() -> str:
-    """获取真实可执行文件路径,打包环境(Nuitka单文件)返回原始exe真实路径,源码环境返回入口脚本路径。"""
-    exe_path: str = sys.argv[0]  # Nuitka单文件下sys.argv[0]为原始exe真实路径。
-    if not os.path.dirname(exe_path):  # 经PATH启动时仅为命令名(无目录),回退sys.executable。
+    """Get the actual executable path: the original executable in a Nuitka single-file build, or the entry script in source mode."""
+    exe_path: str = sys.argv[0]  # In a Nuitka single-file build, sys.argv[0] is the path to the original executable.
+    if not os.path.dirname(exe_path):  # If launched through PATH with only a command name, fall back to sys.executable.
         exe_path = sys.executable
     return os.path.abspath(exe_path)
 
 
 def get_work_directory() -> str:
-    """获取工作目录,打包环境取原始可执行文件所在目录,源码环境取入口脚本所在目录。"""
-    if is_frozen():  # 单文件打包(Nuitka/Pyinstaller)会把文件解压到临时目录运行,sys.executable/__file__均可能指向临时目录。
-        if is_nuitka():  # Nuitka单文件:sys.executable指向临时解压目录,只有sys.argv[0]才是原始exe真实路径。
+    """Get the working directory: the original executable's directory in a packaged build, or the entry script's directory in source mode."""
+    if is_frozen():  # Single-file Nuitka/PyInstaller builds run from a temporary extraction directory; sys.executable and __file__ may point there.
+        if is_nuitka():  # For a Nuitka single-file build, sys.executable points to the temporary directory; only sys.argv[0] is the original executable path.
             exe_path: str = sys.argv[0]
         else:
-            exe_path: str = sys.executable  # noqa, PyInstaller单文件:sys.executable即原始exe真实路径(sys._MEIPASS才是临时目录)。
-            if not os.path.dirname(exe_path):  # 经PATH启动导致sys.executable仅为命令名(无目录)时,回退到sys.argv[0]。
+            exe_path: str = sys.executable  # noqa, For a PyInstaller single-file build, sys.executable is the original executable path (sys._MEIPASS is the temporary directory).
+            if not os.path.dirname(exe_path):  # If PATH launch leaves sys.executable as a command name, fall back to sys.argv[0].
                 exe_path = sys.argv[0]
         work_directory: str = os.path.dirname(os.path.abspath(exe_path))
     else:
@@ -770,13 +778,13 @@ def get_work_directory() -> str:
 
 
 def is_docker() -> bool:
-    """检查是否在Docker容器中运行。"""
-    # 检查/.dockerenv文件是否存在。 # noqa.
+    """Check whether the process is running in a Docker container."""
+    # Check whether the /.dockerenv file exists.  # noqa.
     if os.path.exists('/.dockerenv'):  # noqa.
         log.debug('Detected "/.dockerenv"; running inside a Docker container.')  # noqa.
         return True
 
-    # 检查/proc/1/cgroup中是否包含"docker"。
+    # Check whether /proc/1/cgroup contains "docker".
     try:
         with open('/proc/1/cgroup', 'r') as f:
             content: str = f.read()
@@ -797,14 +805,14 @@ def ctrl_c():
 
 
 def get_message_dtype(message, download_type: Optional[list] = None) -> Union[str, None]:
-    """判定消息的媒体类型,实况照片是否优先取决于下载配置。"""
+    """Determine a message's media type; whether a live photo takes priority depends on the download configuration."""
     if getattr(message, DownloadType.LIVE_PHOTO, None):
-        # 实况照片消息同时含照片与视频:配置了实况照片则优先,否则退回按普通照片处理。
+        # Live-photo messages contain both a photo and a video: prefer live photos when configured, otherwise treat them as regular photos.
         if download_type is None or DownloadType.LIVE_PHOTO in download_type:
             return DownloadType.LIVE_PHOTO
         if DownloadType.PHOTO in download_type:
             return DownloadType.PHOTO
-        return DownloadType.LIVE_PHOTO  # 配置不含实况图片和图片时,仍返回实况图片类型,以便正确显示跳过提示。
+        return DownloadType.LIVE_PHOTO  # If neither live photos nor photos are configured, retain the live-photo type for the correct skip notice.
     for dtype in DownloadType():
         if dtype != DownloadType.LIVE_PHOTO and getattr(message, dtype, None):
             return dtype
@@ -813,18 +821,19 @@ def get_message_dtype(message, download_type: Optional[list] = None) -> Union[st
 
 @lru_cache(maxsize=1)
 def callback_codes() -> Tuple[dict, dict]:
-    """生成回调数据的压缩对照表,返回(原名到短码, 短码到原名)。
+    """Build callback-data compression maps and return (full name to short code, short code to full name).
 
-    短码取名称中每个单词的首字母;同一短码重复时追加递增序号以保证一一对应,
-    避免"download_chat_date_filter"与"download_chat_dtype_filter"这类首字母
-    完全相同的常量被压成同一个短码,导致两张按钮互相串改。
+    Short codes use the first letter of each word in a name. If a code is duplicated, append an
+    incrementing number to keep the mapping one-to-one. This prevents constants such as
+    "download_chat_date_filter" and "download_chat_dtype_filter", which have identical initials,
+    from sharing a code and causing the two buttons to overwrite each other.
     """
     compress_map: dict = {}
     decompress_map: dict = {}
     for name in sorted(set(BotCallbackText()) | set(BotCallbackPrefix())):
         words: list = [word for word in name.split('_') if word]
         letters: str = ''.join(word[0] for word in words)
-        tail: str = '_' if name.endswith('_') else ''  # 动态前缀需保留分隔符,其后才能拼接动态参数。
+        tail: str = '_' if name.endswith('_') else ''  # Preserve the separator on dynamic prefixes so dynamic parameters can be appended.
         code: str = f'{letters}{tail}'
         index: int = 1
         while code in decompress_map:
@@ -832,7 +841,7 @@ def callback_codes() -> Tuple[dict, dict]:
             code = f'{letters}{index}{tail}'
         compress_map[name] = code
         decompress_map[code] = name
-    # 按长度倒序重建两张表,使调用方直接迭代即为"长者优先",无需每次调用再排序。
+    # Rebuild both maps in descending length order so callers get longest-prefix-first iteration without sorting each time.
     sorted_names: list = sorted((len(name), name, code) for name, code in compress_map.items())
     sorted_names.reverse()
     sorted_codes: list = sorted((len(code), code, name) for code, name in decompress_map.items())
@@ -844,16 +853,16 @@ def callback_codes() -> Tuple[dict, dict]:
 
 
 def compress_callback_data(data: str) -> str:
-    """把回调数据的固定部分替换为短码,其后携带的动态参数保持原样。"""
+    """Replace the fixed part of callback data with a short code, leaving any following dynamic parameters unchanged."""
     compress_map, _decompress_map = callback_codes()
-    for name in compress_map:  # 表已按长度倒序,长者优先,防止被更短的前缀抢先匹配。
+    for name in compress_map:  # The map is sorted longest-first so a shorter prefix cannot match first.
         if data.startswith(name):
             return f'{compress_map[name]}{data[len(name):]}'
     return data
 
 
 def decompress_callback_data(data: str) -> str:
-    """还原被压缩的回调数据;若压不回原数据说明其本就是完整名称(历史消息),则原样返回。"""
+    """Restore compressed callback data; if it cannot be restored, it is already a full name (from a legacy message), so return it unchanged."""
     _compress_map, decompress_map = callback_codes()
     for code in decompress_map:
         if not data.startswith(code):
@@ -864,10 +873,11 @@ def decompress_callback_data(data: str) -> str:
 
 
 def build_task_callback(callback: str, chat_id, separator: str = '|', limit: int = 64) -> str:
-    """压缩回调数据后追加任务身份,得到形如"{短码}{分隔符}{频道id}"的结果。
+    """Compress callback data and append the task identity, producing a value like "{code}{separator}{channel_id}".
 
-    Telegram限制callback_data最长64字节,超出服务端会报错,因此超限时需截断;
-    截断只截回调数据部分,任务身份完整保留,否则会因解析不到任务而降级改写其它任务。
+    Telegram limits callback_data to 64 bytes; the server rejects longer values, so truncate when
+    necessary. Truncate only the callback-data portion and preserve the full task identity;
+    otherwise the task cannot be identified and another task's settings may be modified instead.
     """
     payload: str = compress_callback_data(callback)
     suffix: str = f'{separator}{chat_id}'
@@ -878,7 +888,7 @@ def build_task_callback(callback: str, chat_id, separator: str = '|', limit: int
         log.debug(f'callback_data: "{encoded}", length: {encoded_length} bytes; within the {limit}-byte limit, returning unchanged.')
         return data
     log.warning(f'callback_data: "{encoded}", length: {encoded_length} bytes; exceeds the {limit}-byte limit, truncated payload: "{payload}".')
-    # 先按任务身份的字节数留出余量,再截回调数据,避免负切片把任务身份整段切掉。
+    # Reserve space for the task identity first, then truncate callback data to avoid a negative slice removing the entire identity.
     kept: str = encoded[:max(limit - len(suffix.encode('utf-8')), 0)].decode('utf-8', errors='ignore')
     return f'{kept}{suffix}'
 
@@ -889,19 +899,19 @@ def attach_task(
         separator: str = '|',
         limit: int = 64
 ) -> pyrogram.types.InlineKeyboardMarkup:
-    """为键盘上所有可点击按钮挂载任务身份,使同一用户的多个任务各写各的配置。"""
+    """Attach a task identity to every clickable keyboard button so each of a user's tasks updates its own settings."""
     for row in markup.inline_keyboard:
         for button in row:
             data = button.callback_data
-            if not data or data == BotCallbackText.NULL:  # NULL为占位按钮,不参与回调。
+            if not data or data == BotCallbackText.NULL:  # NULL is a placeholder button and does not participate in callbacks.
                 continue
             button.callback_data = build_task_callback(data, chat_id, separator, limit)
     return markup
 
 
 def parse_task_callback(data: str, separator: str = '|') -> Tuple[str, Union[str, None]]:
-    """拆分回调数据与任务身份,返回(还原后的原始回调数据, 频道标识字符串或None)。"""
-    if separator not in data:  # 未挂载任务身份的历史消息,无需拆分与还原。
+    """Split callback data and task identity, returning (restored original callback data, channel identifier string or None)."""
+    if separator not in data:  # Legacy messages have no attached task identity and need no splitting or restoration.
         return data, None
     payload, _point, task = data.rpartition(separator)
     if not task:
@@ -910,7 +920,7 @@ def parse_task_callback(data: str, separator: str = '|') -> Tuple[str, Union[str
 
 
 def resolve_chat_id(chat_filter: dict, task: Union[str, None]):
-    """按任务身份还原真实的频道id,兼容字典原键的类型(int或str),取不到返回None。"""
+    """Resolve the actual channel ID from a task identity, supporting original dict keys of type int or str; return None if absent."""
     if task is None:
         return None
     if task in chat_filter:
@@ -927,7 +937,7 @@ class ChatInfo:
 
     @staticmethod
     def add(chat: Union[pyrogram.types.Chat, None], chat_id: Union[str, int, None] = None) -> None:
-        """缓存频道的标题,避免网页面板只显示频道ID。"""
+        """Cache a channel title so the web panel does not show only its ID."""
         if chat is None:
             return
         _chat_id: str = str(chat_id if chat_id is not None else getattr(chat, 'id', ''))
@@ -937,44 +947,44 @@ class ChatInfo:
 
     @staticmethod
     def get(chat_id: Union[str, int, None]) -> str:
-        """获取缓存的频道标题,不存在时返回空字符串。"""
+        """Get the cached channel title, or an empty string if none exists."""
         return ChatInfo.TITLE.get(str(chat_id), '')
 
 
 class LimitCall:  # https://github.com/tangyoha/telegram_media_downloader/blob/master/module/app.py#L246
-    """限制单位时间内的调用次数。"""
+    """Limit the number of calls within a time period."""
 
     def __init__(self, max_limit_call_times: int = 0):
-        # 时间窗口的长度,单位为秒。
+        # Length of the time window, in seconds.
         self.time_window: int = 60
-        # 时间窗口内允许的最大调用次数。
+        # Maximum number of calls allowed in the time window.
         self.max_limit_call_times: int = max_limit_call_times
-        # 当前时间窗口内已经调用的次数。
+        # Number of calls made in the current time window.
         self.limit_call_times: int = 0
-        # 当前时间窗口的开始时间。
+        # Start time of the current time window.
         self.last_call_time: float = 0
 
     async def wait(self):
-        """达到时间窗口内的最大调用次数时,等待至下一个时间窗口。"""
+        """Wait until the next time window when the call limit has been reached."""
         from module.stdio import ConnectionStatus
         waiting = False
         while True:
             now = time.time()
             time_span = now - self.last_call_time
-            # 超过时间窗口则重置计数,重新开始计时。
+            # Reset the counter and restart the window after it expires.
             if time_span > self.time_window:
                 self.limit_call_times = 0
                 self.last_call_time = now
 
             if self.limit_call_times + 1 <= self.max_limit_call_times:
                 self.limit_call_times += 1
-                # 等待结束后提示一次,继续请求。
+                # Notify once when waiting ends, then continue the request.
                 if waiting:
                     ConnectionStatus.leave_flood()
                 break
 
             if not waiting:
-                waiting = True  # 达到上限时只提示一次,避免每秒重复打印。
+                waiting = True  # Notify only once at the limit to avoid printing every second.
                 ConnectionStatus.enter_flood(
                     f'Request limit of {self.max_limit_call_times} per minute reached; retry in {int(self.time_window - time_span) + 1} second(s).'
                 )
@@ -983,33 +993,36 @@ class LimitCall:  # https://github.com/tangyoha/telegram_media_downloader/blob/m
 
 
 class AdjustableSemaphore:
-    """容量可动态调整的传输信号量(替代每次修改都新建一个asyncio.Semaphore)。
+    """A transfer semaphore with dynamically adjustable capacity (instead of creating a new asyncio.Semaphore for each change).
 
-    网页面板修改并发数时,若新建一个asyncio.Semaphore替换到客户端上,正在进行的传输仍占用旧对象
-    的名额,而新对象又带着满额放行新的传输,瞬时并发会叠加成"正在传输的数量 + 新的额度",可能超过
-    用户设置的上限。这里改为始终复用同一个对象:下调并发后剩余额度为负,新的传输排队等待,直到
-    活跃数量回落到限额以内才放行,因此既不会超限,也不存在新旧并存。
+    When the web panel changes concurrency, replacing the client's semaphore with a new
+    asyncio.Semaphore leaves active transfers holding slots in the old object, while the new
+    object admits a full set of additional transfers. Peak concurrency can then become the
+    number already transferring plus the new limit, exceeding the user's setting. Reuse one
+    object instead: after lowering the limit, available capacity can be negative and new
+    transfers wait until the active count falls within the limit. This avoids both exceeding
+    the limit and having old and new semaphores coexist.
 
-    仅实现pyrogram与本项目实际用到的接口(acquire/release与async with)。
+    Implements only the interfaces used by pyrogram and this project (acquire/release and async with).
     """
 
     def __init__(self, limit: int):
         self._limit: int = max(0, int(limit))
-        self._held: int = 0  # 已放行且尚未归还的数量(即当前活跃的传输数)。
+        self._held: int = 0  # Number of admitted transfers not yet released (the current active-transfer count).
         self._waiters: deque = deque()
 
     @property
     def limit(self) -> int:
-        """当前的并发上限。"""
+        """Current concurrency limit."""
         return self._limit
 
     def locked(self) -> bool:
-        """当前是否已无剩余额度(与asyncio.Semaphore的同名方法语义一致)。"""
+        """Whether there is currently no remaining capacity (same semantics as asyncio.Semaphore.locked())."""
         return self._limit <= 0 or self._held >= self._limit
 
     async def acquire(self) -> bool:
-        """占用一个名额;额度不足时排队等待。"""
-        # 被唤醒后重新校验:名额可能已被其它等待者占满,此时需要继续排队。
+        """Acquire a slot, waiting in the queue if capacity is exhausted."""
+        # Recheck after being woken: another waiter may have taken the available slot, requiring this one to wait again.
         while self.locked():
             waiter = asyncio.get_running_loop().create_future()
             self._waiters.append(waiter)
@@ -1017,8 +1030,8 @@ class AdjustableSemaphore:
                 await waiter
             except BaseException:
                 if waiter.done():
-                    # 已被唤醒(说明当时确有空位)却又被取消:把这次唤醒转交给其它等待者,
-                    # 否则这个空位会被白白浪费,剩下的等待者可能一直等下去。
+                    # If cancelled after being woken (when a slot was available), pass the wake-up to another waiter;
+                    # otherwise the slot is wasted and the remaining waiters may wait indefinitely.
                     self.__wake_up_next()
                 else:
                     waiter.cancel()
@@ -1031,18 +1044,18 @@ class AdjustableSemaphore:
         return True
 
     def release(self) -> None:
-        """归还一个名额,并尝试放行等待中的传输。"""
+        """Release a slot and try to admit a waiting transfer."""
         if self._held > 0:
             self._held -= 1
         self.__wake_up_next()
 
     def set_limit(self, limit: int) -> None:
-        """调整并发上限:提高时放行等待者;降低时新的传输需等活跃数量回落。"""
+        """Adjust the concurrency limit: increasing it admits waiters; lowering it makes new transfers wait for active transfers to finish."""
         self._limit = max(0, int(limit))
         self.__wake_up_next()
 
     def __wake_up_next(self) -> None:
-        """按剩余名额逐个唤醒等待者;多唤醒的等待者会自行继续等待。"""
+        """Wake waiters one at a time up to the remaining capacity; any excess waiters will resume waiting."""
         while self._waiters and not self.locked():
             waiter = self._waiters.popleft()
             if not waiter.done():

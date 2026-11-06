@@ -1,30 +1,30 @@
 const EMPTY_SUMMARY = {percent: 0, info: '0.00B / 0.00B', speed: '', remaining: ''};
-var connectionStatus = '';  // 后端下发的连接状态文本,拼接在总进度 extra 之后。
+var connectionStatus = '';  // Connection status text sent by the backend, appended after the overall progress extra.
 
 var SECTIONS = {
     download: ['download'],
     upload: ['upload'],
     listener: ['listener'],
-    notice: ['notice'],  // 通知页:展示下载、上传、转发的通知,依赖机器人。
-    storage: ['storage']  // 存储页:展示数据库中的下载与上传历史,不依赖机器人。
+    notice: ['notice'],  // Notification page: shows download, upload, and forwarding notices; requires the bot.
+    storage: ['storage']  // Storage page: shows download and upload history from the database; does not require the bot.
 };
-var PAGES = SECTIONS.download.concat(SECTIONS.upload, SECTIONS.listener, SECTIONS.notice, SECTIONS.storage);  // 下载、上传、通知、记录各一个页面,监听页只在内部切换选项卡。
+var PAGES = SECTIONS.download.concat(SECTIONS.upload, SECTIONS.listener, SECTIONS.notice, SECTIONS.storage);  // One page each for downloads, uploads, notices, and history; listener tabs switch internally.
 var SUMMARY_IDS = {
     download: {fill: 'overallFill', percent: 'overallPercent', info: 'overallInfo', extra: 'overallExtra', status: 'overallStatus'},
     upload: {fill: 'uploadFill', percent: 'uploadPercent', info: 'uploadInfo', extra: 'uploadExtra', status: 'uploadStatus'}
-};  // 下载与上传各自独立的总进度面板,避免相互覆盖。
+};  // Separate overall progress panels for downloads and uploads to prevent them from overwriting each other.
 var SECTION_KEY = 'trmd_section';
 var LISTEN_KEY = 'trmd_listen';
-var NOTICE_KEY = 'trmd_notice';  // 通知页选项卡的本地存储键。
-var HAS_BOT = document.body.getAttribute('data-bot') === '1';  // 是否配置了机器人,决定上传/监听侧边栏是否展示(无机器人时只有下载可用)。
-var HAS_STORAGE = document.body.getAttribute('data-storage') === '1';  // 记录数据库是否可用,决定记录侧边栏是否展示(记录功能不依赖机器人)。
-var COLLAPSE_KEY = 'trmd_collapsed';  // 各分组折叠状态的本地存储键。
-var ALL_KEY = 'trmd_all_collapsed';  // 下载页全部折叠开关的本地存储键。
-var UPLOAD_ALL_KEY = 'trmd_upload_all_collapsed';  // 上传页全部折叠开关的本地存储键。
-var LINK_LAST_KEY = 'trmd_link_last';  // 下载页链接层最后一次手动选择的本地存储键。
-var UPLOAD_LAST_KEY = 'trmd_upload_last';  // 上传页频道层最后一次手动选择的本地存储键。
-var LISTEN_TABS = ['forward', 'download'];  // 监听页的选项卡:转发、下载。
-var NOTICE_TABS = ['download', 'upload', 'forward'];  // 通知页的选项卡:下载、上传、转发。
+var NOTICE_KEY = 'trmd_notice';  // Local storage key for the notification page tab.
+var HAS_BOT = document.body.getAttribute('data-bot') === '1';  // Whether a bot is configured; controls upload/listener sidebar visibility (without a bot, only downloads are available).
+var HAS_STORAGE = document.body.getAttribute('data-storage') === '1';  // Whether the history database is available; controls the history sidebar (history does not require a bot).
+var COLLAPSE_KEY = 'trmd_collapsed';  // Local storage key for each group's collapsed state.
+var ALL_KEY = 'trmd_all_collapsed';  // Local storage key for the download page's collapse-all toggle.
+var UPLOAD_ALL_KEY = 'trmd_upload_all_collapsed';  // Local storage key for the upload page's collapse-all toggle.
+var LINK_LAST_KEY = 'trmd_link_last';  // Local storage key for the last manual selection of the download page's link level.
+var UPLOAD_LAST_KEY = 'trmd_upload_last';  // Local storage key for the last manual selection of the upload page's channel level.
+var LISTEN_TABS = ['forward', 'download'];  // Listener page tabs: forwarding and downloads.
+var NOTICE_TABS = ['download', 'upload', 'forward'];  // Notification page tabs: downloads, uploads, and forwarding.
 
 var STATE_TEXT = {
     pending: 'Queued',
@@ -76,8 +76,8 @@ var UPLOAD_ICON = {
 var collapsed = {};
 var allCollapsed = false;
 var uploadAllCollapsed = false;
-var lastLinkCollapsed = true;  // 下载页链接层最后的手动选择,缺省折叠以保持原有默认。
-var lastUploadCollapsed = false;  // 上传页频道层最后的手动选择,缺省展开以保持原有默认。
+var lastLinkCollapsed = true;  // Last manual selection for the download page's link level; collapsed by default to preserve the original default.
+var lastUploadCollapsed = false;  // Last manual selection for the upload page's channel level; expanded by default to preserve the original default.
 var UNGROUPED_NAME = 'Ungrouped';
 var NOTICE_EMPTY_TEXT = {
     download: 'No download notifications yet.',
@@ -86,13 +86,13 @@ var NOTICE_EMPTY_TEXT = {
 };
 var currentSection = 'download';
 var currentListen = 'forward';
-var currentNotice = 'download';  // 通知页当前选项卡,与NOTICE_TABS对应。
-var lastSnapshot = null;  // 缓存最近一次进度快照,供设置弹窗回填当前保存目录。
+var currentNotice = 'download';  // Current notification page tab; corresponds to NOTICE_TABS.
+var lastSnapshot = null;  // Cache the latest progress snapshot to prefill the current save directory in the settings dialog.
 var lastDownloadActive = 0;
 var lastUploadActive = 0;
 var lastListenCount = 0;
-var lastPaused = false;  // 全局暂停状态,随进度快照更新,供顶栏状态与按钮联动。
-var lastUploadFinished = 0;  // 上传已结束(成功 + 失败)的任务数,用于驱动背景渐变步进。
+var lastPaused = false;  // Global paused state, updated with progress snapshots and used to synchronize the top-bar status and button.
+var lastUploadFinished = 0;  // Number of finished uploads (successes + failures), used to advance the background gradient.
 
 function esc(text) {
     var div = document.createElement('div');
@@ -109,13 +109,13 @@ function dash(text) {
 }
 
 function progressCell(percent) {
-    // --p 供手机端把横向条换成圆环时使用(带 % 的完整角度值);桌面端不读取,无副作用。
+    // --p is used to turn the horizontal bar into a ring on mobile (a complete angle value including %); desktop does not read it, so it has no effect there.
     return '<span class="cell-progress" style="--p:' + percent + '%">' +
         '<span class="track"><span class="fill" style="width:' + percent + '%"></span></span>' +
         '<span class="pct">' + percent + '%</span></span>';
 }
 
-var SIZE_UNITS = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];  // 与终端的十进制单位保持一致。
+var SIZE_UNITS = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];  // Match the decimal units used by the terminal.
 
 function sizeText(bytes) {
     var value = Number(bytes) || 0;
@@ -143,9 +143,9 @@ function groupStat(members, live) {
     var left = 0;
     for (var i = 0; i < members.length; i++) {
         var member = members[i];
-        var task = live[member.task_id] || member;  // 上传成员自带进度字段,查不到进度条任务时回退到自身。
+        var task = live[member.task_id] || member;  // Upload members carry their own progress fields; fall back to the member if no progress task is found.
         if (member.state === 'success' || member.state === 'skip' || member.state === 'sent') {
-            continue;  // 已完成、已跳过、已发送的成员不再计入速度与剩余。
+            continue;  // Completed, skipped, and sent members no longer count toward speed or remaining time.
         }
         if (task && task.speed_value) {
             speed += Number(task.speed_value) || 0;
@@ -164,7 +164,7 @@ function groupStatCells(stat) {
 
 function taskRow(task) {
     var done = task.percent >= 100;
-    // data-task-id 供"列表结构未变时就地更新进度",避免每秒整表重建。
+    // data-task-id enables in-place progress updates when the list structure is unchanged, avoiding a full rebuild every second.
     return '<div class="task-row" data-task-id="' + escAttr(task.id) + '">' +
         '<span class="cell-name"><span class="ficon">' + esc(task.type || '📄') + '</span>' +
         '<span class="fname" title="' + escAttr(task.filename) + '">' + esc(task.filename) + '</span></span>' +
@@ -185,7 +185,7 @@ function memberRow(item) {
     var progress;
     if (state === 'success') {
         progress = progressCell(100);
-    } else if (item.note) {  // 不支持或被忽略的类型拿不到文件类型,进度栏改为显示具体原因,避免与普通跳过混淆。
+    } else if (item.note) {  // Unsupported or ignored types have no file type; show the specific reason in the progress bar to distinguish them from ordinary skips.
         progress = '<span class="cell-progress"><span class="pct note" title="' + escAttr(item.note) + '">' +
             esc(item.note) + '</span></span>';
     } else {
@@ -217,7 +217,7 @@ function linkStatusCell(link) {
 }
 
 function getChannelGroups(links) {
-    var groups = [];  // 按频道分组下载链接,保持频道首次出现的顺序。
+    var groups = [];  // Group download links by channel, preserving the order in which channels first appear.
     var index = {};
     var i;
     for (i = 0; i < links.length; i++) {
@@ -229,7 +229,7 @@ function getChannelGroups(links) {
         var group = groups[index[channel]];
         var name = links[i].channel_name || channel;
         if (name.length > group.name.length) {
-            group.name = name;  // 同一频道取信息最全的名称,"标题(ID)"比纯ID长。
+            group.name = name;  // Use the most informative name for a channel; "Title (ID)" is longer than a bare ID.
         }
         group.links.push(links[i]);
     }
@@ -240,7 +240,7 @@ function getChannelGroups(links) {
         channelGroup.member = 0;
         channelGroup.remaining = 0;
         channelGroup.failed = 0;
-        channelGroup.members = [];  // 汇总该频道下所有链接的成员,用于计算频道级速度与剩余时间。
+        channelGroup.members = [];  // Collect members from all links in the channel to calculate channel-level speed and remaining time.
         for (var j = 0; j < channelGroup.links.length; j++) {
             channelGroup.complete += channelGroup.links[j].complete || 0;
             channelGroup.member += channelGroup.links[j].member || 0;
@@ -248,7 +248,7 @@ function getChannelGroups(links) {
             channelGroup.failed += channelGroup.links[j].failed || 0;
             channelGroup.members = channelGroup.members.concat(channelGroup.links[j].queue || []);
         }
-        var base = channelGroup.member - channelGroup.failed;  // 彻底失败的成员退出进度基数,避免进度永远到不了100%。
+        var base = channelGroup.member - channelGroup.failed;  // Exclude permanently failed members from the progress denominator so progress can reach 100%.
         channelGroup.percent = base ?
             Math.round(channelGroup.complete / base * 1000) / 10 : 0;
     }
@@ -258,7 +258,7 @@ function getChannelGroups(links) {
 function channelBlock(group, live) {
     var key = 'channel:' + group.channel;
     var filtering = Boolean(statFilter.download);
-    // 筛选时强制展开,避免结果被折叠状态藏起来。
+    // Force expansion while filtering so results are not hidden by the collapsed state.
     var isCollapsed = filtering ? false : (collapsed[key] === undefined ? allCollapsed : collapsed[key]);
     var stat = groupStat(group.members || [], live);
     var html = '<div class="group' + (isCollapsed ? '' : ' open') + '" data-channel="' + escAttr(key) + '" data-level="1">' +
@@ -279,7 +279,7 @@ function channelBlock(group, live) {
         body += linkBlock(group.links[i], live);
     }
     if (filtering && !body) {
-        return '';  // 筛选后该频道下没有任何匹配内容,整组不显示。
+        return '';  // Hide the entire group when filtering leaves no matching content in the channel.
     }
     return html + body + '</div></div>';
 }
@@ -292,15 +292,15 @@ function linkBlock(link, live) {
     if (filtering) {
         members = all.filter(matchDownloadState);
         if (members.length === 0) {
-            return '';  // 筛选后无匹配成员,不再显示该链接。
+            return '';  // Hide the link when filtering leaves no matching members.
         }
     } else {
-        // 无筛选卡片时按状态置顶:进行中 > 队列中 > 已完成/已跳过 > 失败,使活跃任务集中显示在最上方。
+        // Without a filter, sort cards by status: in progress > queued > completed/skipped > failed, keeping active tasks at the top.
         members = members.slice().sort(function (a, b) {
             return stateRank(a.state) - stateRank(b.state);
         });
     }
-    // 筛选时强制展开,否则结果会被折叠状态藏起来。
+    // Force expansion while filtering; otherwise results may be hidden by the collapsed state.
     var isCollapsed = filtering ? false : (collapsed[key] === undefined ? lastLinkCollapsed : collapsed[key]);
     var stat = groupStat(all, live);
     var html = '<div class="group' + (isCollapsed ? '' : ' open') + '" data-channel="' + escAttr(key) + '" data-level="2">' +
@@ -329,7 +329,7 @@ function linkBlock(link, live) {
 function groupVisible(node) {
     for (var parent = node.parentNode; parent; parent = parent.parentNode) {
         if (parent.style && parent.style.display === 'none') {
-            return false;  // 任一层祖先被折叠,该分组即不可见。
+            return false;  // The group is hidden if any ancestor level is collapsed.
         }
     }
     return true;
@@ -341,31 +341,31 @@ function syncHeadLabel() {
     for (var i = 0; i < nodes.length; i++) {
         var depth = nodes[i].getAttribute('data-level') === '2' ? 3 : 2;
         if (depth > level && groupVisible(nodes[i])) {
-            level = depth;  // 取当前可见的最深层级。
+            level = depth;  // Use the deepest currently visible level.
         }
     }
     document.getElementById('headName').querySelector('.htext').textContent = HEAD_LABELS[level - 1];
-    document.getElementById('headSize').querySelector('.htext').textContent = SIZE_LABELS[level - 1];  // 分组行是条数,成员行才是字节。
+    document.getElementById('headSize').querySelector('.htext').textContent = SIZE_LABELS[level - 1];  // Group rows show counts; only member rows show bytes.
 }
 
 function bindGroups() {
-    // 只绑定下载页与上传页的分组条:记录页的分组条仅作归类展示,不参与折叠。
+    // Bind group headers only on the download and upload pages; history page headers are for categorization only and are not collapsible.
     var nodes = document.querySelectorAll('#download .group-head, #upload .group-head');
     for (var i = 0; i < nodes.length; i++) {
         nodes[i].onclick = function () {
             var group = this.parentNode;
             var key = this.getAttribute('data-channel');
             var body = group.querySelector('.group-body');
-            var hide = body.style.display !== 'none';  // 当前是展开的,点击后折叠。
+            var hide = body.style.display !== 'none';  // If currently expanded, collapse it on click.
             body.style.display = hide ? 'none' : '';
             group.className = hide ? 'group' : 'group open';
             collapsed[key] = hide;
-            saveState(COLLAPSE_KEY, JSON.stringify(collapsed));  // 记住本次折叠,刷新后恢复。
+            saveState(COLLAPSE_KEY, JSON.stringify(collapsed));  // Save this collapsed state and restore it after a refresh.
             if (group.getAttribute('data-level') === '2') {
-                lastLinkCollapsed = hide;  // 下载页链接层的手动选择。
+                lastLinkCollapsed = hide;  // Manual selection for the download page's link level.
                 saveState(LINK_LAST_KEY, hide ? '1' : '0');
             } else if (group.closest('#upload')) {
-                lastUploadCollapsed = hide;  // 上传页频道层的手动选择。
+                lastUploadCollapsed = hide;  // Manual selection for the upload page's channel level.
                 saveState(UPLOAD_LAST_KEY, hide ? '1' : '0');
             }
             syncHeadLabel();
@@ -391,12 +391,12 @@ function setAllGroups(selector, hide) {
         nodes[i].className = hide ? 'group' : 'group open';
         collapsed[key] = hide;
     }
-    saveState(COLLAPSE_KEY, JSON.stringify(collapsed));  // 批量折叠后同样落盘,刷新后保持。
+    saveState(COLLAPSE_KEY, JSON.stringify(collapsed));  // Persist the batch collapse operation as well so it remains after refresh.
     if (selector === '#download') {
-        lastLinkCollapsed = hide;  // 批量操作同样视为一次链接层选择。
+        lastLinkCollapsed = hide;  // Treat the batch operation as a link-level selection as well.
         saveState(LINK_LAST_KEY, hide ? '1' : '0');
     } else {
-        lastUploadCollapsed = hide;  // 批量操作同样视为一次频道层选择。
+        lastUploadCollapsed = hide;  // Treat the batch operation as a channel-level selection as well.
         saveState(UPLOAD_LAST_KEY, hide ? '1' : '0');
     }
 }
@@ -421,7 +421,7 @@ function saveState(key, value) {
     try {
         localStorage.setItem(key, value);
     } catch (e) {
-        // 隐私模式下写入失败可忽略。
+        // A failed write in private browsing mode can be ignored.
     }
 }
 
@@ -435,22 +435,22 @@ function applySection() {
     var storageWasHidden = document.getElementById('page-storage').hidden;
     var noticeWasHidden = document.getElementById('page-notice').hidden;
     document.getElementById('downloadSummary').hidden = currentSection !== 'download';
-    document.getElementById('uploadSummary').hidden = currentSection !== 'upload';  // 两个板块各自独立的总进度。
+    document.getElementById('uploadSummary').hidden = currentSection !== 'upload';  // Each section has its own overall progress.
     for (i = 0; i < PAGES.length; i++) {
         document.getElementById('page-' + PAGES[i]).hidden = PAGES[i] !== currentSection;
     }
     renderStatus();
-    // 下载总进度卡片刚变为可见时,用最新数据强制重绘一次进度条,
-    // 避免首屏或切回下载页时它在隐藏态下渲染、进度条被跳过/未显示。
+    // When the overall download progress card becomes visible, force one progress-bar redraw with the latest data,
+    // so it is not rendered while hidden on first load or when returning to the download page, which could skip or hide the bar.
     if (currentSection === 'download' && dlWasHidden) {
         refresh(true);
     }
-    // 通知页刚变为可见时立即拉取:notices按板块下发,不强制刷新就要空等一个轮询周期。
+    // Fetch immediately when the notification page becomes visible: notices are sent by section, and without a forced refresh we would wait for a polling cycle.
     if (currentSection === 'notice' && noticeWasHidden) {
         refresh(true);
     }
     if (currentSection === 'storage' && storageWasHidden) {
-        refreshStorage();  // 记录页刚变为可见时立即拉取,避免展示上次的旧数据。
+        refreshStorage();  // Fetch immediately when the history page becomes visible to avoid showing stale data from the previous visit.
     }
 }
 
@@ -458,10 +458,10 @@ function switchSection(name) {
     if (!SECTIONS[name]) {
         name = 'download';
     }
-    if (!HAS_BOT && name !== 'download' && name !== 'storage') {  // 未配置机器人时仅允许下载页与记录页,避免停留在不可用的上传/监听页。
+    if (!HAS_BOT && name !== 'download' && name !== 'storage') {  // Without a configured bot, allow only the download and history pages to prevent landing on unavailable upload/listener pages.
         name = 'download';
     }
-    if (!HAS_STORAGE && name === 'storage') {  // 记录数据库不可用时回退下载页。
+    if (!HAS_STORAGE && name === 'storage') {  // Fall back to the download page when the history database is unavailable.
         name = 'download';
     }
     currentSection = name;
@@ -470,19 +470,19 @@ function switchSection(name) {
 }
 
 function applySectionVisibility() {
-    // 上传、监听与通知依赖机器人,未配置时隐藏这三个入口,避免用户点击后毫无反应。
+    // Uploads, listeners, and notifications require a bot; hide these three entries if none is configured so clicks do not appear to do nothing.
     if (!HAS_BOT) {
         var botItems = document.querySelectorAll('.side-item[data-section="upload"], .side-item[data-section="listener"], .side-item[data-section="notice"]');
         for (var i = 0; i < botItems.length; i++) {
             botItems[i].hidden = true;
         }
     }
-    // 记录入口只在数据库可用时展示,不可用时隐藏,避免进入空页面。
+    // Show the history entry only when the database is available; otherwise hide it to avoid an empty page.
     var storageItem = document.querySelector('.side-item[data-section="storage"]');
     if (storageItem) {
         storageItem.hidden = !HAS_STORAGE;
     }
-    // 未配置机器人且记录不可用时只有下载一个功能,无需用侧边栏区分页面,直接隐藏整个侧边栏并将布局退化为单栏。
+    // When neither a bot nor history is available, downloads are the only feature; hide the sidebar and use a single-column layout.
     if (HAS_BOT || HAS_STORAGE) {
         return;
     }
@@ -536,10 +536,10 @@ function renderOverall(summary, taskCount, ids) {
     document.getElementById(ids.status).textContent = connectionStatus;
 }
 
-/* 统计卡筛选:点击后只显示对应状态的条目,再次点击取消。 */
+/* Statistic card filters: click to show entries with the selected status; click again to clear the filter. */
 var statFilter = {download: '', upload: ''};
 
-// 筛选后无匹配项时的空态文案,与统计卡片的筛选口径保持一致。
+// Empty-state messages when filtering yields no matches, consistent with the statistic card filter criteria.
 var DOWNLOAD_EMPTY_TEXT = {
     success: 'No completed downloads.',
     failure: 'No failed downloads.',
@@ -567,7 +567,7 @@ function statCell(label, value, cls, filter, scope) {
         value + '</b></div>';
 }
 
-// 判断下载成员是否命中当前筛选。
+// Check whether a download member matches the current filter.
 function matchDownloadState(member) {
     var state = member.state || 'pending';
     var filter = statFilter.download;
@@ -589,8 +589,8 @@ function matchDownloadState(member) {
     return true;
 }
 
-/* 统计"队列中"的成员数:只算排队中的,不含正在下载的。
-   后端 data.queue 是"未完成总数"(含下载中),直接显示会导致队列数与进行中重复。 */
+/* Count members "queued": include only queued items, not those currently downloading.
+   Backend data.queue is the total number of unfinished items (including downloads in progress); displaying it directly would double-count active items. */
 function countQueueMembers(links) {
     var total = 0;
     for (var i = 0; i < (links || []).length; i++) {
@@ -605,7 +605,7 @@ function countQueueMembers(links) {
     return total;
 }
 
-// 判断上传文件是否命中指定筛选,与 uploadCount 的分类口径保持一致。
+// Check whether an uploaded file matches the specified filter, using the same categories as uploadCount.
 function matchUploadState(file, filter) {
     var state = file.state || 'pending';
     if (filter === 'success') {
@@ -620,7 +620,7 @@ function matchUploadState(file, filter) {
     if (filter === 'pending') {
         return !uploadDone(file) && state !== 'failure' && state !== 'uploading';
     }
-    return true;  // 文件总数等:不过滤。
+    return true;  // Counts such as total files are not filtered.
 }
 
 
@@ -632,13 +632,13 @@ function bindStatFilter() {
         }
         var scope = cell.getAttribute('data-scope') || 'download';
         var value = cell.getAttribute('data-filter') || '';
-        statFilter[scope] = statFilter[scope] === value ? '' : value;  // 再次点击取消筛选。
-        // 筛选状态属于界面状态、不在快照数据里,必须清空指纹强制重绘,
-        // 否则会因"数据未变化"被跳过,导致点击无反应。
+        statFilter[scope] = statFilter[scope] === value ? '' : value;  // Clicking again clears the filter.
+        // Filter state belongs to the UI, not the snapshot data, so clear the fingerprints to force a redraw;
+        // otherwise the unchanged data check would skip rendering and the click would appear to do nothing.
         lastRenderKey = '';
         lastStructKey = null;
         lastUploadStructKey = null;
-        refresh();  // 立即按新筛选重绘,无需等待下一次轮询。
+        refresh();  // Redraw immediately with the new filter instead of waiting for the next poll.
     });
 }
 
@@ -647,7 +647,7 @@ function renderStat(id, cells) {
 }
 
 function renderStatus() {
-    // 下载、上传、监听三个板块的活跃情况统一显示在顶栏左侧,不再跟随当前板块切换。
+    // Show activity for downloads, uploads, and listeners together on the left side of the top bar, regardless of the current section.
     var parts = [];
     if (lastPaused) {
         parts.push('Paused');
@@ -667,32 +667,32 @@ function renderStatus() {
 }
 
 function renderList(data) {
-    var live = {};  // 进度条任务ID -> 任务,供下载中的成员复用实时进度。
+    var live = {};  // Progress-bar task ID -> task, allowing members being downloaded to reuse live progress.
     var i;
     for (i = 0; i < (data.tasks || []).length; i++) {
         live[data.tasks[i].id] = data.tasks[i];
     }
     var html = '';
-    var groups = getChannelGroups(data.links || []);  // 频道 > 链接 > 下载信息,两级可折叠。
+    var groups = getChannelGroups(data.links || []);  // Channel > link > download information; both levels can be collapsed.
     for (i = 0; i < groups.length; i++) {
         html += channelBlock(groups[i], live);
     }
-    /* 空态以"该链接下是否还有成员(含已完成的)"判断,而非"是否有正在下载的任务"。
-       否则全部下载完成后 data.tasks 为空,已完成的成员会被空态整块隐藏,
-       需新建任务才重新出现。 */
-    // 处于筛选状态时,无匹配项应提示具体的筛选条件,而非笼统的"暂无下载任务。"。
+    /* Determine the empty state by whether the link still has members (including completed ones), not by whether any tasks are downloading.
+       Otherwise, once all downloads finish, data.tasks is empty and the empty state hides all completed members,
+       which would remain hidden until a new task is created. */
+    // When filtering, if there are no matches, show the specific filter condition instead of the generic "No download tasks yet.".
     var emptyText = 'No download tasks yet.';
     if (statFilter.download) {
         emptyText = DOWNLOAD_EMPTY_TEXT[statFilter.download] || emptyText;
     }
     document.getElementById('download').innerHTML = html ? html : '<div class="empty">' + emptyText + '</div>';
     syncToggleAll();
-    bindGroups();  // 页面渲染完成后统一绑定折叠事件。
+    bindGroups();  // Bind collapse events after rendering the page.
     syncHeadLabel();
 }
 
 function listenRow(kind, source, target) {
-    var link = target ? source + ' ' + target : source;  // 与后端监听字典的键保持一致。
+    var link = target ? source + ' ' + target : source;  // Keep consistent with the keys in the backend listener dictionary.
     var html = '<div class="task-row">' +
         '<span class="cell-name"><span class="ficon">🕵️</span>' +
         '<span class="fname" title="' + escAttr(source) + '">' + esc(source) + '</span></span>';

@@ -49,7 +49,7 @@ class BaseConfig:
 
     @staticmethod
     def add_missing_keys(target, template, log_message) -> None:
-        """添加缺失的配置文件参数。"""
+        """Add missing configuration keys."""
         for key, value in template.items():
             if key not in target:
                 target[key] = value
@@ -57,7 +57,7 @@ class BaseConfig:
 
     @staticmethod
     def remove_extra_keys(target, template, log_message) -> None:
-        """删除多余的配置文件参数。"""
+        """Remove extra configuration keys."""
         keys_to_remove: list = [key for key in target.keys() if key not in template]
         for key in keys_to_remove:
             target.pop(key)
@@ -87,14 +87,14 @@ class BaseConfig:
             )
 
     def __check_params(self, config: dict) -> None:
-        """检查配置文件的参数是否完整。"""
-        # 如果 config 为 None，初始化为一个空字典。
+        """Check that the configuration contains all required parameters."""
+        # Initialize config as an empty dictionary if it is None.
         if config is None:
             config = {}
 
-        # 处理父级参数。
+        # Process top-level parameters.
         self.add_missing_keys(target=config, template=self.TEMPLATE, log_message='"{}" is missing from the global configuration; added.')
-        # 删除父级模板中没有的字段。
+        # Remove fields that are not in the top-level template.
         self.remove_extra_keys(config, self.TEMPLATE, '"{}" is not present in the template; removed.')
 
         if config != self.config:
@@ -102,7 +102,7 @@ class BaseConfig:
             self.save_config(self.config)
 
     def load_config(self) -> None:
-        """加载全局配置文件。"""
+        """Load the global configuration file."""
         try:
             if not os.path.exists(self.PATH):
                 with open(file=self.PATH, mode='w', encoding='UTF-8') as f:
@@ -120,7 +120,7 @@ class BaseConfig:
             self.save_config(self.config)
 
     def save_config(self, config: dict) -> None:
-        """保存配置文件。"""
+        """Save the configuration file."""
         try:
             with open(file=self.config_path, mode='w', encoding='UTF-8') as f:
                 yaml.dump(config, f)
@@ -131,15 +131,15 @@ class BaseConfig:
             self.config = config
 
     def get_config(self, param, error_param=None) -> Union[str, None]:
-        """获取实时的配置文件。"""
+        """Get the current configuration."""
         self.load_config()
         return self.config.get(param, error_param)
 
 
 class UserConfig(BaseConfig):
-    CONFIG_LOCK: threading.Lock = threading.Lock()  # 串行化多线程与异步回调对同一份配置文件的写入。
-    DIRECTORY_NAME: str = get_work_directory()  # 获取软件工作绝对目录。
-    FILE_NAME: str = 'config.yaml'  # 配置文件名。
+    CONFIG_LOCK: threading.Lock = threading.Lock()  # Serialize writes to the same configuration file across threads and async callbacks.
+    DIRECTORY_NAME: str = get_work_directory()  # Absolute application working directory.
+    FILE_NAME: str = 'config.yaml'  # Configuration filename.
     PATH: str = os.path.join(DIRECTORY_NAME, FILE_NAME)
     TEMPLATE: dict = {
         'api_id': None,
@@ -155,7 +155,7 @@ class UserConfig(BaseConfig):
             'password': None
         },
         'links': None,
-        'save_directory': None,  # v1.3.0 将配置文件中save_path的参数名修改为save_directory。
+        'save_directory': None,  # v1.3.0: rename the configuration key save_path to save_directory.
         'temp_directory': None,
         'max_tasks': {
             'download': None,
@@ -189,7 +189,7 @@ class UserConfig(BaseConfig):
         self.is_change_account: bool = True
         self.re_config: bool = False
         self.config_guide()
-        self.config: dict = self.load_config()  # v1.3.0 修复重复询问重新配置文件。
+        self.config: dict = self.load_config()  # v1.3.0: fix repeated prompts to reconfigure the file.
         self.api_hash = self.config.get('api_hash')
         self.api_id = self.config.get('api_id')
         self.bot_token = self.config.get('bot_token')
@@ -208,8 +208,8 @@ class UserConfig(BaseConfig):
         self.temp_directory: str = PARSE_ARGS.temp or (self.config.get('temp_directory') or UserConfig.TEMP_DIRECTORY)
 
     def get_last_history_record(self) -> None:
-        """获取最近一次保存的历史配置文件。"""
-        # 首先判断是否存在目录文件。
+        """Get the most recently saved configuration history file."""
+        # First check whether the history directory exists.
         try:
             res: list = safe_scan_directory_file(UserConfig.ABSOLUTE_BACKUP_DIRECTORY)
         except FileNotFoundError:
@@ -220,9 +220,9 @@ class UserConfig(BaseConfig):
         file_start: str = 'history_'
         file_end: str = '_config.yaml'
 
-        now_timestamp: float = datetime.datetime.now().timestamp()  # 获取当前的时间戳。
+        now_timestamp: float = datetime.datetime.now().timestamp()  # Get the current timestamp.
         if res:
-            for i in res:  # 找出离当前时间最近的配置文件。
+            for i in res:  # Find the configuration file closest to the current time.
                 try:
                     if i.startswith(file_start) and i.endswith(file_end):
                         format_date_str = i.replace(file_start, '').replace(file_end, '').replace('_', ' ')
@@ -235,14 +235,14 @@ class UserConfig(BaseConfig):
                     pass
             for i in self.history_timestamp.keys():
                 self.difference_timestamp[now_timestamp - i] = i
-            if self.history_timestamp:  # 如果有符合条件的历史配置文件。
+            if self.history_timestamp:  # If a matching history file was found.
                 self.last_record: dict = self.__find_history_config()
 
         else:
             return
 
     def __find_history_config(self) -> dict:
-        """找到历史配置文件。"""
+        """Find a configuration file in the history directory."""
         if not self.history_timestamp:
             return {}
         if not self.difference_timestamp:
@@ -253,16 +253,16 @@ class UserConfig(BaseConfig):
             min_config_file: str = self.history_timestamp.get(min_diff_timestamp)
             if not min_config_file:
                 return {}
-            last_config_file: str = os.path.join(UserConfig.ABSOLUTE_BACKUP_DIRECTORY, min_config_file)  # 拼接文件路径。
+            last_config_file: str = os.path.join(UserConfig.ABSOLUTE_BACKUP_DIRECTORY, min_config_file)  # Build the file path.
             with open(file=last_config_file, mode='r', encoding='UTF-8') as f:
                 config: dict = yaml.safe_load(f)
-            last_record: dict = self.__check_params(config, history=True)  # v1.1.6修复读取历史如果缺失字段使得flag置True。
+            last_record: dict = self.__check_params(config, history=True)  # v1.1.6: fix the flag being set when a history file has missing fields.
 
             if last_record == UserConfig.TEMPLATE:
-                # 从字典中删除当前文件。
+                # Remove the current file from the dictionary.
                 self.history_timestamp.pop(min_diff_timestamp, None)
                 self.difference_timestamp.pop(min_key, None)
-                # 递归调用。
+                # Recurse to check the next history file.
                 return self.__find_history_config()
             else:
                 return last_record
@@ -270,7 +270,7 @@ class UserConfig(BaseConfig):
             return {}
 
     def add_missing_keys(self, target, template, log_message, history=False) -> None:
-        """添加缺失的配置文件参数。"""
+        """Add missing configuration keys."""
         for key, value in template.items():
             if key not in target:
                 target[key] = value
@@ -280,7 +280,7 @@ class UserConfig(BaseConfig):
                     self.record_flag = True
 
     def remove_extra_keys(self, target, template, log_message, history=False) -> None:
-        """删除多余的配置文件参数。"""
+        """Remove extra configuration keys."""
         keys_to_remove: list = [key for key in target.keys() if key not in template]
         for key in keys_to_remove:
             target.pop(key)
@@ -289,12 +289,12 @@ class UserConfig(BaseConfig):
                 self.record_flag = True
 
     def __check_params(self, config: dict, history=False) -> dict:
-        """检查配置文件的参数是否完整。"""
-        # 如果 config 为 None，初始化为一个空字典。
+        """Check that the configuration contains all required parameters."""
+        # Initialize config as an empty dictionary if it is None.
         if config is None:
             config = {}
 
-        # 处理父级参数。
+        # Process top-level parameters.
         self.add_missing_keys(
             target=config,
             template=UserConfig.TEMPLATE,
@@ -306,7 +306,7 @@ class UserConfig(BaseConfig):
         self.process_nesting(param_name='max_tasks', config=config)
         self.process_nesting(param_name='max_retries', config=config)
 
-        # 删除父级模板中没有的字段。
+        # Remove fields that are not in the top-level template.
         self.remove_extra_keys(
             target=config,
             template=UserConfig.TEMPLATE,
@@ -317,22 +317,22 @@ class UserConfig(BaseConfig):
         return config
 
     def load_config(self) -> dict:
-        """加载一次当前的配置文件,并附带合法性验证、缺失参数的检测以及各种异常时的处理措施。"""
+        """Load the current configuration once, validating it, checking for missing parameters, and handling errors."""
         config: dict = UserConfig.TEMPLATE.copy()
         try:
             if not os.path.exists(self.config_path):
                 with open(file=self.config_path, mode='w', encoding='UTF-8') as f:
                     yaml.dump(UserConfig.TEMPLATE, f, Dumper=CustomDumper)
                 console.log('Configuration file not found. A new template has been created...')
-                self.re_config = True  # v1.3.4 修复配置文件不存在时,无法重新生成配置文件的问题。
+                self.re_config = True  # v1.3.4: fix failing to regenerate a missing configuration file.
             with open(self.config_path, 'r', encoding='UTF-8') as f:
-                config: dict = yaml.safe_load(f)  # v1.1.4 加入对每个字段的完整性检测。
+                config: dict = yaml.safe_load(f)  # v1.1.4: add completeness checks for every field.
             compare_config: dict = config.copy() if config else {}
             config: dict = self.__check_params(config) if compare_config else None
-            if config != compare_config or config == UserConfig.TEMPLATE:  # v1.3.4 修复配置文件所有参数都为空时报错问题。
+            if config != compare_config or config == UserConfig.TEMPLATE:  # v1.3.4: fix errors when every configuration value is empty.
                 self.re_config = True
-        except UnicodeDecodeError as e:  # v1.1.3 加入配置文件路径是中文或特殊字符时的错误提示,由于nuitka打包的性质决定,
-            # 中文路径无法被打包好的二进制文件识别,故在配置文件时无论是链接路径还是媒体保存路径都请使用英文命名。
+        except UnicodeDecodeError as e:  # v1.1.3: add an error message for configuration paths containing Chinese or special characters; this is a Nuitka packaging limitation.
+            # Packaged binaries may not recognize paths containing Chinese characters, so use English names for link-file and media-save paths.
             self.re_config = True
             log.error(
                 f'An encoding error occurred while reading the configuration file. A save path may contain a folder with unsupported characters. A new template has been created... {_t(KeyWord.REASON)}:"{e}"')
@@ -354,9 +354,9 @@ class UserConfig(BaseConfig):
             backup_config: dict,
             error_config: bool = False,
             force: bool = False
-    ) -> None:  # v1.2.9 更正backup_config参数类型。
-        """备份当前的配置文件。"""
-        if backup_config != UserConfig.TEMPLATE or force:  # v1.2.9 修复比较变量错误的问题。
+    ) -> None:  # v1.2.9: correct the backup_config parameter type.
+        """Back up the current configuration file."""
+        if backup_config != UserConfig.TEMPLATE or force:  # v1.2.9: fix the incorrect variable comparison.
             backup_path: str = gen_backup_config(
                 old_path=self.config_path,
                 absolute_backup_dir=UserConfig.ABSOLUTE_BACKUP_DIRECTORY,
@@ -367,21 +367,21 @@ class UserConfig(BaseConfig):
             console.log('The configuration file matches the template; no backup is needed.')
 
     def config_guide(self) -> None:
-        """引导用户以交互式的方式修改、保存配置文件。"""
+        """Guide the user through editing and saving the configuration interactively."""
         exit_flag: bool = False
         pre_load_config: dict = self.load_config()
         gsp = GetStdioParams()
-        # v1.1.0 更替api_id和api_hash位置,与telegram申请的api位置对应以免输错。
+        # v1.1.0: reorder api_id and api_hash to match Telegram's application form and avoid input mistakes.
         try:
             if not self.modified and pre_load_config != UserConfig.TEMPLATE:
                 re_config: bool = False if PARSE_ARGS.quiet else gsp.get_is_re_config().get('is_re_config')
                 if re_config:
                     self.re_config = re_config
-                    # 缓存原有的session_directory，防止重新配置时丢失。
+                    # Cache the existing session_directory so it is not lost during reconfiguration.
                     origin_session_directory = pre_load_config.get('session_directory')
                     pre_load_config: dict = UserConfig.TEMPLATE.copy()
                     self.backup_config(backup_config=pre_load_config, error_config=False, force=True)
-                    self.get_last_history_record()  # 更新到上次填写的记录。
+                    self.get_last_history_record()  # Restore the most recently entered values.
                     if not PARSE_ARGS.session:
                         self.is_change_account = gsp.get_is_change_account(valid_format='y|n').get(
                             'is_change_account')
@@ -406,8 +406,8 @@ class UserConfig(BaseConfig):
             _proxy_port: Union[str, bool] = _proxy_config.get('port', False)
             _proxy_username: Union[str, bool] = _proxy_config.get('username', False)
             _proxy_password: Union[str, bool] = _proxy_config.get('password', False)
-            proxy_record: dict = self.last_record.get('proxy', {})  # proxy的历史记录。
-            enable_bot: bool = False  # 是否打开机器人。
+            proxy_record: dict = self.last_record.get('proxy', {})  # Previous proxy settings.
+            enable_bot: bool = False  # Whether to enable the bot.
             if any([not _api_id, not _api_hash, not _save_directory, not _max_download_task, not _download_type]):
                 console.print('Note: press Enter to use the previous value.',
                               style='#B1DB74')
@@ -473,7 +473,7 @@ class UserConfig(BaseConfig):
                 if _is_shutdown_record_flag:
                     self.record_flag = True
                     pre_load_config['is_shutdown'] = is_shutdown
-            # 是否开启代理
+            # Ask whether to enable the proxy.
             if not _enable_proxy and self.re_config:
                 valid_format: str = 'y|n'
                 is_enable_proxy, is_ep_record_flag = gsp.get_enable_proxy(
@@ -482,8 +482,8 @@ class UserConfig(BaseConfig):
                 if is_ep_record_flag:
                     self.record_flag = True
                     _proxy_config['enable_proxy'] = is_enable_proxy
-            # 如果需要使用代理。
-            # 如果上面配置的enable_proxy为True或本来配置文件中的enable_proxy就为True。
+            # Configure proxy details if needed.
+            # Continue if enable_proxy was selected above or was already true in the configuration.
             if _proxy_config.get('enable_proxy') is True or _enable_proxy is True:
                 if ProcessConfig.is_proxy_input(proxy_config=_proxy_config):
                     if not _proxy_scheme:
@@ -569,15 +569,15 @@ class UserConfig(BaseConfig):
             pre_load_config['temp_directory'] = _temp_directory
         else:
             pre_load_config['temp_directory'] = PARSE_ARGS.temp
-        self.save_config(pre_load_config)  # v1.3.0 修复不保存配置文件时,配置文件仍然保存的问题。
+        self.save_config(pre_load_config)  # v1.3.0: fix saving the configuration even when the user chose not to save it.
 
     def save_config(self, config: dict) -> bool:
         temp_path: str = f'{self.config_path}.temp'
-        with UserConfig.CONFIG_LOCK:  # 锁内只有同步文件IO(不含await、不调用其它加锁方法),不会死锁。
+        with UserConfig.CONFIG_LOCK:  # Only synchronous file I/O occurs inside the lock (no await or nested lock calls), so this cannot deadlock.
             try:
                 with open(file=temp_path, mode='w', encoding='UTF-8') as f:
                     yaml.dump(config, f)
-                os.replace(temp_path, self.config_path)  # 同一目录内的替换是原子操作。
+                os.replace(temp_path, self.config_path)  # Replacing a file within the same directory is atomic.
             except Exception as e:
                 log.error(f'Failed to save configuration file, {_t(KeyWord.REASON)}:"{e}"')
                 return False
@@ -667,17 +667,17 @@ class GlobalConfig(BaseConfig):
         if config is None:
             config = {}
 
-        # 处理父级参数。
+        # Process top-level parameters.
         self.add_missing_keys(
             target=config,
             template=self.TEMPLATE,
             log_message='"{}" is missing from the global configuration; added.'
         )
-        # 处理嵌套参数。
+        # Process nested parameters.
         self.process_nesting(param_name='export_table', config=config)
         self.process_nesting(param_name='upload', config=config)
         self.process_nesting(param_name='forward_type', config=config)
-        # 校验授权用户列表,仅保留整数类型的用户ID。
+        # Validate the authorized-user list and retain only integer user IDs.
         authorized_users: Union[list, object] = config.get('authorized_users')
         if not isinstance(authorized_users, list):
             config['authorized_users'] = []
@@ -686,7 +686,7 @@ class GlobalConfig(BaseConfig):
                 uid for uid in authorized_users
                 if isinstance(uid, int)
             ]
-        # 删除父级模板中没有的字段。
+        # Remove fields that are not in the top-level template.
         self.remove_extra_keys(
             target=config,
             template=self.TEMPLATE,

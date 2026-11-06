@@ -53,10 +53,10 @@ class Application(UserConfig, StatisticalTable):
         self.client = self.build_client()
         self.check_download_type()
         self.current_task_num: int = 0
-        self.is_paused: bool = False  # 全局暂停开关,为真时调度器不再派发新下载/上传,转发操作亦等待恢复。
+        self.is_paused: bool = False  # Global pause flag: when true, the scheduler stops dispatching downloads/uploads and forwarding waits until resumed.
 
     def build_client(self) -> pyrogram.Client:
-        """用填写的配置文件,构造pyrogram客户端。"""
+        """Build the Pyrogram client from the configured settings."""
         os.makedirs(self.work_directory, exist_ok=True)
         client = TelegramRestrictedMediaDownloaderClient(
             name=SOFTWARE_FULL_NAME.replace(' ', ''),
@@ -67,13 +67,13 @@ class Application(UserConfig, StatisticalTable):
             app_version=Application.APP_VERSION,
             device_model=Application.DEVICE_MODEL
         )
-        # 用容量可调的信号量,网页面板修改并发数时只调整额度,不会丢弃正在传输所占用的名额。
+        # Adjustable semaphores let the web panel change concurrency without discarding slots held by active transfers.
         client.get_file_semaphore = AdjustableSemaphore(self.max_download_task)
         client.save_file_semaphore = AdjustableSemaphore(self.max_upload_task)
         return client
 
     def process_shutdown(self, second: int) -> None:
-        """处理关机逻辑。"""
+        """Handle shutdown behavior."""
         self.shutdown_task(second=second) if self.config.get('is_shutdown') else None
 
     def get_temp_file_path(
@@ -81,7 +81,7 @@ class Application(UserConfig, StatisticalTable):
             message: pyrogram.types.Message,
             dtype: str
     ) -> str:
-        """获取下载文件时的临时保存路径。"""
+        """Get the temporary save path for a file being downloaded."""
 
         def splice_chat_id(_file_name) -> str:
             try:
@@ -126,11 +126,11 @@ class Application(UserConfig, StatisticalTable):
         return wrapper
 
     def increase_task_num(self) -> None:
-        """递增当前下载任务数。"""
+        """Increment the current download task count."""
         self.current_task_num += 1
 
     def decrease_task_num(self) -> None:
-        """递减当前下载任务数。"""
+        """Decrement the current download task count."""
         self.current_task_num -= 1
 
     def update_download_status(
@@ -180,9 +180,9 @@ class Application(UserConfig, StatisticalTable):
             target_set = type_to_skip[download_type]
         else:
             return
-        # 同一文件只计入一种状态:写入目标集合前,先从同类型的其它状态集合中移除该文件。
-        # 成功记录为临时路径(带 .temp)、失败记录为最终路径,故按"去掉.temp后缀的归一化文件名"匹配。
-        # 兼容同一文件重试成功的情况,又避免仅按basename误删其它同名但不同的文件。
+        # Count a file in only one status: remove it from the other status sets of the same type before adding it to the target set.
+        # Successful records use temporary paths (with a .temp suffix), while failures use final paths, so compare normalized names without .temp.
+        # This supports a retry succeeding while avoiding accidental removal of different files that share a basename.
         base_name: str = os.path.basename(str(file_name))
         norm_name: str = base_name[:-len('.temp')] if base_name.lower().endswith('.temp') else base_name
         for other_set in (type_to_success[download_type], type_to_failure[download_type], type_to_skip[download_type]):
@@ -199,7 +199,7 @@ class Application(UserConfig, StatisticalTable):
         target_set.add(file_name)
 
     def get_download_type(self, message: pyrogram.types.Message, default_type: str) -> str:
-        """获取消息的下载类型,只用于展示,不记录任何统计信息。"""
+        """Get the message's download type for display only; do not record statistics."""
         return get_message_dtype(message, self.download_type) or default_type or 'unknown_type'
 
     @on_record  # noqa.
@@ -222,29 +222,29 @@ class Application(UserConfig, StatisticalTable):
         console.log('No supported download types were selected. All supported types have been enabled by [#f08a5d]default[/#f08a5d].')
 
     def shutdown_task(self, second: int) -> None:
-        """下载完成后自动关机的功能。"""
+        """Shut down automatically after downloads finish."""
         try:
             if self.platform == 'Windows':
-                # 启动关机命令 目前只支持对 Windows 系统的关机。
+                # Start the shutdown command; currently only Windows shutdown is supported here.
                 shutdown_command: str = f'shutdown -s -t {second}'
-                subprocess.Popen(shutdown_command, shell=True)  # 异步执行关机。
+                subprocess.Popen(shutdown_command, shell=True)  # Run shutdown asynchronously.
             else:
                 shutdown_command: str = f'shutdown -h +{second // 60}'
-                subprocess.Popen(shutdown_command, shell=True)  # 异步执行关机。
-            # 实时显示倒计时。
+                subprocess.Popen(shutdown_command, shell=True)  # Run shutdown asynchronously.
+            # Display the countdown in real time.
             for remaining in range(second, 0, -1):
                 console.print(f'Shutting down in {remaining} seconds. Press CTRL+C to cancel.', end='\r', style='#ff4805')
                 time.sleep(1)
             console.print('\nShutdown is about to begin!', style='#f6ad00')
         except KeyboardInterrupt:
             cancel_flag: bool = False
-            # 如果用户按下 CTRL+C，取消关机。
+            # Cancel shutdown if the user presses CTRL+C.
             if self.platform == 'Windows':
-                subprocess.Popen('shutdown -a', shell=True)  # 取消关机。
+                subprocess.Popen('shutdown -a', shell=True)  # Cancel shutdown.
                 cancel_flag: bool = True
             else:
                 try:
-                    # Linux/macOS 取消关机命令。
+                    # Linux/macOS shutdown cancellation command.
                     subprocess.Popen('shutdown -c', shell=True)
                     cancel_flag: bool = True
                 except Exception as e:
@@ -264,13 +264,13 @@ class DownloadFileName:
         self.download_type = download_type
 
     def get_video_filename(self):
-        """处理视频文件的文件名。"""
-        default_mtype: str = 'video/mp4'  # v1.2.8 健全获取文件名逻辑。
+        """Handle video filenames."""
+        default_mtype: str = 'video/mp4'  # v1.2.8: improve filename retrieval.
         media_object = getattr(self.message, self.download_type)
-        title: Union[str, None] = getattr(media_object, 'file_name', None)  # v1.2.8 修复当文件名不存在时,下载报错问题。
+        title: Union[str, None] = getattr(media_object, 'file_name', None)  # v1.2.8: fix download errors when the filename is missing.
         try:
             if isinstance(title, str):
-                if title.lower().startswith('video_'):  # v1.5.6 尝试修复以日期命名的标题重复下载的问题。
+                if title.lower().startswith('video_'):  # v1.5.6: attempt to prevent duplicate downloads of date-named titles.
                     title = None
             if title is None:
                 title: str = 'None'
@@ -290,8 +290,8 @@ class DownloadFileName:
         )
 
     def get_photo_filename(self):
-        """处理图片文件的文件名。"""
-        default_mtype: str = 'image/jpg'  # v1.2.8 健全获取文件名逻辑。
+        """Handle image filenames."""
+        default_mtype: str = 'image/jpg'  # v1.2.8: improve filename retrieval.
         media_object = getattr(self.message, self.download_type)
         extension: str = 'unknown'
         if self.download_type == DownloadType.LIVE_PHOTO:
@@ -316,7 +316,7 @@ class DownloadFileName:
         )
 
     def get_document_filename(self):
-        """处理文档文件的文件名。"""
+        """Handle document filenames."""
         try:
             document_obj = getattr(self.message, self.download_type)
             _mime_type = getattr(document_obj, 'mime_type')

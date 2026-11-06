@@ -39,12 +39,12 @@ from module.enums import (
 
 
 class DownloadTask:
-    """下载任务,按链接维护待下载的消息与其下载进度统计。"""
+    """Track pending messages and download progress for each link."""
 
-    TASKS: dict = {}  # 链接 -> DownloadTask。
-    ORDER: list = []  # 链接首次出现的顺序,调度器按此顺序派发。
-    DOWNLOADING_KEYS: set = set()  # (chat_id, message_id) -> 正在下载中的消息,防止不同链接(如媒体组与组内单条?single)并发下载同一消息导致数据竞争。
-    PENDING_ENQUEUE: set = set()  # 已发起解析但尚未入队的链接,解析期间该消息在任务体系中不存在任何对象,供上传侧媒体组轮询判定"是否还有成员未入队"。
+    TASKS: dict = {}  # Link -> DownloadTask.
+    ORDER: list = []  # Links in first-seen order; the scheduler dispatches them in this order.
+    DOWNLOADING_KEYS: set = set()  # (chat_id, message_id) -> message currently downloading; prevents concurrent downloads of the same message through different links (e.g. a media group and one item), avoiding a race condition.
+    PENDING_ENQUEUE: set = set()  # Links being parsed but not yet queued; no task object exists during parsing. Used by upload-side media-group polling to check whether any members are not yet queued.
 
     def __init__(self, link: Union[str, int]):
         self.link: str = str(link)
@@ -54,20 +54,20 @@ class DownloadTask:
         self.complete_num: int = 0
         self.file_name: set = set()
         self.error_msg: dict = {}
-        self.fail_id: set = set()  # 已彻底失败(重试耗尽)的消息ID。
-        self.items: dict = {}  # 消息ID -> 待下载消息(dict,字段见add_item)。
-        self.member_info: dict = {}  # 消息ID -> 该链接下消息的展示信息与状态,完成后不移除。
-        self.max_retry: int = 0  # 该任务锁定的下载重试上限(首次创建时写入,重试沿用);0表示尚未锁定。
-        self.owner: Union[int, None] = None  # 创建该任务的用户ID,用于「谁创建就通知谁」。
+        self.fail_id: set = set()  # Message IDs that permanently failed (retries exhausted).
+        self.items: dict = {}  # Message ID -> pending message (dict; see add_item for fields).
+        self.member_info: dict = {}  # Message ID -> display info and status for this link; retained after completion.
+        self.max_retry: int = 0  # Retry limit locked for this task (set on first creation and reused for retries); 0 means not yet locked.
+        self.owner: Union[int, None] = None  # ID of the user who created this task, used to notify that user.
 
     @property
     def fail_num(self) -> int:
-        """彻底失败(重试耗尽)的文件数。"""
+        """Number of files that permanently failed (retries exhausted)."""
         return len(self.fail_id)
 
     @classmethod
     def get_or_create(cls, link: Union[str, int]) -> 'DownloadTask':
-        """获取链接对应的下载任务,不存在时创建并记录顺序。"""
+        """Get the download task for a link, creating it and recording its order if needed."""
         _link: str = str(link)
         task: Union[DownloadTask, None] = cls.TASKS.get(_link)
         if task is None:
@@ -78,12 +78,12 @@ class DownloadTask:
 
     @classmethod
     def get(cls, link: Union[str, int, None]) -> Union['DownloadTask', None]:
-        """获取链接对应的下载任务。"""
+        """Get the download task for a link."""
         return cls.TASKS.get(str(link))
 
     @classmethod
     def ordered_tasks(cls) -> list:
-        """按链接首次出现的顺序返回下载任务。"""
+        """Return download tasks in the order their links first appeared."""
         return [cls.TASKS[link] for link in list(cls.ORDER) if link in cls.TASKS]
 
     @classmethod
@@ -97,26 +97,28 @@ class DownloadTask:
             with_upload: Optional[dict] = None,
             diy_download_type: Optional[list] = None
     ) -> None:
-        """将消息加入下载任务,已存在时重置为排队状态。"""
+        """Add messages to a download task, resetting existing ones to the queued state."""
         task: DownloadTask = cls.get_or_create(link)
         messages: list = message if isinstance(message, list) else [message]
         retry_dict: dict = retry if retry else {'id': -1, 'count': 0}
         retry_id: int = int(retry_dict.get('id') or -1)
         retry_count: int = int(retry_dict.get('count') or 0)
         if retry_count == 0:
-            task.clear_error()  # 非重试(重新拉取)的任务,清空该链接此前的失败记录。
+            task.clear_error()  # For a fresh fetch (not a retry), clear previous failures for this link.
             task.clear_fail()
-            task.clear_file_name()  # 归零完成数,避免复用旧任务导致完成通知重复触发。
+            task.clear_file_name()  # Reset the completed count to avoid duplicate completion notices when reusing an old task.
         for _message in messages:
             key: int = int(getattr(_message, 'id', 0))
             if retry_count != 0 and key != retry_id:
-                continue  # 重试时只保留需要重试的那条消息,避免整个媒体组被重复排队。
-            task.remove_fail(message_id=key)  # 重新排队(含重试)时,清除该消息的失败记录。
+                continue  # On retry, keep only the message being retried; do not queue the entire media group again.
+            task.remove_fail(message_id=key)  # Clear the message's failure record when re-queuing it, including retries.
             existing: Union[dict, None] = task.items.get(key)
             current_status: Optional[str] = existing.get('status') if existing else None
-            # 正在下载中的消息不降级为排队:避免面板把"下载中"误显示为"队列中",也避免被调度器重复拉起。
-            # 例外: 若该消息已无活动下载协程占用(DOWNLOADING_KEYS不含其键, 说明此前崩溃/被强杀后未回写终态)。
-            # 则视为孤儿并恢复为排队,避免重拉链接时永久卡在DOWNLOADING。
+            # Do not downgrade a downloading message to queued: this prevents the panel from showing it as queued
+            # and prevents the scheduler from starting it again.
+            # Exception: if no active download coroutine holds the message (its key is absent from DOWNLOADING_KEYS,
+            # indicating a prior crash or forced termination before a terminal status was written),
+            # treat it as orphaned and re-queue it so re-fetching the link does not leave it stuck in DOWNLOADING.
             dl_key = cls.download_key(_message, key)
             orphan_downloading: bool = (
                     current_status == DownloadStatus.DOWNLOADING
@@ -124,9 +126,9 @@ class DownloadTask:
                     and dl_key not in cls.DOWNLOADING_KEYS
             )
             if orphan_downloading:
-                cls.DOWNLOADING_KEYS.discard(dl_key)  # 防御性清理可能残留的占用标记。
+                cls.DOWNLOADING_KEYS.discard(dl_key)  # Defensively clear a possibly stale reservation marker.
             re_enqueue: bool = current_status != DownloadStatus.DOWNLOADING or orphan_downloading
-            task.update_member(  # 登记链接成员,包括下载完成后仍需展示的消息。
+            task.update_member(  # Register the link member, including messages that remain visible after download.
                 message_id=key,
                 status=DownloadStatus.PENDING if re_enqueue else None,
                 date=str(getattr(_message, 'date', '') or '')[:10]
@@ -143,14 +145,14 @@ class DownloadTask:
                     'diy_download_type': diy_download_type,
                     'status': DownloadStatus.PENDING,
                     'create_time': time.time(),
-                    'meta': None  # 网页面板的展示信息缓存。
+                    'meta': None  # Cached display metadata for the web panel.
                 }
             elif re_enqueue:
-                item['status'] = DownloadStatus.PENDING  # 重试时重置状态。
-            # 正在下载中(re_enqueue 为 False)时保留原状态,不做降级。
+                item['status'] = DownloadStatus.PENDING  # Reset the status for a retry.
+            # Keep the existing status while downloading (when re_enqueue is False); do not downgrade it.
 
     def set_item_status(self, message_id: Union[int, str], status: str) -> None:
-        """设置指定消息的排队状态,并同步到链接成员。"""
+        """Set the queued status for a message and sync it to the link member."""
         item: Union[dict, None] = self.items.get(int(message_id))
         if item is not None:
             item['status'] = status
@@ -167,7 +169,7 @@ class DownloadTask:
             task_id: Optional[int] = None,
             note: Optional[str] = None
     ) -> None:
-        """登记或更新链接下某个消息成员的展示信息与状态。"""
+        """Register or update the display information and status of a message under a link."""
         key: int = int(message_id)
         member: dict = self.member_info.get(key) or {
             'name': f'Message {key}',
@@ -195,17 +197,17 @@ class DownloadTask:
         self.member_info[key] = member
 
     def remove_item(self, message_id: Union[int, str]) -> None:
-        """从下载任务中移除指定的消息。"""
+        """Remove the specified message from the download task."""
         self.items.pop(int(message_id), None)
 
     def get_pending_items(self, limit: int = 50) -> dict:
-        """获取该下载任务中排队(PENDING)的消息。"""
+        """Get the PENDING messages queued in this download task."""
         items: list = [item for item in self.items.values() if item.get('status') == DownloadStatus.PENDING]
         return {'items': items[:limit], 'total': len(items)}
 
     @classmethod
     def queued_items(cls, limit: int = 50) -> list:
-        """获取尚未开始下载(PENDING)的消息。"""
+        """Get PENDING messages whose downloads have not started yet."""
         result: list = []
         for task in cls.ordered_tasks():
             for item in task.items.values():
@@ -216,26 +218,28 @@ class DownloadTask:
     @classmethod
     def download_key(cls, message: Union['pyrogram.types.Message', None], message_id: Union[int, str, None] = None) -> \
             Union[tuple, None]:
-        """构造下载占用键(chat_id, message_id),message.chat为空时返回None。
+        """Build a download reservation key (chat_id, message_id); return None if message.chat is missing.
 
-        用于DOWNLOADING_KEYS的并发去重。部分消息(如由序列化进度重建的消息)的
-        message.chat可能为None,此时无法形成有效去重键,返回None交由调用方跳过去重判定。
+        Used for concurrent deduplication via DOWNLOADING_KEYS. Some messages (such as those
+        reconstructed from serialized progress) may have message.chat set to None, in which case
+        no valid deduplication key can be built; return None so the caller can skip deduplication.
         """
         if not isinstance(message, pyrogram.types.Message):
             return None
         chat = getattr(message, 'chat', None)
         inner_message_id = getattr(message, 'id', None)
         if chat is None:
-            # 这类消息下载后通常落在UNKNOWN_CHAT_ID目录,可据此反查根因。
+            # These messages are usually saved under UNKNOWN_CHAT_ID, which can help trace the cause.
             log.warning(f'Message "{inner_message_id}" has no chat (it may have been deleted or be inaccessible); cannot build a download deduplication key, so concurrent deduplication was skipped.')
             return None
         return chat.id, message_id if message_id is not None else inner_message_id
 
     @classmethod
     def pick_pending(cls) -> Union[dict, None]:
-        """按链接首次出现的顺序取出一个排队(PENDING)中的消息。
+        """Pick a queued (PENDING) message in the order its link first appeared.
 
-        若消息已被其他任务占用(正在下载中),则跳过,避免相同消息被多个链接并发下载导致数据竞争。
+        Skip messages reserved by another task (currently downloading) to avoid concurrent
+        downloads of the same message through multiple links and the resulting race condition.
         """
         for task in cls.ordered_tasks():
             for item in task.items.values():
@@ -251,7 +255,7 @@ class DownloadTask:
 
     @classmethod
     def has_task(cls) -> bool:
-        """判断是否还存在未处理完毕或未开始的任务。"""
+        """Check whether any tasks are unfinished or have not started yet."""
         for task in cls.ordered_tasks():
             for item in task.items.values():
                 if item.get('status') in (DownloadStatus.PENDING, DownloadStatus.DOWNLOADING):
@@ -260,14 +264,15 @@ class DownloadTask:
 
     @classmethod
     def has_pending_message(cls, message_ids: set, chat_id: Optional[int] = None) -> bool:
-        """判断指定消息中是否仍有处于排队或下载中的项(按消息范围判定,不做全局检查)。
+        """Check whether any specified messages are queued or downloading (scoped to these messages).
 
         Args:
-            message_ids: 需要检查的message_id集合(如媒体组全部成员)。
-            chat_id: 原始频道ID。给出时按下载占用键(chat_id, message_id)精确匹配,用于捕捉"同一条消息正被其它链接并发下载中"的情况。
+            message_ids: Set of message IDs to check (for example, all members of a media group).
+            chat_id: Original channel ID. When provided, match the download reservation key
+                (chat_id, message_id) exactly to detect a message downloading through another link.
 
         Returns:
-            存在排队/下载中的成员返回True,否则False。
+            True if any member is queued or downloading; otherwise False.
         """
         if chat_id is not None:
             for message_id in message_ids:
@@ -289,47 +294,48 @@ class DownloadTask:
 
     @classmethod
     def has_pending_enqueue(cls) -> bool:
-        """判断是否还有已发起解析、尚未入队(items)的链接。
+        """Check whether any links have started parsing but have not yet been queued in items.
 
-        范围下载(如/forward受限回退)会把整段拆成逐条链接串行解析,解析完成前该消息
-        既不在DOWNLOADING_KEYS也不在items中,上传侧媒体组轮询会把它误判为"不存在"
-        而提前发出不完整的相册,迟到的成员再被单独发送,故解析期间在此登记。
+        Range downloads (such as the restricted /forward fallback) split a range into individual
+        links and parse them sequentially. Before parsing completes, a message is in neither
+        DOWNLOADING_KEYS nor items, so upload-side media-group polling may mistake it for absent
+        and send an incomplete album, with late members sent separately. Track links during parsing.
         """
         return bool(cls.PENDING_ENQUEUE)
 
     def add_file_name(self, file_name: str) -> None:
-        """记录已完成的文件名,并同步完成数。"""
+        """Record a completed file name and update the completion count."""
         self.file_name.add(file_name)
         self.complete_num = len(self.file_name)
 
     def set_error(self, value, key: Optional[str] = None) -> None:
-        """记录下载错误信息。"""
+        """Record download error information."""
         self.error_msg[key if key else 'all_member'] = value
 
     def clear_error(self, key: Optional[str] = None) -> None:
-        """清除下载错误信息,指定key时只清除该文件的失败记录。"""
+        """Clear download error information; if key is specified, clear only that file's failure record."""
         if key is None:
             self.error_msg.clear()
             return
         self.error_msg.pop(key, None)
 
     def add_fail(self, message_id: Union[int, str]) -> None:
-        """记录彻底失败(重试耗尽)的消息。"""
+        """Record a message that permanently failed (retries exhausted)."""
         self.fail_id.add(int(message_id))
 
     def remove_fail(self, message_id: Union[int, str]) -> None:
-        """移除消息的失败记录,该消息重新排队或下载成功时调用。"""
+        """Remove a message's failure record when it is re-queued or downloaded successfully."""
         self.fail_id.discard(int(message_id))
 
     def clear_fail(self) -> None:
-        """清空全部失败记录。"""
+        """Clear all failure records."""
         self.fail_id.clear()
 
     def clear_file_name(self) -> None:
-        """清空已完成文件名记录并归零完成数。
+        """Clear completed file-name records and reset the completion count.
 
-        重新拉取(非重试)同一链接时调用,避免复用旧任务的 complete_num
-        导致 done_notice 对同一链接重复触发完成通知。
+        Called when fetching the same link again (not a retry), to prevent a reused task's
+        complete_num from causing done_notice to send duplicate completion notices.
         """
         self.file_name.clear()
         self.complete_num = 0
@@ -347,8 +353,10 @@ class DownloadTask:
             e_code: Union[dict, None] = res.get('e_code')
             if status == DownloadStatus.FAILURE:
                 task.error_msg = e_code
-                # 链接级解析失败(如频道不存在/消息不存在)不会走 add_item,导致网页没有失败成员、无法归类到失败板块。
-                # 登记一个 message_id=-1 的哨兵失败成员(真实消息 id 从 1 起,-1 无歧义),让现有网页逻辑自然识别为失败。
+                # Link-level parse failures (such as a missing channel or message) bypass add_item,
+                # leaving the web panel without a failed member to classify in the failure section.
+                # Register a sentinel failed member with message_id=-1 (real message IDs start at 1),
+                # allowing the existing web-panel logic to recognize it as a failure.
                 fail_reason: str = (e_code or {}).get('error_msg') or (e_code or {}).get('all_member') or 'Download failed'
                 task.update_member(message_id=-1, status=DownloadStatus.FAILURE, name=fail_reason)
                 task.add_fail(-1)
@@ -367,7 +375,8 @@ class DownloadTask:
                         f'{_t(KeyWord.STATUS)}:{_t(DownloadStatus.FAILURE)}。'
                     )
             elif status == DownloadStatus.DOWNLOADING:
-                # 若同一链接此前曾解析失败(登记过 -1 哨兵成员/失败计数/错误),本次成功需清除,避免残留失败计数。
+                # If this link previously failed to parse (with a -1 sentinel, failure count, or error),
+                # clear those records now that parsing succeeded, so no failure count remains.
                 task.member_info.pop(-1, None)
                 task.fail_id.discard(-1)
                 task.error_msg = {}
@@ -406,9 +415,9 @@ class UploadTask:
     TASKS: set = set()
     TASK_COUNTER: int = 0
     NOTIFY: Optional[Callable] = None
-    # 正在上传中的本地文件路径 -> {'event': asyncio.Event, 'media': 已上传媒体的引用或None, 'success': bool}。
-    # 用于同一文件并发上传时,后续任务等待主导任务完成后复用其已上传的媒体引用。
-    # 直接发往自己的频道,避免重复上传与源文件删除竞争(源文件仅由主导任务删除)。
+    # Local file path being uploaded -> {'event': asyncio.Event, 'media': reference to uploaded media or None, 'success': bool}.
+    # When the same file is uploaded concurrently, later tasks wait for the lead task and reuse its uploaded media reference.
+    # Send directly to our own channel to avoid duplicate uploads and races over source-file deletion (only the lead task deletes it).
     UPLOADING_KEYS: dict = {}
 
     def __init__(
@@ -430,7 +439,7 @@ class UploadTask:
     ):
         UploadTask.TASKS.add(self)
         UploadTask.TASK_COUNTER += 1
-        self.owner: Union[int, None] = owner  # 创建该任务的用户ID,用于「谁创建就通知谁」。
+        self.owner: Union[int, None] = owner  # ID of the user who created this task, used to notify that user.
         self.chat_id: Union[str, int, None] = chat_id
         self.file_path: str = file_path
         self.file_name: str = os.path.basename(file_path)
@@ -448,7 +457,7 @@ class UploadTask:
         self.caption_entities: Union[list, None] = caption_entities
         self.sha256: str = calc_sha256(file_path=self.file_path)
         self.prompt: str = ''
-        self.task_id: Union[int, None] = None  # 进度条任务ID,供网页面板关联上传进度。
+        self.task_id: Union[int, None] = None  # Progress-bar task ID, used by the web panel to associate upload progress.
 
     def __setattr__(self, name, value):
         if name.startswith('_'):
@@ -572,7 +581,7 @@ class UploadTask:
             self.save_json()
 
     def reset_upload(self, file_id: int):
-        """丢弃历史分片缓存,改用新的file_id重新上传全部分片。"""
+        """Discard the cached chunk history and re-upload all chunks using a new file_id."""
         self.file_id = file_id
         self.file_part = []
         self.save_json()
@@ -582,37 +591,46 @@ class UploadTask:
             message_ids: Optional[set] = None,
             origin_chat_id: Optional[int] = None
     ) -> bool:
-        """检查是否还有PENDING/UPLOADING状态且属于媒体组的上传任务,或本媒体组成员仍在下载中。
-        仅判断上传队列不足以判定媒体组是否已齐:某成员可能仍处于下载阶段、尚未生成上传任务,此时若判定为"无待处理"会提前发出不完整的相册,因此同时检查下载任务。
-        链接解析阶段的消息在任务体系中不存在任何对象,故还需检查尚未入队的链接。
+        """Check for pending or uploading media-group tasks, or group members still downloading.
+
+        Checking only the upload queue cannot confirm that a media group is complete: a member may
+        still be downloading and have no upload task yet. Treating the group as complete then would
+        send an incomplete album, so also check download tasks. Messages being parsed are not yet
+        represented in the task system, so links not yet queued must also be checked.
+
         Args:
-            message_ids: 本媒体组成员的message_id集合。给出时只检查这些消息的下载状态,避免被无关的下载任务拖住;不给出则退化为全局检查。
-            origin_chat_id: 原始频道ID,配合message_ids精确匹配下载占用键。
+            message_ids: Set of message IDs in this media group. When provided, check only their
+                download status to avoid waiting on unrelated tasks; otherwise check globally.
+            origin_chat_id: Original channel ID, used with message_ids to match download reservations exactly.
         """
-        # 命令层还有链接未入队:这些成员尚未进入任务体系,与"没有待处理任务"是两回事,必须继续等待,
-        # 否则媒体组会提前发出不完整的相册,迟到的成员再被单独发送。
+        # Links remain unqueued at the command layer, so their members are not yet in the task system.
+        # This is different from having no pending tasks: keep waiting, or an incomplete album may be sent
+        # before late-arriving members are sent separately.
         if DownloadTask.PENDING_ENQUEUE:
             return True
         for task in UploadTask.TASKS:
             if task.status in (UploadStatus.PENDING, UploadStatus.UPLOADING) and task.is_media_group:
                 return True
-        # 同时检查本媒体组成员是否仍在下载中(PENDING/DOWNLOADING),避免成员还在下载就被误判为已齐。
+        # Also check whether this media group's members are still downloading (PENDING/DOWNLOADING),
+        # so the group is not mistaken for complete while a member is still downloading.
         if not message_ids:
             return DownloadTask.has_task()
         return DownloadTask.has_pending_message(message_ids=message_ids, chat_id=origin_chat_id)
 
     @staticmethod
     def get_media_group_task_count(message_ids: set) -> int:
-        """获取指定media_group_id和message_ids列表中已创建的UploadTask数量。
+        """Count created UploadTasks for the specified media_group_id and message_ids.
 
         Args:
-            message_ids: 需要检查的message_id集合。
+            message_ids: Set of message IDs to check.
 
         Returns:
-            int: 已创建的UploadTask数量(排除已发送与已失败的任务)。
-        失败任务(如超过上传大小限制、重试耗尽)永远不会再被收集,若计入会让媒体组
-        轮询的 created_count == collected_count 永不成立,导致整个相册卡死发不出去,
-        故与SENT一并排除,使相册能照常发出其余成功的成员。
+            int: Number of created UploadTasks, excluding sent and failed tasks.
+
+        Failed tasks (for example, files exceeding the upload size limit or exhausted retries) will
+        never be collected again. Counting them would prevent the media-group poll's
+        created_count == collected_count condition from ever becoming true, leaving the album stuck.
+        Exclude them along with SENT tasks so the remaining successful members can be sent.
         """
         if not message_ids:
             return 0
@@ -625,7 +643,7 @@ class UploadTask:
         return count
 
     def get_missing_parts(self) -> list:
-        """获取缺失的分片索引。"""
+        """Get the indexes of missing chunks."""
         valid_parts = []
         for part in self.file_part:
             if isinstance(part, int) and 0 <= part < self.file_total_parts and part not in valid_parts:
